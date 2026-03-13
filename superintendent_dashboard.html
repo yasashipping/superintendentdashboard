@@ -1644,7 +1644,8 @@ function loadSavedData() {
     }
   } catch(e) { console.log('No saved state'); }
   // Guard: if somehow no state was found at all, ensure dropdowns are populated
-  if (!document.querySelector('#marineFilter option[value!=""]')) rebuildDropdowns();
+  const marineOpts = document.querySelectorAll('#marineFilter option');
+  if (marineOpts.length <= 1) rebuildDropdowns();
 }
 
 function saveState() {
@@ -3338,22 +3339,40 @@ async function cloudInit() {
   const avatarEl = document.getElementById('userAvatar');
   console.log('[Cloud] Base URL:', _spBase());
   try {
-    _currentUser = await _getUser();
-    console.log('[Cloud] User:', _currentUser);
-    if (_currentUser) {
-      nameEl.textContent   = _currentUser.name;
-      avatarEl.textContent = _currentUser.name.charAt(0).toUpperCase();
-      _cloudReady = true;
-      if (status) status.textContent = '🔄';
-      await cloudLoad();
-      if (status) status.textContent = '☁️';
+    // Initialize MSAL and attempt silent login first
+    const app = _initMsal();
+    await app.handleRedirectPromise().catch(() => {});
+
+    let accounts = app.getAllAccounts();
+    if (accounts.length === 0) {
+      // No cached session — trigger login popup immediately
+      console.log('[Cloud] No cached account, triggering login popup...');
+      if (status) status.textContent = '🔑';
+      try {
+        const res = await app.loginPopup({ scopes: MSAL_SCOPES });
+        _msalAccount = res.account;
+        accounts = [res.account];
+      } catch(loginErr) {
+        console.warn('[Cloud] Login popup failed/cancelled:', loginErr);
+        if (nameEl) nameEl.textContent = 'Not signed in';
+        if (status) status.textContent = '⚠️';
+        return;
+      }
     } else {
-      nameEl.textContent   = 'Not signed in';
-      if (status) status.textContent = '⚠️';
+      _msalAccount = accounts[0];
     }
+
+    _currentUser = { name: _msalAccount.name || _msalAccount.username, email: _msalAccount.username };
+    console.log('[Cloud] User:', _currentUser);
+    if (nameEl) nameEl.textContent = _currentUser.name;
+    if (avatarEl) avatarEl.textContent = _currentUser.name.charAt(0).toUpperCase();
+    _cloudReady = true;
+    if (status) status.textContent = '🔄';
+    await cloudLoad();
+    if (status) status.textContent = '☁️';
   } catch(e) {
     console.warn('cloudInit failed:', e);
-    nameEl.textContent = 'Offline mode';
+    if (nameEl) nameEl.textContent = 'Offline mode';
     if (status) status.textContent = '⚠️';
   }
 }
