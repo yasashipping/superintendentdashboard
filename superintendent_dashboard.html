@@ -1647,7 +1647,7 @@ function loadSavedData() {
     }
   } catch(e) { console.log('No saved state'); }
   // Guard: if somehow no state was found at all, ensure dropdowns are populated
-  if (!document.querySelector('#marineFilter option[value!=""]')) rebuildDropdowns();
+  if (!document.querySelector('#marineFilter option:not([value=""])')) rebuildDropdowns();
 }
 
 function saveState() {
