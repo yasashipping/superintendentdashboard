@@ -3014,15 +3014,15 @@ window.lsaHandleFile = function(e) {
 //  Works from any domain (GitHub Pages, local, etc.)
 // ══════════════════════════════════════════════════════════════════
 
-const CLOUD_SP_HOST     = 'https://yasaholding.sharepoint.com';
-const CLOUD_SITE_PATH   = '/sites/Marinesuperintendent';
-const CLOUD_FILE_FOLDER = 'Shared Documents/YASA Marine Dashboard';
-const CLOUD_FILE_NAME   = 'dashboard-data.json';
+var CLOUD_SP_HOST     = 'https://yasaholding.sharepoint.com';
+var CLOUD_SITE_PATH   = '/sites/Marinesuperintendent';
+var CLOUD_FILE_FOLDER = 'Shared Documents/YASA Marine Dashboard';
+var CLOUD_FILE_NAME   = 'dashboard-data.json';
 
 // Azure App Registration
-const MSAL_CLIENT_ID = 'fd5e2c28-7c0d-4770-8a6d-01af9236faa4';
-const MSAL_TENANT_ID = 'd153c3ba-e435-41de-a598-fb76ad7bf301';
-const MSAL_SCOPES    = ['https://yasaholding.sharepoint.com/AllSites.Write'];
+var MSAL_CLIENT_ID = 'fd5e2c28-7c0d-4770-8a6d-01af9236faa4';
+var MSAL_TENANT_ID = 'd153c3ba-e435-41de-a598-fb76ad7bf301';
+var MSAL_SCOPES    = ['https://yasaholding.sharepoint.com/AllSites.Write'];
 
 var _cloudReady  = false;
 var _currentUser = null;
