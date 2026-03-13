@@ -3009,219 +3009,42 @@ window.lsaHandleFile = function(e) {
 };
 
 // ══════════════════════════════════════════════════════════════════
-//  SHAREPOINT AUTH — OAuth2 PKCE (no external library)
+//  CLOUD SYNC — JSONBin.io (no OAuth, no login required)
 // ══════════════════════════════════════════════════════════════════
 
-var CLOUD_CLIENT_ID   = 'fd5e2c28-7c0d-4770-8a6d-01af9236faa4';
-var CLOUD_TENANT_ID   = 'd153c3ba-e435-41de-a598-fb76ad7bf301';
-var CLOUD_SP_RESOURCE = 'https://yasaholding.sharepoint.com';
-var CLOUD_SCOPE       = 'https://yasaholding.sharepoint.com/AllSites.Write openid profile';
-var CLOUD_REDIRECT = 'https://bedir-sys.github.io/marine/superintendent_dashboard.html';
+var JSONBIN_BIN_ID  = '69b43178aa77b81da9e0a21d';
+var JSONBIN_API_KEY = '$2a$10$ObS5Kuheoa0pSHtP05h2f.qgM3xskVC0HBQayELUE8EGcMR/hxq/S';
+var JSONBIN_BASE    = 'https://api.jsonbin.io/v3/b/' + JSONBIN_BIN_ID;
 
-var _cloudReady    = false;
-var _currentUser   = null;
-var _saveTimer     = null;
-var _accessToken   = null;
-var _tokenExpiry   = 0;
-var _requestDigest = null;
-var _digestExpiry  = 0;
-
-// ── SharePoint base URL ───────────────────────────────────────
-function _spBase() { return 'https://yasaholding.sharepoint.com/sites/Marinesuperintendent'; }
-
-// ── PKCE helpers ─────────────────────────────────────────────
-function _base64url(buf) {
-  return btoa(String.fromCharCode.apply(null, new Uint8Array(buf)))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-}
-async function _generatePKCE() {
-  var verifier = _base64url(crypto.getRandomValues(new Uint8Array(32)));
-  var digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
-  return { verifier: verifier, challenge: _base64url(digest) };
-}
-
-// ── Start OAuth2 login redirect ───────────────────────────────
-async function _startLogin() {
-  var pkce = await _generatePKCE();
-  var state = _base64url(crypto.getRandomValues(new Uint8Array(16)));
-  sessionStorage.setItem('oauth_verifier', pkce.verifier);
-  sessionStorage.setItem('oauth_state', state);
-  var params = new URLSearchParams({
-    client_id:             CLOUD_CLIENT_ID,
-    response_type:         'code',
-    redirect_uri:          CLOUD_REDIRECT,
-    scope:                 CLOUD_SCOPE,
-    state:                 state,
-    code_challenge:        pkce.challenge,
-    code_challenge_method: 'S256',
-    response_mode:         'query'
-  });
-  window.location.href = 'https://login.microsoftonline.com/' + CLOUD_TENANT_ID + '/oauth2/v2.0/authorize?' + params.toString();
-}
-
-// ── Exchange auth code for token ──────────────────────────────
-async function _exchangeCode(code) {
-  var verifier = sessionStorage.getItem('oauth_verifier');
-  if (!verifier) throw new Error('No code verifier found — please try signing in again');
-  var body = new URLSearchParams({
-    client_id:     CLOUD_CLIENT_ID,
-    grant_type:    'authorization_code',
-    code:          code,
-    redirect_uri:  CLOUD_REDIRECT,
-    scope:         CLOUD_SCOPE,
-    code_verifier: verifier
-  });
-  var res = await fetch('https://login.microsoftonline.com/' + CLOUD_TENANT_ID + '/oauth2/v2.0/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString()
-  });
-  if (!res.ok) {
-    var errBody = await res.text();
-    console.error('[Cloud] Token exchange error body:', errBody);
-    console.error('[Cloud] redirect_uri used:', CLOUD_REDIRECT);
-    console.error('[Cloud] verifier present:', !!verifier);
-    throw new Error('Token exchange failed: ' + res.status);
-  }
-  var data = await res.json();
-  _accessToken = data.access_token;
-  _tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
-  localStorage.setItem('oauth_token', data.access_token);
-  localStorage.setItem('oauth_expiry', String(_tokenExpiry));
-  if (data.refresh_token) localStorage.setItem('oauth_refresh', data.refresh_token);
-  // Clean up PKCE state
-  sessionStorage.removeItem('oauth_verifier');
-  sessionStorage.removeItem('oauth_state');
-  // Remove code from URL
-  window.history.replaceState({}, document.title, CLOUD_REDIRECT);
-  // Parse name from id_token if present
-  if (data.id_token) {
-    try {
-      var payload = JSON.parse(atob(data.id_token.split('.')[1]));
-      localStorage.setItem('oauth_name', payload.name || payload.preferred_username || '');
-      localStorage.setItem('oauth_email', payload.preferred_username || '');
-    } catch(e) {}
-  }
-  return data.access_token;
-}
-
-// ── Refresh token ─────────────────────────────────────────────
-async function _refreshToken() {
-  var refresh = localStorage.getItem('oauth_refresh');
-  if (!refresh) return null;
-  var body = new URLSearchParams({
-    client_id:     CLOUD_CLIENT_ID,
-    grant_type:    'refresh_token',
-    refresh_token: refresh,
-    scope:         CLOUD_SCOPE
-  });
-  try {
-    var res = await fetch('https://login.microsoftonline.com/' + CLOUD_TENANT_ID + '/oauth2/v2.0/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body.toString()
-    });
-    if (!res.ok) return null;
-    var data = await res.json();
-    _accessToken = data.access_token;
-    _tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
-    localStorage.setItem('oauth_token', data.access_token);
-    localStorage.setItem('oauth_expiry', String(_tokenExpiry));
-    if (data.refresh_token) localStorage.setItem('oauth_refresh', data.refresh_token);
-    return data.access_token;
-  } catch(e) { return null; }
-}
-
-// ── Get valid token ───────────────────────────────────────────
-async function _getToken() {
-  if (_accessToken && Date.now() < _tokenExpiry) return _accessToken;
-  // Try cached token
-  var cached = localStorage.getItem('oauth_token');
-  var expiry  = parseInt(localStorage.getItem('oauth_expiry') || '0');
-  if (cached && Date.now() < expiry) {
-    _accessToken = cached;
-    _tokenExpiry = expiry;
-    return cached;
-  }
-  // Try refresh
-  var refreshed = await _refreshToken();
-  if (refreshed) return refreshed;
-  // Must login
-  await _startLogin();
-  return null;
-}
-
-// ── Auth headers helper ───────────────────────────────────────
-async function _authHeaders(extra) {
-  var token = await _getToken();
-  if (!token) return null;
-  return Object.assign({ Authorization: 'Bearer ' + token, Accept: 'application/json;odata=verbose' }, extra || {});
-}
-
-// ── Get request digest ────────────────────────────────────────
-async function _getDigest() {
-  var now = Date.now();
-  if (_requestDigest && now < _digestExpiry) return _requestDigest;
-  var headers = await _authHeaders({ 'Content-Type': 'application/json' });
-  var res = await fetch(_spBase() + '/_api/contextinfo', { method: 'POST', headers: headers });
-  if (!res.ok) throw new Error('Digest fetch failed: ' + res.status);
-  var data = await res.json();
-  _requestDigest = data.d.GetContextWebInformation.FormDigestValue;
-  _digestExpiry  = now + (data.d.GetContextWebInformation.FormDigestTimeoutSeconds - 30) * 1000;
-  return _requestDigest;
-}
-
-// ── Ensure folder exists ──────────────────────────────────────
-async function _ensureFolder(digest, folderServerRelUrl) {
-  var headers = await _authHeaders();
-  var check = await fetch(
-    _spBase() + '/_api/web/GetFolderByServerRelativeUrl(\'' + encodeURIComponent(folderServerRelUrl) + '\')',
-    { headers: headers }
-  );
-  if (check.ok) return;
-  var writeHeaders = await _authHeaders({
-    'Content-Type': 'application/json;odata=verbose',
-    'X-RequestDigest': digest
-  });
-  await fetch(_spBase() + '/_api/web/folders', {
-    method: 'POST',
-    headers: writeHeaders,
-    body: JSON.stringify({ '__metadata': { 'type': 'SP.Folder' }, 'ServerRelativeUrl': folderServerRelUrl })
-  });
-}
+var _cloudReady  = false;
+var _currentUser = null;
+var _saveTimer   = null;
 
 // ── Fetch cloud data ──────────────────────────────────────────
 async function _fetchCloud() {
-  var sitePath = '/sites/Marinesuperintendent';
-  var serverRelUrl = sitePath + '/Shared Documents/YASA Marine Dashboard/dashboard-data.json';
-  var headers = await _authHeaders();
-  if (!headers) return null;
-  var res = await fetch(
-    _spBase() + '/_api/web/GetFileByServerRelativeUrl(\'' + encodeURIComponent(serverRelUrl) + '\')/$value',
-    { headers: headers }
-  );
-  if (res.status === 404 || res.status === 500) return null;
-  if (!res.ok) throw new Error('Fetch failed: ' + res.status);
-  try { return await res.json(); } catch(e) { return null; }
+  var res = await fetch(JSONBIN_BASE + '/latest', {
+    headers: { 'X-Access-Key': JSONBIN_API_KEY }
+  });
+  if (!res.ok) throw new Error('JSONBin fetch failed: ' + res.status);
+  var data = await res.json();
+  var record = data.record;
+  if (!record || record.init === true) return null;
+  return record;
 }
 
-// ── Write data to SharePoint ──────────────────────────────────
+// ── Write data to JSONBin ─────────────────────────────────────
 async function _writeCloud(data) {
-  var digest = await _getDigest();
-  var sitePath = '/sites/Marinesuperintendent';
-  var folderServerRelUrl = sitePath + '/Shared Documents/YASA Marine Dashboard';
-  await _ensureFolder(digest, folderServerRelUrl);
-  var headers = await _authHeaders({
-    'X-RequestDigest': digest,
-    'Content-Type': 'application/octet-stream'
+  var res = await fetch(JSONBIN_BASE, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Access-Key': JSONBIN_API_KEY
+    },
+    body: JSON.stringify(data)
   });
-  var res = await fetch(
-    _spBase() + '/_api/web/GetFolderByServerRelativeUrl(\'' + encodeURIComponent(folderServerRelUrl) + '\')/Files/add(url=\'dashboard-data.json\',overwrite=true)',
-    { method: 'POST', headers: headers, body: JSON.stringify(data, null, 2) }
-  );
   if (!res.ok) {
     var err = await res.text();
-    throw new Error('Write failed: ' + res.status + ' ' + err.substring(0, 200));
+    throw new Error('JSONBin write failed: ' + res.status + ' ' + err.substring(0, 200));
   }
 }
 
@@ -3393,40 +3216,17 @@ function _applySnapshot(data) {
 
 // ── cloudInit: runs on page load ──────────────────────────────
 async function cloudInit() {
-  var status  = document.getElementById('cloudStatus');
-  var nameEl  = document.getElementById('userName');
+  var status   = document.getElementById('cloudStatus');
+  var nameEl   = document.getElementById('userName');
   var avatarEl = document.getElementById('userAvatar');
-
   try {
-    // Check if returning from OAuth redirect (URL has ?code=)
-    var urlParams = new URLSearchParams(window.location.search);
-    var code  = urlParams.get('code');
-    var state = urlParams.get('state');
-
-    if (code && state && state === sessionStorage.getItem('oauth_state')) {
-      console.log('[Cloud] Handling OAuth redirect...');
-      if (status) status.textContent = '🔄';
-      await _exchangeCode(code);
-    }
-
-    // Get stored user info
-    var name  = localStorage.getItem('oauth_name')  || '';
-    var email = localStorage.getItem('oauth_email') || '';
-
-    // Try to get token (will redirect to login if none cached)
-    var token = await _getToken();
-    if (!token) return; // page is redirecting
-
-    _currentUser = { name: name || email || 'YASA User', email: email };
+    _currentUser = { name: 'YASA User', email: '' };
+    if (nameEl)   nameEl.textContent   = 'YASA Shipping';
+    if (avatarEl) avatarEl.textContent = 'Y';
     _cloudReady = true;
-
-    if (nameEl)   nameEl.textContent   = _currentUser.name;
-    if (avatarEl) avatarEl.textContent = (_currentUser.name.charAt(0) || 'Y').toUpperCase();
-    if (status)   status.textContent   = '🔄';
-
+    if (status) status.textContent = '🔄';
     await cloudLoad();
     if (status) status.textContent = '☁️';
-
   } catch(e) {
     console.warn('cloudInit failed:', e);
     if (nameEl)  nameEl.textContent  = 'Offline mode';
@@ -3491,19 +3291,8 @@ async function cloudLoad() {
 }
 
 // ── cloudLogin / cloudLogout exposed for UI ──────────────────
-window.cloudLogin = function() { _startLogin(); };
-window.cloudLogout = function() {
-  localStorage.removeItem('oauth_token');
-  localStorage.removeItem('oauth_expiry');
-  localStorage.removeItem('oauth_refresh');
-  localStorage.removeItem('oauth_name');
-  localStorage.removeItem('oauth_email');
-  _accessToken = null;
-  _tokenExpiry = 0;
-  _cloudReady = false;
-  showToast('Signed out', 'success');
-  setTimeout(function(){ window.location.reload(); }, 1000);
-};
+window.cloudLogin  = function() { showToast('Cloud sync aktif', 'success'); };
+window.cloudLogout = function() { showToast('Cloud sync her zaman aktif', 'success'); };
 </script>
 
 <div id="page-settings" class="page">
