@@ -1810,6 +1810,8 @@ function parseOriginalFormat(data, fileName) {
   renderAll();
   showReportBar();
   showToast(`${vessels.length} vessels loaded! (Original format)`, 'success');
+  // Immediate cloud sync after Excel upload
+  cloudSave().catch(e => console.warn('Cloud save (excel) failed:', e));
 }
 
 function extractVesselBlock(data, nameRow, nameCol) {
@@ -3227,6 +3229,26 @@ async function cloudInit() {
     if (status) status.textContent = '🔄';
     await cloudLoad();
     if (status) status.textContent = '☁️';
+    // Poll every 10 seconds for other users' changes
+    setInterval(async function() {
+      try {
+        if (!_cloudReady || _saveTimer) return; // skip if we're currently saving
+        var cloudData = await _fetchCloud();
+        if (!cloudData) return;
+        var local  = _buildSnapshot();
+        var merged = _mergeSnapshots(cloudData, local);
+        var cloudStr  = _deepSortStringify(cloudData);
+        var mergedStr = _deepSortStringify(merged);
+        if (cloudStr !== mergedStr) return; // local has newer data, don't overwrite
+        var localStr = _deepSortStringify(local);
+        if (cloudStr !== localStr) {
+          // Cloud has newer data from another user — apply it
+          _applySnapshot(cloudData);
+          if (status) status.textContent = '☁️';
+          showToast('Başka bir kullanıcının değişiklikleri yüklendi', 'success');
+        }
+      } catch(e) { console.warn('Poll failed:', e); }
+    }, 10000);
   } catch(e) {
     console.warn('cloudInit failed:', e);
     if (nameEl)  nameEl.textContent  = 'Offline mode';
@@ -3237,14 +3259,16 @@ async function cloudInit() {
 // ── cloudSave: read → merge → write ──────────────────────────
 async function cloudSave() {
   if (!_cloudReady) return;
+  // Debounce: if called rapidly, wait 1s then write once
   if (_saveTimer) clearTimeout(_saveTimer);
-  await new Promise(resolve => { _saveTimer = setTimeout(resolve, 2000); });
+  await new Promise(resolve => { _saveTimer = setTimeout(resolve, 1000); });
+  _saveTimer = null;
   const status = document.getElementById('cloudStatus');
   try {
     if (status) status.textContent = '🔄';
+    const local  = _buildSnapshot();
     const cloudData = await _fetchCloud();
-    const local     = _buildSnapshot();
-    const merged    = cloudData ? _mergeSnapshots(cloudData, local) : local;
+    const merged = cloudData ? _mergeSnapshots(cloudData, local) : local;
     await _writeCloud(merged);
     _applySnapshot(merged);
     if (status) status.textContent = '☁️';
