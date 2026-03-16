@@ -752,7 +752,6 @@ body {
 }
 
 .note-block.prio-watch   { border-left-color: #f59e0b; border-color: rgba(245,158,11,0.4); box-shadow: 0 2px 10px rgba(245,158,11,0.12); }
-.note-block.prio-urgent  { border-left-color: #ea580c; border-color: rgba(234,88,12,0.4);  box-shadow: 0 2px 10px rgba(234,88,12,0.12); }
 .note-block.prio-critical{ border-left-color: #dc2626; border-color: rgba(220,38,38,0.45); box-shadow: 0 2px 14px rgba(220,38,38,0.18); background: #fff8f8; }
 .note-block.stale        { border-left-color: #9ca3af; border-color: rgba(156,163,175,0.4); box-shadow: none; background: #f3f4f6; opacity: 0.72; }
 
@@ -796,7 +795,6 @@ body {
   padding-right: 22px;
 }
 .priority-select.prio-watch    { border-color: #f59e0b; color: #92400e; background-color: #fffbeb; }
-.priority-select.prio-urgent   { border-color: #ea580c; color: #9a3412; background-color: #fff7ed; }
 .priority-select.prio-critical { border-color: #dc2626; color: #991b1b; background-color: #fef2f2; font-weight: 800; }
 
 /* PRIORITY BADGE on cards */
@@ -813,7 +811,6 @@ body {
   border-radius: 4px;
 }
 .prio-badge-watch    { background: rgba(245,158,11,0.15); color: #92400e; border: 1px solid rgba(245,158,11,0.4); }
-.prio-badge-urgent   { background: rgba(234,88,12,0.12);  color: #9a3412; border: 1px solid rgba(234,88,12,0.35); }
 .prio-badge-critical { background: rgba(220,38,38,0.12);  color: #991b1b; border: 1px solid rgba(220,38,38,0.4); animation: pulse 2s infinite; }
 
 .note-textarea {
@@ -979,7 +976,6 @@ body {
 }
 .alert-row:last-child { border-bottom: none; }
 .alert-row:hover { background: #fff8f8; }
-.alert-row.urgent-row:hover { background: #fff7ed; }
 .alert-vessel-name {
   font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 800;
   color: #1e3a8a; min-width: 180px; letter-spacing: 0.04em; flex-shrink: 0;
@@ -1007,7 +1003,6 @@ body {
   margin-bottom: 10px; overflow: hidden; background: #ffffff; transition: border-color 0.2s;
 }
 .note-item.prio-watch   { border-color: rgba(245,158,11,0.5); }
-.note-item.prio-urgent  { border-color: rgba(234,88,12,0.5); }
 .note-item.prio-critical { border-color: rgba(220,38,38,0.55); background: #fff8f8; }
 .note-item.stale        { opacity: 0.7; border-color: rgba(156,163,175,0.4); }
 .note-item-header {
@@ -1022,7 +1017,6 @@ body {
   transition: background 0.2s;
 }
 .note-item.prio-watch .note-num-badge   { background: #f59e0b; }
-.note-item.prio-urgent .note-num-badge  { background: #ea580c; }
 .note-item.prio-critical .note-num-badge { background: #dc2626; }
 .note-item .note-textarea {
   border-radius: 0; border: none; border-bottom: 1px solid var(--border);
@@ -1693,7 +1687,8 @@ function migrateNote(n) {
   // Already new format (has items arrays)
   if (n.operational?.items !== undefined || n.procurement?.items !== undefined) {
     const fixCat = c => ({ items: (c?.items || []).map((it, i) => ({
-      id: it.id || (i + 1), text: it.text || '', time: it.time || '', priority: it.priority || ''
+      id: it.id || (i + 1), text: it.text || '', time: it.time || '',
+      priority: it.priority === 'urgent' ? 'critical' : (it.priority || '')
     })) });
     return {
       operational: fixCat(n.operational),
@@ -1706,7 +1701,7 @@ function migrateNote(n) {
   if (n.operational !== undefined || n.procurement !== undefined || n.personnel !== undefined || n.other !== undefined) {
     const migrateOldCat = c => {
       if (!c?.text) return EMPTY_CAT();
-      return { items: [{ id: 1, text: c.text, time: c.time || '', priority: c.priority || '' }] };
+      return { items: [{ id: 1, text: c.text, time: c.time || '', priority: c.priority === 'urgent' ? 'critical' : (c.priority || '') }] };
     };
     return {
       operational: migrateOldCat(n.operational),
@@ -2183,7 +2178,7 @@ function renderVessels() {
 function getTopPriority(vesselName) {
   const n = notes[canonicalize(vesselName)];
   if (!n) return '';
-  for (const p of ['critical','urgent','watch']) {
+  for (const p of ['critical','watch']) {
     for (const cat of ['operational','procurement','personnel','other']) {
       if ((n[cat]?.items || []).some(it => it.priority === p && it.text)) return p;
     }
@@ -2203,7 +2198,7 @@ function buildCard(v) {
     ? `<span class="badge ${sc.badge}"><span class="pos-dot ${sc.dot}"></span>${sc.label}</span>`
     : '';
 
-  const prioLabels = { watch:'◆ Watch', urgent:'▲ Urgent', critical:'! Critical' };
+  const prioLabels = { watch:'◆ Watch', critical:'! Critical' };
   const prioBadge = topPrio
     ? `<span class="prio-badge prio-badge-${topPrio}">${prioLabels[topPrio]}</span>`
     : (hasNote ? `<span class="notes-dot" title="Has notes"></span>` : '');
@@ -2314,6 +2309,7 @@ function buildModalBody(v) {
 
   const marine = getMarine(v.name);
   const ops = getOps(v.name);
+  const cob = loadCob(v.name);
 
   return `
     <!-- LEFT COL: VESSEL DETAILS -->
@@ -2329,6 +2325,20 @@ function buildModalBody(v) {
       ${robHtml}
       ${voyageHtml}
       ${nextHtml}
+      <div class="cert-section" style="margin-top:16px;padding:14px 16px 16px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:10px;">Cash on Board</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div style="display:flex;align-items:center;flex:1;border:1px solid var(--border2);border-radius:6px;overflow:hidden;background:#fff;">
+            <span style="padding:0 8px;font-size:13px;font-weight:700;color:var(--text3);background:var(--navy2);border-right:1px solid var(--border2);height:100%;display:flex;align-items:center;">USD</span>
+            <input id="cob_amount" type="number" min="0" step="100" placeholder="0"
+              value="${escAttr(cob.amount)}"
+              style="border:none;outline:none;background:transparent;padding:7px 10px;font-size:14px;font-weight:600;color:var(--text);font-family:'Barlow',sans-serif;width:100%;">
+          </div>
+          <button onclick="saveCobFromModal('${escAttr(v.name)}')"
+            style="background:var(--accent);color:#fff;border:none;padding:8px 14px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;white-space:nowrap;">Save</button>
+        </div>
+        ${cob._ts ? `<div style="font-size:10px;color:var(--text3);margin-top:5px;">Last saved: ${escHtml(new Date(cob._ts).toLocaleString('en-GB'))}</div>` : ''}
+      </div>
       ${buildCertSection(v.name)}
     </div>
 
@@ -2444,7 +2454,22 @@ function saveCertsFromModal(vesselName) {
   showToast('Certificate dates saved!', 'success');
 }
 
-const PRIORITY_LABELS = { '':'● Normal', 'watch':'◆ Watch', 'urgent':'▲ Urgent', 'critical':'! Critical' };
+// ─── CASH ON BOARD ──────────────────────────────────────────────────────────
+function cobKey(vessel)       { return 'yasa_cob_' + canonicalize(vessel); }
+function loadCob(vessel)      { try { return JSON.parse(localStorage.getItem(cobKey(vessel)) || 'null') || { amount: '', _ts: '' }; } catch(e) { return { amount: '', _ts: '' }; } }
+function saveCobLocal(vessel, amount) {
+  const data = { amount: String(amount || ''), _ts: new Date().toISOString() };
+  localStorage.setItem(cobKey(vessel), JSON.stringify(data));
+  cloudSave().catch(e => console.warn('Cloud save (cob) failed:', e));
+}
+window.saveCobFromModal = function(vesselName) {
+  const el = document.getElementById('cob_amount');
+  if (!el) return;
+  saveCobLocal(vesselName, el.value.trim());
+  showToast('Cash on Board saved!', 'success');
+};
+
+const PRIORITY_LABELS = { '':'● Normal', 'watch':'◆ Watch', 'critical':'! Critical' };
 
 function isNoteStale(timeStr) {
   if (!timeStr) return false;
@@ -2462,7 +2487,7 @@ function noteBlock(cat, label, data, placeholder) {
   const items = data?.items || [];
   // Determine block-level top priority
   let blockPrio = '';
-  for (const p of ['critical','urgent','watch']) {
+  for (const p of ['critical','watch']) {
     if (items.some(it => it.priority === p && it.text)) { blockPrio = p; break; }
   }
   const blockClass = blockPrio ? ` prio-${blockPrio}` : '';
@@ -2521,17 +2546,17 @@ function updateNoteItemStyle(cat, idx, val) {
   const item = document.getElementById(`note_item_${cat}_${idx}`);
   const sel  = document.getElementById(`modal_priority_${cat}_${idx}`);
   if (!item || !sel) return;
-  ['prio-watch','prio-urgent','prio-critical'].forEach(c => { item.classList.remove(c); sel.classList.remove(c); });
+  ['prio-watch','prio-critical'].forEach(c => { item.classList.remove(c); sel.classList.remove(c); });
   if (val) { item.classList.add(`prio-${val}`); sel.classList.add(`prio-${val}`); }
   const badge = item.querySelector('.note-num-badge');
-  if (badge) badge.style.background = val === 'critical' ? '#dc2626' : val === 'urgent' ? '#ea580c' : val === 'watch' ? '#f59e0b' : '';
+  if (badge) badge.style.background = val === 'critical' ? '#dc2626' : val === 'watch' ? '#f59e0b' : '';
   // Update block-level border
   const block = document.getElementById(`note_block_${cat}`);
   if (block) {
-    ['prio-watch','prio-urgent','prio-critical'].forEach(c => block.classList.remove(c));
+    ['prio-watch','prio-critical'].forEach(c => block.classList.remove(c));
     const items = block.querySelectorAll('.note-item');
     let topP = '';
-    for (const p of ['critical','urgent','watch']) {
+    for (const p of ['critical','watch']) {
       for (const el of items) { if (el.classList.contains('prio-'+p)) { topP = p; break; } }
       if (topP) break;
     }
@@ -2652,7 +2677,7 @@ function renderAlertPanel() {
   if (!panel) return;
 
   const catLabels = { operational:'Operational', procurement:'Procurement', personnel:'Personnel', other:'Other' };
-  const prioLabels = { critical:'! Critical', urgent:'▲ Urgent' };
+  const prioLabels = { critical:'! Critical', watch:'◆ Watch' };
   const alertRows = [];
 
   allVessels.forEach(v => {
@@ -2661,7 +2686,7 @@ function renderAlertPanel() {
     if (!n) return;
     ['operational','procurement','personnel','other'].forEach(cat => {
       (n[cat]?.items || []).forEach((item, idx) => {
-        if ((item.priority === 'critical' || item.priority === 'urgent') && item.text) {
+        if (item.priority === 'critical' && item.text) {
           alertRows.push({ vessel: v, cat, catLabel: catLabels[cat], idx, item });
         }
       });
@@ -2669,8 +2694,8 @@ function renderAlertPanel() {
   });
 
   alertRows.sort((a, b) => {
-    const ord = { critical: 0, urgent: 1 };
-    return (ord[a.item.priority] || 2) - (ord[b.item.priority] || 2);
+    const ord = { critical: 0 };
+    return (ord[a.item.priority] ?? 1) - (ord[b.item.priority] ?? 1);
   });
 
   if (alertRows.length === 0) {
@@ -2692,7 +2717,7 @@ function renderAlertPanel() {
     </div>
     ${_alertCollapsed ? '' : `<div class="alert-panel-items">
       ${alertRows.map(({vessel, cat, catLabel, idx, item}) => `
-        <div class="alert-row${item.priority === 'urgent' ? ' urgent-row' : ''}" onclick="openModal('${escAttr(vessel.name)}')">
+        <div class="alert-row" onclick="openModal('${escAttr(vessel.name)}')">
           <span class="alert-vessel-name" title="${escAttr(mvPrefix(vessel.name))}">${escHtml(mvPrefix(vessel.name))}</span>
           <span class="alert-cat-label">${catLabel}</span>
           <span class="alert-note-num">#${idx + 1}</span>
@@ -3235,12 +3260,20 @@ window.manualSync = async function() {
   try {
     var cloudData = await _fetchCloud();
     if (cloudData) {
+      // _applySnapshot merges cloud with local and updates UI
       _applySnapshot(cloudData);
-      _lastCloudStr = _deepSortStringify(cloudData);
+      // After merge, push the merged result back to cloud so nothing is lost
+      var merged = _buildSnapshot();
+      await _writeCloud(merged);
+      _lastCloudStr = _deepSortStringify(merged);
       _setStatus('☁️', 'Son güncelleme: ' + _nowStr());
-      showToast('Cloud\'dan güncellendi', 'success');
+      showToast('Senkronize edildi', 'success');
     } else {
-      _setStatus('☁️', 'Veri yok');
+      // Cloud empty — write local
+      var local = _buildSnapshot();
+      await _writeCloud(local);
+      _lastCloudStr = _deepSortStringify(local);
+      _setStatus('☁️', 'Cloud\'a yazıldı: ' + _nowStr());
     }
   } catch(e) {
     _setStatus('⚠️', 'Hata!');
@@ -3253,11 +3286,14 @@ async function cloudInit() {
   _cloudReady = false;
   _setStatus('🔄', 'Yükleniyor...');
   try {
-    // ALWAYS fetch from cloud first — ignore localStorage
+    // Fetch cloud, merge with local, write merged result back
     var cloudData = await _fetchCloud();
     if (cloudData) {
       _applySnapshot(cloudData);
-      _lastCloudStr = _deepSortStringify(cloudData);
+      // Push merged result back so cloud always has the newest combined state
+      var merged = _buildSnapshot();
+      await _writeCloud(merged);
+      _lastCloudStr = _deepSortStringify(merged);
       _setStatus('☁️', 'Son güncelleme: ' + _nowStr());
     } else {
       // Cloud empty — write local data (first use)
@@ -3283,7 +3319,7 @@ async function cloudInit() {
           _setStatus('☁️', 'Güncellendi: ' + _nowStr());
         }
       } catch(e) { /* silent */ }
-    }, 30000);
+    }, 300000);
 
   } catch(e) {
     console.warn('cloudInit failed:', e);
@@ -3308,6 +3344,11 @@ function _buildSnapshot() {
     const raw = localStorage.getItem(certKey(v));
     if (raw) { try { certData[v] = JSON.parse(raw); } catch(e) {} }
   });
+  const cobData = {};
+  VESSELS_ALL.forEach(v => {
+    const raw = localStorage.getItem(cobKey(v));
+    if (raw) { try { cobData[v] = JSON.parse(raw); } catch(e) {} }
+  });
   return {
     vessels:        allVessels,
     reportFileName,
@@ -3316,6 +3357,7 @@ function _buildSnapshot() {
     assignments:    JSON.parse(localStorage.getItem('yasa_assignments') || '{}'),
     lsa:            lsaData,
     certs:          certData,
+    cob:            cobData,
     lastModifiedBy: _currentUser ? _currentUser.name : 'unknown',
     lastModified:   new Date().toISOString()
   };
@@ -3352,16 +3394,27 @@ function _mergeSnapshots(cloud, local) {
   const localNotes = local.notes  || {};
   const allNoteKeys = new Set([...Object.keys(cloudNotes), ...Object.keys(localNotes)]);
   merged.notes = {};
+  // Returns the newest item.time timestamp across all items in a category (new format)
+  const getLatestCatTime = cat => {
+    const items = cat?.items;
+    if (!Array.isArray(items) || !items.length) return 0;
+    return items.reduce((max, it) => { const t = parseTime(it.time); return t > max ? t : max; }, 0);
+  };
   allNoteKeys.forEach(vk => {
     const cn = cloudNotes[vk] || {};
     const ln = localNotes[vk] || {};
     merged.notes[vk] = {};
     ['operational','procurement','personnel','other'].forEach(cat => {
-      const cc = cn[cat] || { text:'', time:'', priority:'' };
-      const lc = ln[cat] || { text:'', time:'', priority:'' };
-      merged.notes[vk][cat] = parseTime(lc.time) >= parseTime(cc.time) && lc.text ? lc : (cc.text ? cc : lc);
+      const cc = cn[cat] || { items: [] };
+      const lc = ln[cat] || { items: [] };
+      // New format: items array — pick the side with the newest item timestamp
+      const ccTime = getLatestCatTime(cc);
+      const lcTime = getLatestCatTime(lc);
+      merged.notes[vk][cat] = lcTime >= ccTime ? lc : cc;
     });
-    const allEmpty = ['operational','procurement','personnel','other'].every(cat => !merged.notes[vk][cat]?.text);
+    const allEmpty = ['operational','procurement','personnel','other'].every(cat =>
+      !(merged.notes[vk][cat]?.items?.length)
+    );
     if (allEmpty) delete merged.notes[vk];
   });
 
@@ -3429,6 +3482,19 @@ function _mergeSnapshots(cloud, local) {
     merged.certs[v] = mergedCert;
   });
 
+  // Merge COB: per-vessel last-write-wins using _ts
+  const cloudCob = cloud.cob || {};
+  const localCob = local.cob || {};
+  const allCobKeys = new Set([...Object.keys(cloudCob), ...Object.keys(localCob)]);
+  merged.cob = {};
+  allCobKeys.forEach(v => {
+    const cc = cloudCob[v];
+    const lc = localCob[v];
+    if (!cc) { merged.cob[v] = lc; return; }
+    if (!lc) { merged.cob[v] = cc; return; }
+    merged.cob[v] = new Date(lc._ts || 0) >= new Date(cc._ts || 0) ? lc : cc;
+  });
+
   merged.lastModifiedBy = _currentUser ? _currentUser.name : 'unknown';
   merged.lastModified   = new Date().toISOString();
   return merged;
@@ -3466,6 +3532,11 @@ function _applySnapshot(cloudData) {
   // LSA
   if (merged.lsa) {
     Object.keys(merged.lsa).forEach(v => localStorage.setItem('lsa_v2_' + v, JSON.stringify(merged.lsa[v])));
+  }
+
+  // COB
+  if (merged.cob) {
+    Object.keys(merged.cob).forEach(v => localStorage.setItem(cobKey(v), JSON.stringify(merged.cob[v])));
   }
 
   // Re-render everything
