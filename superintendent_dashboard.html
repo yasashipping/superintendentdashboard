@@ -7,6 +7,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- MSGReader (CommonJS fallback ile güvenli bir şekilde ekleniyor) -->
+<script>var module = { exports: {} }; var exports = module.exports;</script>
+<script src="https://unpkg.com/@kenjiuno/msgreader@2.1.1/lib/MSGReader.js"></script>
+<script>var MSGReader = window.MSGReader || module.exports.default || module.exports.MSGReader || module.exports;</script>
 <style>
 :root {
   --navy: #f8fafc;
@@ -36,31 +40,81 @@
 }
 
 body.dark {
-  --navy: #1a1a1a;
-  --navy2: #141414;
-  --navy3: #222222;
-  --navy4: #2e2e2e;
+  --navy: #1e1e1e;
+  --navy2: #181818;
+  --navy3: #252525;
+  --navy4: #333333;
   --blue: #2a2a2a;
-  --accent: #c0c0c0;
-  --accent2: #a0a0a0;
-  --gold: #a0a0a0;
-  --gold2: #888888;
-  --gold3: #b8b8b8;
-  --text: #e8e8e8;
-  --text2: #b0b0b0;
-  --text3: #707070;
-  --border: #2e2e2e;
-  --border2: #3a3a3a;
-  --green: #6a9a7a;
+  --accent: #d0d0d0;
+  --accent2: #b8b8b8;
+  --gold: #b8b8b8;
+  --gold2: #a0a0a0;
+  --gold3: #cccccc;
+  --text: #f0f0f0;
+  --text2: #c8c8c8;
+  --text3: #909090;
+  --border: #333333;
+  --border2: #404040;
+  --green: #6aaa7e;
   --green2: #557a65;
-  --red: #b05050;
-  --orange: #a06040;
-  --purple: #7a6a9a;
-  --input-bg: #1e1e1e;
+  --red: #c06060;
+  --orange: #b07050;
+  --purple: #8a7aaa;
+  --input-bg: #222222;
   --body-bg: #0f0f0f;
   --topnav-from: #111111;
   --topnav-to: #1e1e1e;
 }
+
+/* ── DARK MODE: hardcode renklerini override et ── */
+body.dark .vessel-card                { background: #1e1e1e; border-color: #333; }
+body.dark .vessel-card:hover          { border-color: #666; box-shadow: 0 4px 16px rgba(0,0,0,.4); }
+body.dark .card-top                   { background: #252525; border-left-color: #888; border-bottom-color: #333; }
+body.dark .card-vessel-name           { color: #f0f0f0; }
+body.dark .stat-card                  { background: #1e1e1e; border-color: #333; box-shadow: none; }
+body.dark .stat-value                 { color: #f0f0f0; }
+body.dark .vn-toolbar                 { background: #181818; border-bottom-color: #333; }
+body.dark .module-tabs                { background: #181818; border-bottom-color: #333; top: 64px; }
+body.dark .modal-panel                { background: #1e1e1e; }
+body.dark .modal-header               { background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%); }
+body.dark .modal-col-details          { background: #1e1e1e; border-right-color: #333; }
+body.dark .modal-col-notes            { background: #181818; }
+body.dark .data-val                   { color: #f0f0f0; }
+body.dark .rob-section                { background: #252525; border-color: #404040; }
+body.dark .voyage-section             { background: #252525; border-color: #404040; }
+body.dark .note-block                 { background: #1e1e1e; border-color: #404040; border-left-color: #555; }
+body.dark .note-block-header          { background: #252525; border-bottom-color: #333; }
+body.dark .note-row                   { background: #1e1e1e; border-bottom-color: #333; }
+body.dark .note-row:hover             { background: #252525; }
+body.dark .note-row.prio-watch        { background: rgba(245,158,11,0.08); }
+body.dark .note-row.prio-critical     { background: rgba(220,38,38,0.08); }
+body.dark .note-row-text              { color: #f0f0f0; }
+body.dark .note-row-text::placeholder { color: #505050; }
+body.dark .note-row-prio              { background: #2a2a2a; border-color: #444; color: #aaa; }
+body.dark .note-row-prio.prio-watch   { background: rgba(245,158,11,0.12); color: #d97706; }
+body.dark .note-row-prio.prio-critical{ background: rgba(220,38,38,0.1); color: #ef4444; }
+body.dark .alert-panel                { background: #1e1e1e; border-color: rgba(160,80,80,.3); box-shadow: none; }
+body.dark .alert-panel-header         { background: #252525; border-bottom-color: rgba(160,80,80,.2); }
+body.dark .alert-row:hover            { background: #252525; }
+body.dark .alert-note-num            { background: #333; color: #aaa; }
+body.dark .cert-section               { background: #252525; border-color: #404040; }
+body.dark .cert-item                  { background: #1e1e1e; border-color: #404040; }
+body.dark .cert-input                 { background: #222; border-color: #404040; color: #f0f0f0; }
+body.dark .report-bar                 { background: #1e1e1e; border-color: #404040; }
+body.dark .search-box                 { background: #222; border-color: #404040; }
+body.dark .search-box input           { color: #f0f0f0; }
+body.dark .filter-btn                 { background: #222; border-color: #404040; color: #c8c8c8; }
+body.dark .filter-btn:hover,
+body.dark .filter-btn.active          { border-color: #c0c0c0; color: #f0f0f0; background: rgba(255,255,255,.06); }
+body.dark .upload-zone                { background: rgba(30,30,30,.8); border-color: #404040; }
+body.dark .upload-zone:hover          { border-color: #888; background: rgba(40,40,40,.8); }
+body.dark .tab.active                 { color: #f0f0f0; border-bottom-color: #d0d0d0; }
+body.dark .tab:hover                  { background: rgba(255,255,255,.05); }
+body.dark .modal-section-title        { color: #d0d0d0; border-bottom-color: rgba(200,200,200,.25); }
+body.dark .modal-section-title::before { background: #d0d0d0; }
+body.dark .data-key                   { color: #c0c0c0; }
+body.dark .note-block.prio-critical   { border-color: rgba(220,38,38,0.3); }
+body.dark .modal-overlay              { background: rgba(0,0,0,.7); }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -84,11 +138,11 @@ body {
   backdrop-filter: blur(12px);
   border-bottom: none;
   padding: 0 24px;
-  height: 60px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 2px 12px rgba(37,99,235,0.25);
+  box-shadow: 0 2px 20px rgba(0,0,0,0.28), 0 1px 0 rgba(255,255,255,0.08);
 }
 
 .brand {
@@ -114,11 +168,12 @@ body {
 
 .brand-name {
   font-family: 'Barlow Condensed', sans-serif;
-  font-weight: 700;
-  font-size: 24px;
+  font-weight: 800;
+  font-size: 26px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #ffffff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.25);
 }
 
 .brand-module {
@@ -127,8 +182,8 @@ body {
   font-weight: 600;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: rgba(186,219,255,0.9);
-  margin-top: 1px;
+  color: rgba(255,255,255,0.82);
+  margin-top: 2px;
 }
 
 .nav-right {
@@ -140,33 +195,37 @@ body {
 .nav-date {
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
-  color: rgba(186,219,255,0.9);
+  color: rgba(255,255,255,0.9);
   padding: 6px 12px;
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
   border-radius: 6px;
 }
 
 /* MODULE TABS */
 .module-tabs {
-  background: #f0f6ff;
-  border-bottom: 2px solid rgba(37,99,235,0.15);
+  background: #e8f0fe;
+  border-bottom: 2px solid rgba(37,99,235,0.3);
   padding: 0 24px;
   display: flex;
   gap: 0;
   overflow-x: auto;
+  box-shadow: 0 1px 4px rgba(37,99,235,0.08);
+  position: sticky;
+  top: 64px;
+  z-index: 190;
 }
 
 .module-tabs::-webkit-scrollbar { height: 0; }
 
 .tab {
-  padding: 12px 20px;
+  padding: 13px 22px;
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text3);
+  color: var(--text2);
   cursor: pointer;
   border-bottom: 3px solid transparent;
   transition: all 0.2s;
@@ -176,11 +235,12 @@ body {
   gap: 7px;
 }
 
-.tab:hover { color: var(--text2); background: rgba(37,99,235,0.04); }
+.tab:hover { color: var(--accent); background: rgba(37,99,235,0.07); }
 
 .tab.active {
   color: var(--accent);
   border-bottom-color: var(--accent);
+  background: rgba(37,99,235,0.05);
 }
 
 .tab-badge {
@@ -212,7 +272,7 @@ body {
   border-bottom: 1px solid var(--border);
   background: #ffffff;
   position: sticky;
-  top: 60px;
+  top: 106px;
   z-index: 100;
 }
 
@@ -554,7 +614,7 @@ body {
 
 .modal-header {
   background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-  padding: 20px 24px;
+  padding: 12px 20px;
   border-bottom: none;
   flex-shrink: 0;
 }
@@ -576,7 +636,7 @@ body {
 
 .modal-vessel-name {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 800;
   letter-spacing: 0.04em;
   color: #ffffff;
@@ -621,7 +681,7 @@ body {
 
 .modal-col {
   overflow-y: auto;
-  padding: 24px;
+  padding: 16px;
   min-height: 0;
 }
 
@@ -641,13 +701,13 @@ body {
 /* SECTION DIVIDER */
 .modal-section-title {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--accent);
-  margin-bottom: 14px;
-  padding-bottom: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 5px;
   border-bottom: 2px solid rgba(37,99,235,0.35);
   display: flex;
   align-items: center;
@@ -668,7 +728,7 @@ body {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 7px 0;
+  padding: 4px 0;
   border-bottom: 1px solid rgba(203,213,225,0.9);
 }
 
@@ -677,18 +737,18 @@ body {
 .data-key {
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent);
   opacity: 1;
   font-family: 'JetBrains Mono', monospace;
-  min-width: 90px;
+  min-width: 82px;
   padding-top: 1px;
   flex-shrink: 0;
 }
 
 .data-val {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #0f172a;
   line-height: 1.4;
@@ -699,8 +759,8 @@ body {
 
 /* ROB SECTION */
 .rob-section {
-  margin: 14px 0;
-  padding: 12px 16px;
+  margin: 8px 0;
+  padding: 8px 12px;
   background: rgba(241,245,249,0.9);
   border-radius: 8px;
   border: 2px solid var(--border2);
@@ -708,18 +768,18 @@ body {
 }
 
 .rob-title {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text2);
-  margin-bottom: 10px;
+  margin-bottom: 6px;
   font-family: 'JetBrains Mono', monospace;
 }
 
 .rob-items {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -730,16 +790,16 @@ body {
 }
 
 .rob-item-label {
-  font-size: 9px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   color: var(--text2);
   font-family: 'JetBrains Mono', monospace;
 }
 
 .rob-item-value {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--accent);
 }
@@ -752,8 +812,8 @@ body {
 
 /* VOYAGE SECTION */
 .voyage-section {
-  margin-top: 14px;
-  padding: 12px 16px;
+  margin-top: 8px;
+  padding: 8px 12px;
   background: rgba(241,245,249,0.9);
   border-radius: 8px;
   border: 2px solid var(--border2);
@@ -765,46 +825,133 @@ body {
   align-items: center;
   gap: 5px;
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--accent);
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 /* NOTES SECTION IN MODAL */
 .note-block {
-  background: #ffffff;
-  padding: 14px 16px;
-  border-radius: 10px;
-  border: 2px solid var(--border2);
-  border-left: 5px solid var(--accent);
-  margin-bottom: 14px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  background: var(--navy);
+  border-radius: 8px;
+  border: 1px solid var(--border2);
+  border-left: 3px solid var(--accent);
+  margin-bottom: 10px;
+  overflow: hidden;
 }
 
-.note-block.prio-watch   { border-left-color: #f59e0b; border-color: rgba(245,158,11,0.4); box-shadow: 0 2px 10px rgba(245,158,11,0.12); }
-.note-block.prio-critical{ border-left-color: #dc2626; border-color: rgba(220,38,38,0.45); box-shadow: 0 2px 14px rgba(220,38,38,0.18); background: #fff8f8; }
-.note-block.stale        { border-left-color: #9ca3af; border-color: rgba(156,163,175,0.4); box-shadow: none; background: #f3f4f6; opacity: 0.72; }
+.note-block.prio-watch   { border-left-color: #f59e0b; border-color: rgba(245,158,11,0.35); }
+.note-block.prio-critical{ border-left-color: #dc2626; border-color: rgba(220,38,38,0.35); }
 
 .note-block-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  padding: 7px 12px 7px 10px;
+  background: var(--navy2);
+  border-bottom: 1px solid var(--border);
   gap: 8px;
 }
 
 .note-block-label {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text);
+  color: var(--accent);
 }
+
+/* ── COMPACT NOTE ROWS ── */
+.note-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 8px 12px 8px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--navy);
+  transition: background 0.12s;
+}
+.note-row:last-child { border-bottom: none; }
+.note-row:hover { background: var(--navy2); }
+.note-row.prio-watch    { background: rgba(245,158,11,0.05); border-left: 3px solid #f59e0b; padding-left: 8px; }
+.note-row.prio-critical { background: rgba(220,38,38,0.05);  border-left: 3px solid #dc2626; padding-left: 8px; }
+.note-row.stale { opacity: 0.55; }
+
+.note-row-num {
+  width: 19px; height: 19px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.note-row.prio-watch    .note-row-num { background: #f59e0b; }
+.note-row.prio-critical .note-row-num { background: #dc2626; }
+
+.note-row-text {
+  flex: 1;
+  border: none;
+  background: transparent;
+  resize: none;
+  outline: none;
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.55;
+  min-height: 21px;
+  padding: 1px 0;
+  overflow: hidden;
+}
+.note-row-text::placeholder { color: var(--text3); }
+.note-row-text:focus { background: rgba(37,99,235,0.04); border-radius: 3px; padding: 1px 5px; margin: 0 -5px; }
+
+.note-row-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+.note-row-actions { display: flex; align-items: center; gap: 5px; }
+
+.note-row-prio {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  padding: 2px 6px;
+  background: var(--navy2);
+  color: var(--text2);
+  cursor: pointer; outline: none;
+}
+.note-row-prio.prio-watch    { border-color: #f59e0b; color: #92400e; background: #fffbeb; }
+.note-row-prio.prio-critical { border-color: #dc2626; color: #991b1b; background: #fef2f2; }
+
+.note-row-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--text3);
+  white-space: nowrap;
+}
+
+.note-row-del {
+  background: none; border: none;
+  color: var(--text3);
+  cursor: pointer;
+  font-size: 12px; padding: 1px 3px; line-height: 1;
+  opacity: 0.5; transition: opacity 0.12s, color 0.12s;
+  border-radius: 3px;
+}
+.note-row-del:hover { color: #dc2626; opacity: 1; }
 
 /* PRIORITY SELECT */
 .priority-select {
@@ -847,32 +994,6 @@ body {
 .prio-badge-watch    { background: rgba(245,158,11,0.15); color: #92400e; border: 1px solid rgba(245,158,11,0.4); }
 .prio-badge-critical { background: rgba(220,38,38,0.12);  color: #991b1b; border: 1px solid rgba(220,38,38,0.4); animation: pulse 2s infinite; }
 
-.note-textarea {
-  width: 100%;
-  background: #ffffff;
-  border: 1px solid var(--border2);
-  border-radius: 6px;
-  padding: 8px 12px;
-  color: var(--text);
-  font-family: 'Barlow', sans-serif;
-  font-size: 13px;
-  line-height: 1.5;
-  resize: vertical;
-  min-height: 80px;
-  outline: none;
-  transition: border-color 0.15s;
-}
-
-.note-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-.note-textarea::placeholder { color: var(--text3); }
-
-.note-saved-time {
-  font-size: 10px;
-  color: var(--text3);
-  font-family: 'JetBrains Mono', monospace;
-  margin-top: 5px;
-  display: block;
-}
 
 /* BUTTONS */
 .btn {
@@ -955,6 +1076,31 @@ body {
   .vn-toolbar { padding: 12px; }
   .cert-grid { grid-template-columns: 1fr; }
 }
+
+/* ── MODAL MOBILE TABS ── */
+.modal-mobile-tabs {
+  display: none;
+  background: var(--navy2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.mmt-tab {
+  flex: 1;
+  padding: 11px 10px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.mmt-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(37,99,235,0.05); }
+.mmt-tab:not(.active):hover { color: var(--text2); background: rgba(0,0,0,0.03); }
 
 /* SCROLLBAR */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -1060,18 +1206,18 @@ body {
 .note-item .note-textarea:focus { box-shadow: none; border-color: transparent; border-bottom-color: rgba(37,99,235,0.3); }
 .note-item .note-saved-time { padding: 4px 12px 7px; display: block; }
 .add-note-btn {
-  width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 8px; border: 1.5px dashed var(--border2); border-radius: 7px;
-  cursor: pointer; color: var(--accent); font-family: 'Barlow Condensed', sans-serif;
-  font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-  background: transparent; transition: all 0.15s; margin-top: 2px;
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 6px; border: none; border-top: 1px dashed var(--border2);
+  cursor: pointer; color: var(--text3); font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  background: transparent; transition: all 0.15s;
 }
-.add-note-btn:hover { border-color: var(--accent); background: rgba(37,99,235,0.04); }
+.add-note-btn:hover { color: var(--accent); background: rgba(37,99,235,0.04); }
 
 /* ── CERTIFICATE SECTION ── */
 .cert-section {
-  margin-top: 16px;
-  padding: 16px 18px 18px;
+  margin-top: 8px;
+  padding: 10px 12px 12px;
   background: rgba(241,245,249,0.9);
   border-radius: 10px;
   border: 2px solid var(--border2);
@@ -1080,13 +1226,13 @@ body {
 .cert-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px 14px;
+  gap: 8px 10px;
 }
 .cert-item {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 8px 10px;
+  gap: 4px;
+  padding: 6px 8px;
   background: #fff;
   border-radius: 7px;
   border: 1px solid var(--border);
@@ -1095,9 +1241,9 @@ body {
 .cert-item:has(.cert-input.cert-warn)    { border-color: rgba(245,158,11,0.45); background: #fffdf5; }
 .cert-item:has(.cert-input.cert-overdue) { border-color: rgba(220,38,38,0.4);  background: #fff8f8; }
 .cert-label {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text2);
   font-family: 'Barlow Condensed', sans-serif;
@@ -1116,10 +1262,10 @@ body {
   background: #ffffff;
   border: 1px solid var(--border2);
   border-radius: 5px;
-  padding: 5px 8px;
+  padding: 4px 6px;
   color: var(--text);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
+  font-size: 11px;
   width: 100%;
   outline: none;
   transition: border-color 0.15s;
@@ -1240,10 +1386,9 @@ body {
     overflow-y: auto;
   }
   .modal-col { padding: 14px; }
-  .modal-col-details {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
+  .modal-col-details { border-right: none; border-bottom: none; }
+  .modal-col-notes   { display: none; }   /* tab'la açılır */
+  .modal-mobile-tabs { display: flex; }
   .modal-vessel-name { font-size: 20px; }
   .modal-header { padding: 14px 16px; }
 
@@ -1322,6 +1467,7 @@ body {
   </div>
   <div class="tab" onclick="switchTab('lsa-ffe', this)">🛟 LSA &amp; FFE Survey</div>
   <div class="tab" onclick="switchTab('emission', this)">🌿 Emission Calculation</div>
+  <div class="tab" onclick="switchTab('orders', this)">📋 Order Follow</div>
   <div class="tab" onclick="switchTab('settings', this)" style="margin-left:auto;">⚙ Settings</div>
 </div>
 
@@ -1473,11 +1619,268 @@ body {
 
 <!-- ════════════════════════ EMISSION ════════════════════════ -->
 <div id="page-emission" class="page">
-  <div class="no-data" style="padding-top:80px;">
-    <div style="font-size:48px;opacity:.2;margin-bottom:14px;">🌿</div>
-    <div class="no-data-title">Emission Calculation</div>
-    <div class="no-data-sub">This module is under development.</div>
+<style>
+.em-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px;overflow-x:auto;}
+.em-tab{padding:10px 18px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .15s;}
+.em-tab:hover{color:var(--text2);background:rgba(37,99,235,.04);}
+.em-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.em-page{display:none;}
+.em-page.active{display:block;}
+.em-card{background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:14px;}
+.em-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:10px;}
+.em-table{width:100%;border-collapse:collapse;}
+.em-table th{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);padding:7px 10px;border-bottom:2px solid var(--border);text-align:left;}
+.em-table td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text);vertical-align:middle;}
+.em-table tr:last-child td{border-bottom:none;}
+.em-table tfoot td{border-top:2px solid var(--border);border-bottom:none;font-weight:600;}
+.em-input{background:var(--input-bg);border:1px solid var(--border2);border-radius:5px;padding:6px 10px;font-size:13px;color:var(--text);font-family:'Barlow',sans-serif;width:100%;outline:none;}
+.em-input:focus{border-color:var(--accent);}
+.em-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.5px;}
+.em-badge-ok{background:rgba(5,150,105,.12);color:#059669;border:1px solid rgba(5,150,105,.25);}
+.em-badge-bad{background:rgba(220,38,38,.12);color:#dc2626;border:1px solid rgba(220,38,38,.25);}
+.em-big-num{font-family:'JetBrains Mono',monospace;font-size:36px;font-weight:700;line-height:1;}
+.em-gauge-track{height:10px;background:var(--navy3);border-radius:5px;overflow:hidden;margin:10px 0;}
+.em-gauge-fill{height:100%;border-radius:5px;transition:width .5s;}
+.em-btn{background:var(--accent);color:#fff;border:none;padding:8px 18px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;}
+.em-btn:hover{opacity:.9;}
+.em-btn-outline{background:transparent;border:1px solid var(--border2);color:var(--text2);padding:7px 14px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:600;cursor:pointer;}
+.em-btn-outline:hover{border-color:var(--accent);color:var(--accent);}
+.em-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.em-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.em-stat{background:var(--navy2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;}
+.em-stat-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);margin-bottom:4px;}
+.em-stat-val{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:var(--text);}
+.em-pool-vessel{background:var(--navy2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;}
+.em-info-box{background:rgba(37,99,235,.06);border:1px solid rgba(37,99,235,.18);border-radius:8px;padding:12px 16px;font-size:12px;color:var(--text2);line-height:1.7;}
+body.dark .em-card{background:#1e1e1e;border-color:#333;}
+body.dark .em-stat{background:#181818;border-color:#333;}
+body.dark .em-pool-vessel{background:#181818;border-color:#333;}
+body.dark .em-info-box{background:rgba(200,200,255,.04);border-color:rgba(150,150,255,.15);}
+body.dark .em-input{background:#222;border-color:#404040;color:#f0f0f0;}
+</style>
+
+<div style="padding:20px 24px 60px;max-width:1200px;">
+
+  <!-- Header -->
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:1px;color:var(--text);">🌿 FuelEU Maritime Compliance</div>
+    <div style="flex:1;"></div>
+    <select id="emYearSel" onchange="emOnYearChange()" style="background:var(--navy2);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:7px 12px;font-size:13px;font-family:'Barlow Condensed',sans-serif;font-weight:700;cursor:pointer;outline:none;">
+      <option value="2025">2025</option><option value="2026">2026</option>
+      <option value="2027">2027</option><option value="2028">2028</option>
+      <option value="2029">2029</option><option value="2030">2030</option>
+    </select>
+    <select id="emVesselSel" onchange="emOnVesselChange()" style="background:var(--navy2);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:7px 12px;font-size:13px;font-family:'Barlow Condensed',sans-serif;font-weight:700;cursor:pointer;outline:none;min-width:220px;">
+      <option value="">— Select Vessel —</option>
+    </select>
   </div>
+
+  <!-- Sub-tabs -->
+  <div class="em-tabs">
+    <div class="em-tab active" onclick="emSwitchTab('voyage',this)">🚢 Voyage-Based</div>
+    <div class="em-tab" onclick="emSwitchTab('input',this)">📥 Fuel & Voyage</div>
+    <div class="em-tab" onclick="emSwitchTab('results',this)">📊 GHG Results</div>
+    <div class="em-tab" onclick="emSwitchTab('compliance',this)">⚖️ Compliance</div>
+    <div class="em-tab" onclick="emSwitchTab('pooling',this)">🔄 Pooling</div>
+    <div class="em-tab" onclick="emSwitchTab('timeline',this)">📅 2025→2050</div>
+  </div>
+
+  <!-- TAB: Voyage-Based — shown first -->
+  <!-- TAB: Fuel & Voyage -->
+  <div id="emPage-input" class="em-page">
+    <div class="em-card">
+      <div class="em-label">Annual Fuel Consumption (MT)</div>
+      <table class="em-table">
+        <thead><tr>
+          <th>Fuel Type</th>
+          <th>LCV (MJ/t)</th>
+          <th>WtW EF (gCO₂eq/MJ)</th>
+          <th style="width:130px;">Consumption (MT)</th>
+          <th>Energy (TJ)</th>
+          <th>GHG (tCO₂eq)</th>
+        </tr></thead>
+        <tbody id="emFuelTbody"></tbody>
+        <tfoot>
+        <tr>
+          <td colspan="3"><b>🔌 Electricity / OPS</b> <span style="font-size:11px;color:var(--text3);">(included in FuelEU scope energy, GHG=0)</span></td>
+          <td colspan="2"><input type="number" min="0" step="1000" class="em-input" id="emElec" placeholder="0 kWh" oninput="emOnFuelInput()" style="width:130px;"> <span style="font-size:11px;color:var(--text3);">kWh</span></td>
+          <td id="emElecMJ" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text3);">—</td>
+        </tr>
+        <tr>
+          <td colspan="3" style="color:var(--text2);">TOTAL</td>
+          <td id="emTotalTonnes" style="font-family:'JetBrains Mono',monospace;">—</td>
+          <td id="emTotalEnergy" style="font-family:'JetBrains Mono',monospace;">—</td>
+          <td id="emTotalGHG"   style="font-family:'JetBrains Mono',monospace;">—</td>
+        </tr>
+      </tfoot>
+      </table>
+    </div>
+
+    <div class="em-card">
+      <div class="em-label">Voyage Profile — Energy Distribution (%)</div>
+      <div class="em-info-box" style="margin-bottom:14px;">
+        FuelEU scope ratios: <b>Intra-EU: 100%</b> · <b>Extra-EU: 50%</b> · <b>EU Berth: 100%</b> · <b>OMR: 50%</b> · Non-EU: 0%. Total must equal <b>100%</b>.
+      </div>
+      <table class="em-table">
+        <thead><tr>
+          <th>Voyage Type</th><th>Description</th>
+          <th>FuelEU Scope</th>
+          <th style="width:160px;">Energy Share (%)</th>
+        </tr></thead>
+        <tbody id="emVoyageTbody"></tbody>
+        <tfoot><tr>
+          <td colspan="3" style="color:var(--text2);">TOTAL</td>
+          <td id="emVoyageTotal" style="font-family:'JetBrains Mono',monospace;font-weight:700;">0%</td>
+        </tr></tfoot>
+      </table>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px;">
+      <button class="em-btn-outline" onclick="emReset()">↺ Reset to Defaults</button>
+      <button class="em-btn" onclick="emSaveAndCalc()">💾 Save &amp; Calculate</button>
+    </div>
+  </div>
+
+  <!-- TAB: GHG Results -->
+  <div id="emPage-results" class="em-page">
+    <div id="emResultsContent">
+      <div style="text-align:center;padding:60px;color:var(--text3);">
+        <div style="font-size:40px;opacity:.2;margin-bottom:12px;">📊</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;">Select a vessel and enter fuel data to calculate.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: Compliance -->
+  <div id="emPage-compliance" class="em-page">
+    <div id="emComplianceContent">
+      <div style="text-align:center;padding:60px;color:var(--text3);">
+        <div style="font-size:40px;opacity:.2;margin-bottom:12px;">⚖️</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;">Run calculation first.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: Pooling -->
+  <div id="emPage-pooling" class="em-page">
+    <div class="em-card">
+      <div class="em-label">Add Vessel to Pool — Selected Year: <span id="emPoolYear">2025</span></div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;">
+        <select id="emPoolAddSel" style="background:var(--navy2);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:7px 12px;font-size:13px;font-family:'Barlow Condensed',sans-serif;flex:1;outline:none;">
+          <option value="">— Select vessel —</option>
+        </select>
+        <button class="em-btn" onclick="emPoolAdd()">+ Add</button>
+        <button class="em-btn-outline" onclick="emPoolClear()">Clear</button>
+      </div>
+      <div id="emPoolList"><div style="color:var(--text3);font-size:13px;padding:8px 0;">Pool is empty — add a vessel.</div></div>
+      <div id="emPoolResult" style="margin-top:16px;"></div>
+    </div>
+    <div class="em-info-box">
+      <b>Pooling Rules — FuelEU Art. 21(4):</b><br>
+      Rule 1: Total pool compliance balance must be positive.<br>
+      Rule 2: Deficit vessels must not increase their deficit after pooling.<br>
+      Rule 3: Surplus vessels must not fall into deficit after pooling.<br>
+      <br>⚠ Vessels using borrowing in the same period cannot join a pool · Deadline: 30 April 2026
+    </div>
+  </div>
+
+  <!-- TAB: Timeline -->
+  <div id="emPage-timeline" class="em-page">
+    <div class="em-card">
+      <div class="em-label">FuelEU GHG Intensity Limits — 2025 → 2050</div>
+      <div id="emTimelineContent"></div>
+    </div>
+    <div class="em-card" id="emProjectionCard" style="display:none;">
+      <div class="em-label">This Vessel's Projection (assuming current fuel mix remains constant)</div>
+      <div id="emProjectionContent"></div>
+    </div>
+  </div>
+
+  <!-- TAB: Voyage-Based -->
+  <div id="emPage-voyage" class="em-page active">
+    <div class="em-card">
+      <div class="em-label">🚢 Add Voyage Record</div>
+      <div class="em-info-box" style="margin-bottom:14px;">
+        Record each voyage separately. FuelEU scope is applied automatically by voyage type (100% Intra-EU, 50% Extra-EU/OMR, 0% Exempt). All voyages are aggregated into the annual summary.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div>
+          <div class="em-label" style="margin-bottom:4px;">Voyage No.</div>
+          <input id="voy_no" type="text" class="em-input" placeholder="VY-001">
+        </div>
+        <div>
+          <div class="em-label" style="margin-bottom:4px;">Departure Port</div>
+          <input id="voy_from" type="text" class="em-input" placeholder="ROTTERDAM">
+        </div>
+        <div>
+          <div class="em-label" style="margin-bottom:4px;">Arrival Port</div>
+          <input id="voy_to" type="text" class="em-input" placeholder="SINGAPORE">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div>
+          <div class="em-label" style="margin-bottom:4px;">Departure Date</div>
+          <input id="voy_date_from" type="date" class="em-input">
+        </div>
+        <div>
+          <div class="em-label" style="margin-bottom:4px;">Arrival Date</div>
+          <input id="voy_date_to" type="date" class="em-input">
+        </div>
+        <div>
+          <div class="em-label" style="margin-bottom:4px;">Voyage Type</div>
+          <select id="voy_type" class="em-input">
+            <option value="extra_eu">Extra-EU (50%) — EU↔Non-EU</option>
+            <option value="intra_eu">Intra-EU (100%) — EU↔EU</option>
+            <option value="berth_eu">At Berth (100%) — EU Port</option>
+            <option value="omr">OMR (50%) — Outermost Region</option>
+            <option value="exempt">Exempt (0%)</option>
+          </select>
+        </div>
+      </div>
+      <!-- Voyage fuel inputs -->
+      <div class="em-label" style="margin-bottom:6px;">Fuel Consumption (This Voyage)</div>
+      <div id="voyFuelInputs" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;"></div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:4px;">
+        <div style="flex:1;">
+          <div class="em-label" style="margin-bottom:4px;">Electricity/OPS (kWh)</div>
+          <input id="voy_elec" type="number" min="0" step="100" class="em-input" placeholder="0">
+        </div>
+        <div style="flex:1;">
+          <div class="em-label" style="margin-bottom:4px;">Notes</div>
+          <input id="voy_note" type="text" class="em-input" placeholder="Cargo, port, remarks...">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+        <button class="em-btn-outline" onclick="voyResetForm()">↺ Clear</button>
+        <button class="em-btn" onclick="voyAddOrUpdate()">+ Add Voyage</button>
+      </div>
+    </div>
+
+    <!-- Voyage List -->
+    <div class="em-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div class="em-label" style="margin-bottom:0;">Recorded Voyages</div>
+        <div style="display:flex;gap:8px;">
+          <button class="em-btn-outline" onclick="voyExportToYearly()" title="Export all voyages to annual summary">↑ Export to Annual</button>
+          <button class="em-btn-outline" style="color:#dc2626;border-color:#dc2626;" onclick="voyClearAll()">🗑 Delete All</button>
+        </div>
+      </div>
+      <div id="voyTableWrap">
+        <div style="text-align:center;padding:30px;color:var(--text3);font-size:13px;">No voyage records yet. Add a voyage above.</div>
+      </div>
+    </div>
+
+    <!-- Voyage Summary -->
+    <div class="em-card" id="voySummaryCard" style="display:none;">
+      <div class="em-label">📊 Voyage-Based FuelEU Summary</div>
+      <div id="voySummaryContent"></div>
+    </div>
+  </div>
+
+
+</div><!-- /padding -->
+
+
 </div>
 
 <!-- ══════════════════════════════════════════ -->
@@ -1497,6 +1900,10 @@ body {
         <button type="button" class="modal-close" onclick="closeModal()" title="Close">&times;</button>
       </div>
     </div>
+    <div class="modal-mobile-tabs" id="modalMobileTabs">
+      <button type="button" class="mmt-tab active" onclick="switchModalTab('details',this)">📋 Details</button>
+      <button type="button" class="mmt-tab"        onclick="switchModalTab('notes',this)">📝 Notes</button>
+    </div>
     <div class="modal-body" id="modalBody">
       <!-- Injected by JS -->
     </div>
@@ -1506,6 +1913,7 @@ body {
 <div class="toast" id="toast"></div>
 
 <script>
+
 function mvPrefix(name) {
   return /^M\/V\s/i.test(name) ? name : 'M/V ' + name;
 }
@@ -1522,7 +1930,7 @@ let reportDate     = '';
 let activeVessel   = null;
 
 // ── Vessel list (canonical names, no M/V prefix) ─────────────────────────
-const VESSELS_ALL = [
+let VESSELS_ALL = [
   'YASA H.MULLA','YASA ROSE','YASA KYOTO','YASA MOON','YASA ILHAN',
   'YASA MARS','YASA KAPTAN ERBIL','YASA LOTUS','YASA EMERALD','YASA STAR',
   'YASA FALCON','YASA OSAKA','YASA CANARY','YASA VENUS','YASA CAMELLIA',
@@ -1643,9 +2051,14 @@ function loadTheme() {
 function init() {
   loadTheme();
   updateDate();
+  // Load custom vessels added via Settings and merge into VESSELS_ALL
+  try {
+    const custom = JSON.parse(localStorage.getItem('yasa_custom_vessels') || '[]');
+    custom.forEach(v => { if (v && !VESSELS_ALL.includes(v)) VESSELS_ALL.push(v); });
+  } catch(e) {}
   loadSavedData();          // load from localStorage immediately (offline fallback)
   // NOTE: rebuildDropdowns() is now always called inside loadSavedData() — no need here
-  cloudInit();              // then try to connect to SharePoint
+  cloudInit();              // then try to connect to Supabase
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeModal();
   });
@@ -1671,7 +2084,9 @@ const CERT_FIELDS = [
   { key: 'radioVdr',          label: 'Radio Survey & VDR APT'    },
   { key: 'compassAdj',        label: 'Magnetic Compass Adj.'     },
   { key: 'gyroOverhaul',      label: 'Gyro Overhaul'             },
-  { key: 'gasDetector',       label: 'Gas Detector & Alco.'      },
+  { key: 'gasDetector',       label: 'Gas Detector #1'           },
+  { key: 'gasDetector2',      label: 'Gas Detector #2'           },
+  { key: 'alcoMeter',         label: 'Alcometer'                 },
   { key: 'sbmAgreement',      label: 'SBM Agreement'             },
 ];
 
@@ -1839,6 +2254,8 @@ function switchTab(id, el) {
   if (page) page.classList.add('active');
   if (id === 'settings') renderSettingsPage();
   if (id === 'lsa-ffe') lsaInit();
+  if (id === 'emission') emInit();
+  if (id === 'orders') ordInit();
 }
 
 // ─── EXCEL UPLOAD ───────────────────────────────────────────────────────────
@@ -1992,10 +2409,11 @@ function extractVesselBlock(data, nameRow, nameCol) {
     return '';
   };
 
+  // findVal: locate ':' in row (trim handles &nbsp; edge cases), return next cell
   const findVal = (rowOffset) => {
     for (let co = 1; co <= 12; co++) {
       const v = getVal(rowOffset, co);
-      if (v === ':') {
+      if (v.trim() === ':') {
         return getVal(rowOffset, co + 1);
       }
     }
@@ -2023,6 +2441,15 @@ function extractVesselBlock(data, nameRow, nameCol) {
     }
   }
 
+  // NEXT voyage row (+18): VOYAGE NO at col+4, L/PORT at col+7
+  // Row +19: CHARTERER at col+4, D/PORT at col+7
+  // Row +20: CARGO at col+7
+  const nextVoyageNo  = getVal(18, 5);
+  const nextLPort     = getVal(18, 8);
+  const nextDPort     = getVal(19, 8);
+  const nextCharterer = getVal(19, 5);
+  const nextCargo     = getVal(20, 8);
+
   return {
     name,
     master,
@@ -2031,27 +2458,27 @@ function extractVesselBlock(data, nameRow, nameCol) {
     position: findVal(2),
     etaEtd1: getVal(3, 3) || getVal(3, 4),
     etaEtd2: getVal(4, 3) || getVal(4, 4),
-    bunkerIntention: findVal(7),
-    robLsifo: findRobVal(data, nameRow + 8, nameCol, 'LSIFO'),
-    robMdo: findRobVal(data, nameRow + 8, nameCol, 'MDO') || findRobVal(data, nameRow + 8, nameCol, 'LSMGO'),
-    robFw: findRobVal(data, nameRow + 8, nameCol, 'FW'),
-    meSys: findRobVal(data, nameRow + 9, nameCol, 'ME SYS'),
-    meCyl: findRobVal(data, nameRow + 9, nameCol, 'ME CYL'),
-    dg: findRobVal(data, nameRow + 9, nameCol, 'DG'),
-    voyageNo: findVal(10),
-    lPort: findVal(11),
-    dPort: findVal(12),
-    cargo: findVal(13),
-    charterer: findVal(14),
-    subcharterer: findVal(15),
-    delivery: findVal(16),
-    redelivery: findVal(17),
-    duration: findVal(18),
-    nextVoyageNo: '',
-    nextLPort: '',
-    nextDPort: '',
-    nextCharterer: '',
-    nextCargo: '',
+    bunkerIntention: findVal(6),
+    robLsifo: findRobVal(data, nameRow + 7, nameCol, 'LSIFO'),
+    robMdo:   findRobVal(data, nameRow + 7, nameCol, 'MDO') || findRobVal(data, nameRow + 7, nameCol, 'LSMGO') || findRobVal(data, nameRow + 7, nameCol, 'VLSMGO'),
+    robFw:    findRobVal(data, nameRow + 7, nameCol, 'FW'),
+    meSys:    findRobVal(data, nameRow + 8, nameCol, 'ME SYS'),
+    meCyl:    findRobVal(data, nameRow + 8, nameCol, 'ME CYL'),
+    dg:       findRobVal(data, nameRow + 8, nameCol, 'DG'),
+    voyageNo:    findVal(9),
+    lPort:       findVal(10),
+    dPort:       findVal(11),
+    cargo:       findVal(12),
+    charterer:   findVal(13),
+    subcharterer:findVal(14),
+    delivery:    findVal(15),
+    redelivery:  findVal(16),
+    duration:    findVal(17),
+    nextVoyageNo,
+    nextLPort,
+    nextDPort,
+    nextCharterer,
+    nextCargo,
     reportDate: new Date().toLocaleDateString('en-GB')
   };
 }
@@ -2125,8 +2552,8 @@ function posType(pos) {
   if (!pos) return 'unknown';
   const p = pos.toUpperCase();
   if (p.includes('SAILING') || p.includes('SEYREDIYOR')) return 'sailing';
-  if (p.includes('LOADING') || p.includes('LOAD') || p.includes('YÜKL')) return 'loading';
-  if (p.includes('DISCH') || p.includes('BOŞALT')) return 'discharging';
+  if (p.includes('LOADING') || p.includes('LOAD') || p.includes('YUKL')) return 'loading';
+  if (p.includes('DISCH') || p.includes('BOSALT')) return 'discharging';
   if (p.includes('ANCHOR')) return 'anchored';
   if (p.includes('BUNKER')) return 'bunkering';
   if (p.includes('AT PORT') || p.includes('WAITING') || p.includes('DISCHARGING')) return 'discharging';
@@ -2314,12 +2741,21 @@ function openModal(vesselName) {
   // Body
   document.getElementById('modalBody').innerHTML = buildModalBody(v);
 
+  // Reset mobile tabs to "Details" on each open
+  document.querySelectorAll('.mmt-tab').forEach(t => t.classList.remove('active'));
+  const firstTab = document.querySelector('.mmt-tab');
+  if (firstTab) firstTab.classList.add('active');
+  const detCol = document.querySelector('.modal-col-details');
+  const notCol = document.querySelector('.modal-col-notes');
+  if (detCol) detCol.style.display = '';
+  if (notCol) notCol.style.display = '';
+
   // Show overlay
   document.getElementById('vesselModal').classList.add('open');
   document.body.style.overflow = 'hidden';
   // Auto-resize all textareas after render
   setTimeout(() => {
-    document.querySelectorAll('#vesselModal .note-textarea').forEach(ta => autoResizeTA(ta));
+    document.querySelectorAll('#vesselModal .note-row-text').forEach(ta => autoResizeTA(ta));
   }, 30);
 }
 
@@ -2445,7 +2881,7 @@ function buildCertSection(vesselName) {
   }).join('');
 
   return `
-    <div class="modal-section-title" style="margin-top:20px;">🗂 Certificate & Service Dates</div>
+    <div class="modal-section-title">🗂 Certificate & Service Expiry Dates</div>
     <div class="cert-section">
       <div class="cert-grid">${items}</div>
       <button class="btn btn-primary" style="width:100%;margin-top:14px;justify-content:center;font-size:12px;padding:7px 14px;"
@@ -2576,23 +3012,20 @@ function buildNoteItem(cat, idx, item, placeholder) {
     `<option value="${val}"${val === p ? ' selected' : ''}>${lbl}</option>`
   ).join('');
   return `
-    <div class="note-item${prioClass}${staleClass}" id="note_item_${cat}_${idx}">
-      <div class="note-item-header">
-        <div class="note-num-badge">${idx + 1}</div>
-        <select class="priority-select${p ? ' prio-' + p : ''}" id="modal_priority_${cat}_${idx}"
-          onchange="updateNoteItemStyle('${cat}',${idx},this.value)">${opts}</select>
-        <div style="flex:1"></div>
-        <button title="Delete this note" onclick="deleteNoteItem('${cat}',${idx})"
-          style="background:transparent;border:1px solid var(--border2);color:var(--text3);padding:3px 8px;border-radius:4px;cursor:pointer;font-size:11px;line-height:1;transition:all .15s;"
-          onmouseover="this.style.borderColor='#dc2626';this.style.color='#dc2626'"
-          onmouseout="this.style.borderColor='';this.style.color=''">🗑</button>
-      </div>
-      <div class="note-item-body">
-        <textarea class="note-textarea" id="modal_note_${cat}_${idx}"
-          placeholder="${placeholder}"
-          oninput="autoResizeTA(this)"
-          onfocus="autoResizeTA(this)">${escHtml(item.text || '')}</textarea>
-        <span class="note-saved-time" id="modal_time_${cat}_${idx}">${item.time ? 'Last saved: ' + item.time : ''}</span>
+    <div class="note-row${prioClass}${staleClass}" id="note_item_${cat}_${idx}">
+      <div class="note-row-num">${idx + 1}</div>
+      <textarea class="note-row-text" id="modal_note_${cat}_${idx}"
+        placeholder="${placeholder}"
+        oninput="autoResizeTA(this)"
+        onfocus="autoResizeTA(this)">${escHtml(item.text || '')}</textarea>
+      <div class="note-row-meta">
+        <div class="note-row-actions">
+          <select class="note-row-prio${p ? ' prio-'+p : ''}" id="modal_priority_${cat}_${idx}"
+            onchange="updateNoteItemStyle('${cat}',${idx},this.value)">${opts}</select>
+          <button type="button" class="note-row-del" title="Delete note"
+            onclick="deleteNoteItem('${cat}',${idx})">🗑</button>
+        </div>
+        <span class="note-row-time" id="modal_time_${cat}_${idx}">${item.time || ''}</span>
       </div>
     </div>`;
 }
@@ -2603,16 +3036,16 @@ function updateNoteItemStyle(cat, idx, val) {
   if (!item || !sel) return;
   ['prio-watch','prio-critical'].forEach(c => { item.classList.remove(c); sel.classList.remove(c); });
   if (val) { item.classList.add(`prio-${val}`); sel.classList.add(`prio-${val}`); }
-  const badge = item.querySelector('.note-num-badge');
+  const badge = item.querySelector('.note-row-num');
   if (badge) badge.style.background = val === 'critical' ? '#dc2626' : val === 'watch' ? '#f59e0b' : '';
   // Update block-level border
   const block = document.getElementById(`note_block_${cat}`);
   if (block) {
     ['prio-watch','prio-critical'].forEach(c => block.classList.remove(c));
-    const items = block.querySelectorAll('.note-item');
+    const rows = block.querySelectorAll('.note-row');
     let topP = '';
     for (const p of ['critical','watch']) {
-      for (const el of items) { if (el.classList.contains('prio-'+p)) { topP = p; break; } }
+      for (const el of rows) { if (el.classList.contains('prio-'+p)) { topP = p; break; } }
       if (topP) break;
     }
     if (topP) block.classList.add('prio-'+topP);
@@ -2722,6 +3155,21 @@ function closeModal() {
 
 function handleModalOverlayClick(e) {
   if (e.target === document.getElementById('vesselModal')) closeModal();
+}
+
+function switchModalTab(tab, el) {
+  document.querySelectorAll('.mmt-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const det = document.querySelector('.modal-col-details');
+  const not = document.querySelector('.modal-col-notes');
+  if (!det || !not) return;
+  if (tab === 'details') {
+    det.style.display = '';
+    not.style.display = 'none';
+  } else {
+    det.style.display = 'none';
+    not.style.display = '';
+  }
 }
 
 // ─── ALERT PANEL ────────────────────────────────────────────────────────────
@@ -2886,10 +3334,11 @@ function renderSettingsPage() {
   if (!grid) return;
   const a = loadAssignments();
 
-  const rowSt = 'display:grid;grid-template-columns:180px 1fr 1fr;gap:12px;align-items:center;padding:7px 16px;border-bottom:1px solid var(--border2,#1e3a5f);';
-  const lblSt = 'font-family:"Barlow Condensed",sans-serif;font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
-  const selSt = 'width:100%;background:var(--navy3,#f1f5f9);border:1px solid var(--border2);color:var(--text);padding:5px 8px;border-radius:4px;font-size:12px;font-family:"Barlow Condensed",sans-serif;font-weight:600;cursor:pointer;outline:none;';
+  const rowSt = 'display:grid;grid-template-columns:180px 1fr 1fr;gap:8px;align-items:center;padding:4px 12px;border-bottom:1px solid var(--border2,#1e3a5f);';
+  const lblSt = 'font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+  const selSt = 'width:100%;background:var(--navy3,#f1f5f9);border:1px solid var(--border2);color:var(--text);padding:3px 6px;border-radius:4px;font-size:11px;font-family:"Barlow Condensed",sans-serif;font-weight:600;cursor:pointer;outline:none;';
 
+  const customSet = new Set(loadCustomVessels());
   grid.innerHTML = VESSELS_ALL.map(v => {
     const curMarine = a.marine[v] || DEFAULT_MARINE[v] || ALL_MARINE_NAMES[0];
     const curOps    = a.ops[v]    || DEFAULT_OPS[v]    || '';
@@ -2899,12 +3348,17 @@ function renderSettingsPage() {
     const opsOpts = `<option value="">— unassigned —</option>` + ALL_OPS_NAMES.map(n =>
       `<option value="${n}"${n===curOps?' selected':''}>${n}</option>`
     ).join('');
+    const delBtn = customSet.has(v)
+      ? `<button type="button" onclick="removeCustomVessel('${v}')" title="Remove vessel"
+           style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:14px;padding:0 2px;line-height:1;">×</button>`
+      : '';
     return `<div style="${rowSt}">
-      <span style="${lblSt}" title="${v}">${v}</span>
+      <span style="${lblSt};display:flex;align-items:center;gap:4px;" title="${v}">${v}${delBtn}</span>
       <select style="${selSt}" onchange="saveSetting('${v}','marine',this.value)">${marineOpts}</select>
       <select style="${selSt}" onchange="saveSetting('${v}','ops',this.value)">${opsOpts}</select>
     </div>`;
   }).join('');
+  renderCustomVesselList();
 }
 
 function saveSetting(vessel, type, val) {
@@ -2935,6 +3389,60 @@ function applySettings() {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelector('.tab[onclick*="vessel-notes"]').classList.add('active');
   document.getElementById('page-vessel-notes').classList.add('active');
+}
+
+function loadCustomVessels() {
+  try { return JSON.parse(localStorage.getItem('yasa_custom_vessels') || '[]'); } catch(e) { return []; }
+}
+function saveCustomVessels(list) {
+  localStorage.setItem('yasa_custom_vessels', JSON.stringify(list));
+}
+
+function addCustomVessel() {
+  const input = document.getElementById('newVesselInput');
+  const name = (input.value || '').trim().toUpperCase();
+  if (!name) { input.style.borderColor = '#ef4444'; return; }
+  input.style.borderColor = '';
+  if (VESSELS_ALL.includes(name)) {
+    showToast('This vessel already exists', 'error'); return;
+  }
+  VESSELS_ALL.push(name);
+  const custom = loadCustomVessels();
+  custom.push(name);
+  saveCustomVessels(custom);
+  input.value = '';
+  renderSettingsPage();
+  renderAll();
+  rebuildDropdowns();
+  showToast(name + ' added to fleet', 'success');
+}
+
+function removeCustomVessel(name) {
+  const idx = VESSELS_ALL.indexOf(name);
+  if (idx !== -1) VESSELS_ALL.splice(idx, 1);
+  const custom = loadCustomVessels().filter(v => v !== name);
+  saveCustomVessels(custom);
+  renderSettingsPage();
+  renderAll();
+  rebuildDropdowns();
+  showToast(name + ' removed', 'success');
+}
+
+function renderCustomVesselList() {
+  const el = document.getElementById('customVesselList');
+  if (!el) return;
+  const custom = loadCustomVessels();
+  if (!custom.length) {
+    el.innerHTML = '<span style="font-size:11px;color:var(--text3);">No custom vessels added yet.</span>';
+    return;
+  }
+  el.innerHTML = custom.map(v => `
+    <span style="display:inline-flex;align-items:center;gap:5px;background:var(--blue);border:1px solid var(--border2);border-radius:5px;padding:3px 8px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;color:var(--text);">
+      ${escHtml(v)}
+      <button type="button" onclick="removeCustomVessel('${escAttr(v)}')"
+        style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;line-height:1;padding:0 0 0 2px;"
+        title="Remove">×</button>
+    </span>`).join('');
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -3127,7 +3635,7 @@ function lsaRender(vessel) {
       else                 cNa++;
 
       const even  = globalRow++ % 2 === 0;
-      const bg    = even ? 'background:var(--navy2);' : 'background:rgba(10,18,32,.5);';
+      const bg    = even ? 'background:var(--navy2);' : 'background:var(--navy);';
       const nStr  = lsaFmt(next) || '—';
       const lStr  = last || '—';
 
@@ -3208,24 +3716,28 @@ window.lsaHandleFile = function(e) {
 };
 
 // ══════════════════════════════════════════════════════════════════
-//  CLOUD SYNC — JSONBin.io
-//  Rule: Cloud is ALWAYS the source of truth.
-//  On load → fetch cloud, apply it, ignore local.
-//  On save → write to cloud immediately.
-//  Poll every 5s → if cloud differs from last known, apply it.
+//  CLOUD SYNC — Supabase (PostgreSQL + REST API)
+//  ▸ Tek tablo: dashboard_data (id TEXT PK, payload JSONB)
+//  ▸ RLS: anonim okuma/yazma aktif (iç ağ kullanımı)
+//  ▸ Kural: Cloud her zaman truth kaynağı.
+//    Load → cloud çek, local ile merge et, geri yaz.
+//    Save → debounce 800ms, sonra upsert.
+//    Poll → 30s'de bir değişiklik kontrolü.
 // ══════════════════════════════════════════════════════════════════
 
-var JSONBIN_BIN_ID  = '69b43178aa77b81da9e0a21d';
-var JSONBIN_API_KEY = '$2a$10$yM94lu8g7jxH0AR9pesl4.SNV7IUZFHmyfz8CsjYvoRRbb.lPcL4W';
-var JSONBIN_BASE    = 'https://api.jsonbin.io/v3/b/' + JSONBIN_BIN_ID;
+// ── ❗ BURAYA KENDİ SUPABASE BİLGİLERİNİ GİR ─────────────────
+var SUPABASE_URL      = 'https://vzfxqqtcsaveilrcixyc.supabase.co'; // Project URL
+var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6ZnhxcXRjc2F2ZWlscmNpeHljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NTM2NjMsImV4cCI6MjA4OTIyOTY2M30.hTF_O44A0a2YZ2WK8s5tAxdQnktl1XTG8g8LD7oDZu0'; // anon/public key
+var SUPABASE_ROW_ID   = 'yasa_main';                              // Tablodaki tek satırın ID'si
+// ─────────────────────────────────────────────────────────────
 
-var _cloudReady    = false;
-var _currentUser   = null;
-var _saveTimer     = null;
-var _isSaving      = false;   // prevent poll from overwriting mid-save
-var _lastCloudStr  = null;    // last known cloud snapshot (stringified)
+var _cloudReady   = false;
+var _currentUser  = null;
+var _saveTimer    = null;
+var _isSaving     = false;
+var _lastCloudStr = null;
 
-// ── helpers ───────────────────────────────────────────────────
+// ── UI helpers ────────────────────────────────────────────────
 function _setStatus(icon, label) {
   var el = document.getElementById('cloudStatus');
   var lb = document.getElementById('lastSyncLabel');
@@ -3241,47 +3753,58 @@ function _deepSortStringify(obj) {
   return JSON.stringify(obj, function(key, value) {
     if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
       return Object.keys(value).sort().reduce(function(sorted, k) {
-        sorted[k] = value[k];
-        return sorted;
+        sorted[k] = value[k]; return sorted;
       }, {});
     }
     return value;
   });
 }
 
+// ── Supabase REST headers ─────────────────────────────────────
+function _sbHeaders(extra) {
+  return Object.assign({
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+    'Content-Type': 'application/json'
+  }, extra || {});
+}
+
 // ── Fetch cloud data ──────────────────────────────────────────
 async function _fetchCloud() {
-  var res = await fetch(JSONBIN_BASE + '/latest', {
-    headers: { 'X-Master-Key': JSONBIN_API_KEY }
-  });
-  if (!res.ok) throw new Error('JSONBin fetch failed: ' + res.status);
-  var data = await res.json();
-  var record = data.record;
+  var url = SUPABASE_URL + '/rest/v1/dashboard_data?id=eq.' + encodeURIComponent(SUPABASE_ROW_ID) + '&select=payload';
+  var res = await fetch(url, { headers: _sbHeaders() });
+  if (!res.ok) throw new Error('Supabase fetch failed: ' + res.status);
+  var rows = await res.json();
+  if (!rows || rows.length === 0) return null;
+  var record = rows[0].payload;
   if (!record || record.init === true) return null;
   return record;
 }
 
-// ── Write data to JSONBin ─────────────────────────────────────
+// ── Write (upsert) data to Supabase ──────────────────────────
 async function _writeCloud(data) {
-  var res = await fetch(JSONBIN_BASE, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Master-Key': JSONBIN_API_KEY
-    },
-    body: JSON.stringify(data)
+  var url = SUPABASE_URL + '/rest/v1/dashboard_data';
+  var res = await fetch(url, {
+    method: 'POST',
+    headers: _sbHeaders({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+    body: JSON.stringify({
+      id:         SUPABASE_ROW_ID,
+      payload:    data,
+      updated_at: new Date().toISOString(),
+      updated_by: _currentUser || 'unknown'
+    })
   });
   if (!res.ok) {
     var err = await res.text();
-    throw new Error('JSONBin write failed: ' + res.status + ' ' + err.substring(0, 200));
+    throw new Error('Supabase write failed: ' + res.status + ' ' + err.substring(0, 200));
   }
 }
 
-// ── Save local state to cloud immediately ─────────────────────
+// ── Save local state to cloud ─────────────────────────────────
 async function cloudSave() {
   if (!_cloudReady) return;
   if (_saveTimer) clearTimeout(_saveTimer);
-  // Debounce 800ms so rapid keystrokes don't spam API
+  // Debounce 800ms — hızlı keystrokes API'yi spam etmesin
   await new Promise(function(resolve) { _saveTimer = setTimeout(resolve, 800); });
   _saveTimer = null;
   _isSaving = true;
@@ -3290,102 +3813,145 @@ async function cloudSave() {
     var snapshot = _buildSnapshot();
     await _writeCloud(snapshot);
     _lastCloudStr = _deepSortStringify(snapshot);
-    _setStatus('☁️', 'Son kayıt: ' + _nowStr());
+    _setStatus('☁️', 'Last saved: ' + _nowStr());
   } catch(e) {
     console.warn('cloudSave failed:', e);
-    // Only show error toast if it's a real auth failure, not a transient network issue
     var msg = e.message || '';
-    if (msg.indexOf('401') !== -1) {
-      _setStatus('⚠️', 'Yetki hatası');
+    if (msg.indexOf('401') !== -1 || msg.indexOf('403') !== -1) {
+      _setStatus('⚠️', 'Auth error');
     } else if (msg.indexOf('429') !== -1) {
-      _setStatus('⚠️', 'API limiti');
+      _setStatus('⚠️', 'Rate limit');
     } else {
-      _setStatus('⚠️', 'Hata');
-      showToast('Cloud kayıt hatası — veri lokalde saklandı', 'error');
+      _setStatus('⚠️', 'Error');
+      showToast('Cloud save failed — data stored locally', 'error');
     }
   } finally {
     _isSaving = false;
   }
 }
 
-// ── Manual sync button ────────────────────────────────────────
+// ── Manuel sync butonu ────────────────────────────────────────
 window.manualSync = async function() {
   if (!_cloudReady) return;
-  _setStatus('🔄', 'Senkronize ediliyor...');
+  _setStatus('🔄', 'Syncing...');
   try {
     var cloudData = await _fetchCloud();
     if (cloudData) {
-      // _applySnapshot merges cloud with local and updates UI
       _applySnapshot(cloudData);
-      // After merge, push the merged result back to cloud so nothing is lost
       var merged = _buildSnapshot();
       await _writeCloud(merged);
       _lastCloudStr = _deepSortStringify(merged);
-      _setStatus('☁️', 'Son güncelleme: ' + _nowStr());
-      showToast('Senkronize edildi', 'success');
+      _setStatus('☁️', 'Last updated: ' + _nowStr());
+      showToast('Synced', 'success');
     } else {
-      // Cloud empty — write local
       var local = _buildSnapshot();
       await _writeCloud(local);
       _lastCloudStr = _deepSortStringify(local);
-      _setStatus('☁️', 'Cloud\'a yazıldı: ' + _nowStr());
+      _setStatus('☁️', 'Written to cloud: ' + _nowStr());
     }
   } catch(e) {
-    _setStatus('⚠️', 'Hata!');
+    _setStatus('⚠️', 'Error!');
     console.warn('manualSync failed:', e);
   }
 };
 
-// ── cloudInit: page load ──────────────────────────────────────
+// ── Kullanıcı adı modal'ı ─────────────────────────────────────
+function _askUserName() {
+  return new Promise(function(resolve) {
+    // localStorage'da kayıtlı ad varsa direkt dön
+    var saved = localStorage.getItem('yasa_user_name');
+    if (saved) { _currentUser = saved; _updateUserUI(saved); return resolve(); }
+
+    // Modal oluştur
+    var overlay = document.createElement('div');
+    overlay.id = 'userNameModal';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML = `
+      <div style="background:#fff;border-radius:14px;padding:32px 36px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.18);">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:.5px;color:#1e293b;margin-bottom:6px;">👋 Welcome</div>
+        <div style="font-size:13px;color:#64748b;margin-bottom:22px;">Enter your name for sync. You will only be asked once on this device.</div>
+        <select id="userNameSelect" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;font-family:'Barlow',sans-serif;color:#1e293b;background:#f8fafc;outline:none;margin-bottom:18px;cursor:pointer;">
+          <option value="">— Select your name —</option>
+          <option value="GAZİ GÖKPINAR">GAZİ GÖKPINAR</option>
+          <option value="TÜRKER İPEK">TÜRKER İPEK</option>
+          ${ALL_MARINE_NAMES.map(n => '<option value="' + n + '">' + n + '</option>').join('')}
+          <option value="OTHER">OTHER</option>
+        </select>
+        <button id="userNameOk" style="width:100%;background:#2563eb;color:#fff;border:none;padding:11px;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:.5px;cursor:pointer;">Continue →</button>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    document.getElementById('userNameOk').onclick = function() {
+      var val = document.getElementById('userNameSelect').value.trim();
+      if (!val) { document.getElementById('userNameSelect').style.borderColor = '#ef4444'; return; }
+      localStorage.setItem('yasa_user_name', val);
+      _currentUser = val;
+      _updateUserUI(val);
+      overlay.remove();
+      resolve();
+    };
+  });
+}
+
+function _updateUserUI(name) {
+  var avatarEl = document.getElementById('userAvatar');
+  var nameEl   = document.getElementById('userName');
+  if (avatarEl) avatarEl.textContent = name.charAt(0).toUpperCase();
+  if (nameEl)   nameEl.textContent   = name;
+}
+
+// ── cloudInit: sayfa yüklenince ───────────────────────────────
 async function cloudInit() {
   _cloudReady = false;
-  _setStatus('🔄', 'Yükleniyor...');
+  _setStatus('🔄', 'Loading...');
+
+  // Önce kullanıcı adını al
+  await _askUserName();
+
   try {
-    // Fetch cloud, merge with local, write merged result back
     var cloudData = await _fetchCloud();
     if (cloudData) {
       _applySnapshot(cloudData);
-      // Push merged result back so cloud always has the newest combined state
       var merged = _buildSnapshot();
       await _writeCloud(merged);
       _lastCloudStr = _deepSortStringify(merged);
-      _setStatus('☁️', 'Son güncelleme: ' + _nowStr());
+      _setStatus('☁️', 'Last updated: ' + _nowStr());
     } else {
-      // Cloud empty — write local data (first use)
+      // Cloud empty — first use, write local if available
       var local = _buildSnapshot();
       if (local.vessels && local.vessels.length > 0) {
         await _writeCloud(local);
         _lastCloudStr = _deepSortStringify(local);
       }
-      _setStatus('☁️', 'Hazır');
+      _setStatus('☁️', 'Ready');
     }
     _cloudReady = true;
 
-    // Poll every 30 seconds (rate-limit friendly)
+    // 30 saniyede bir değişiklik kontrolü
     setInterval(async function() {
-      if (_isSaving || _saveTimer) return; // skip if currently writing
+      if (_isSaving || _saveTimer) return;
       try {
-        var cloudData = await _fetchCloud();
-        if (!cloudData) return;
-        var cloudStr = _deepSortStringify(cloudData);
-        if (cloudStr !== _lastCloudStr) {
-          _lastCloudStr = cloudStr;
-          _applySnapshot(cloudData);
-          _setStatus('☁️', 'Güncellendi: ' + _nowStr());
+        var cd = await _fetchCloud();
+        if (!cd) return;
+        var cs = _deepSortStringify(cd);
+        if (cs !== _lastCloudStr) {
+          _lastCloudStr = cs;
+          _applySnapshot(cd);
+          _setStatus('☁️', 'Updated: ' + _nowStr());
         }
-      } catch(e) { /* silent */ }
-    }, 300000);
+      } catch(e) { /* silent poll failure */ }
+    }, 30000);
 
   } catch(e) {
     console.warn('cloudInit failed:', e);
-    _setStatus('⚠️', 'Bağlantı yok');
-    _cloudReady = true; // still allow local use
+    _setStatus('⚠️', 'No connection');
+    _cloudReady = true; // continue with local storage
   }
 }
 
-// ── cloudLogin / cloudLogout exposed for UI ──────────────────
-window.cloudLogin  = function() { showToast('Cloud sync aktif', 'success'); };
-window.cloudLogout = function() { showToast('Cloud sync her zaman aktif', 'success'); };
+// ── Stub — geriye dönük uyumluluk için ───────────────────────
+window.cloudLogin  = function() { showToast('Supabase cloud sync active', 'success'); };
+window.cloudLogout = function() { showToast('Supabase cloud sync always active', 'success'); };
 
 // ── Build local snapshot ──────────────────────────────────────
 function _buildSnapshot() {
@@ -3601,7 +4167,1580 @@ function _applySnapshot(cloudData) {
   renderAlertPanel();
 }
 
+// ══════════════════════════════════════════════════════════════════
+//  SEFER BAZLI HESAPLAMA — Voyage-level FuelEU
+// ══════════════════════════════════════════════════════════════════
+
+const VOYAGE_SCOPE = { intra_eu:1.0, extra_eu:0.5, berth_eu:1.0, omr:0.5, exempt:0.0 };
+const VOYAGE_SCOPE_LABEL = { intra_eu:'Intra-EU 100%', extra_eu:'Extra-EU 50%', berth_eu:'Berth 100%', omr:'OMR 50%', exempt:'Exempt 0%' };
+let _voyEditId = null;
+
+function voyKey(v,y){ return 'em_voy_'+canonicalize(v)+'_'+y; }
+function voyLoad(){ if(!emVessel) return []; try{ return JSON.parse(localStorage.getItem(voyKey(emVessel,emYear))||'[]'); }catch(e){ return []; } }
+function voySave(list){ if(!emVessel) return; localStorage.setItem(voyKey(emVessel,emYear),JSON.stringify(list)); cloudSave().catch(()=>{}); }
+
+function voyBuildFuelInputs(){
+  const wrap=document.getElementById('voyFuelInputs');
+  if(!wrap) return;
+  wrap.innerHTML=EM_FUELS.map(f=>`
+    <div style="background:var(--navy2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:${f.color};margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${f.label}">${f.label}</div>
+      <input type="number" min="0" step="0.1" id="vf_${f.id}" class="em-input" placeholder="0 MT" style="padding:5px 8px;font-size:13px;">
+    </div>`).join('');
+}
+
+function voyResetForm(){
+  _voyEditId=null;
+  ['voy_no','voy_from','voy_to','voy_note'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['voy_date_from','voy_date_to'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const vt=document.getElementById('voy_type'); if(vt) vt.value='extra_eu';
+  const ve=document.getElementById('voy_elec'); if(ve) ve.value='';
+  EM_FUELS.forEach(f=>{const el=document.getElementById('vf_'+f.id);if(el)el.value='';});
+  const btn=document.querySelector('#emPage-voyage .em-btn:not(.em-btn-outline)');
+  if(btn) btn.textContent='+ Add Voyage';
+}
+
+function voyAddOrUpdate(){
+  if(!emVessel){showToast('Select a vessel first','error');return;}
+  const fuels={};
+  EM_FUELS.forEach(f=>{const v=parseFloat(document.getElementById('vf_'+f.id)?.value||0)||0;if(v>0)fuels[f.id]=v;});
+  if(!Object.keys(fuels).length){showToast('Enter at least one fuel consumption','error');return;}
+  const entry={
+    id:_voyEditId||('v'+Date.now()),
+    no: document.getElementById('voy_no')?.value.trim()||'',
+    from:document.getElementById('voy_from')?.value.trim().toUpperCase()||'',
+    to:  document.getElementById('voy_to')?.value.trim().toUpperCase()||'',
+    dateFrom:document.getElementById('voy_date_from')?.value||'',
+    dateTo:  document.getElementById('voy_date_to')?.value||'',
+    type:document.getElementById('voy_type')?.value||'extra_eu',
+    fuels, elec:parseFloat(document.getElementById('voy_elec')?.value||0)||0,
+    note:document.getElementById('voy_note')?.value.trim()||''
+  };
+  const list=voyLoad();
+  if(_voyEditId){const i=list.findIndex(x=>x.id===_voyEditId);if(i>=0)list[i]=entry;else list.push(entry);}
+  else list.push(entry);
+  voySave(list); voyResetForm(); voyRender();
+  showToast(_voyEditId?'Voyage updated':'Voyage added','success');
+}
+
+function voyEdit(id){
+  const e=voyLoad().find(x=>x.id===id); if(!e) return;
+  _voyEditId=id;
+  const s=(eid,v)=>{const el=document.getElementById(eid);if(el)el.value=v||'';};
+  s('voy_no',e.no); s('voy_from',e.from); s('voy_to',e.to);
+  s('voy_date_from',e.dateFrom); s('voy_date_to',e.dateTo); s('voy_note',e.note);
+  const vt=document.getElementById('voy_type');if(vt)vt.value=e.type||'extra_eu';
+  const ve=document.getElementById('voy_elec');if(ve)ve.value=e.elec||'';
+  EM_FUELS.forEach(f=>{const el=document.getElementById('vf_'+f.id);if(el)el.value=e.fuels[f.id]||'';});
+  const btn=document.querySelector('#emPage-voyage .em-btn:not(.em-btn-outline)');
+  if(btn) btn.textContent='✓ Update';
+}
+
+function voyDelete(id){voySave(voyLoad().filter(x=>x.id!==id));voyRender();}
+function voyClearAll(){if(!confirm('Delete all voyage records?'))return;voySave([]);voyRender();}
+
+function voyCalcEntry(e,year){
+  const scope=VOYAGE_SCOPE[e.type]??0.5;
+  let totalE=0,totalGHG=0,totalE_rfnbo=0;
+  const rfnboActive=year<=2033;
+  EM_FUELS.forEach(f=>{
+    const t=parseFloat(e.fuels[f.id]||0)||0;
+    if(t>0){const en=t*f.lcv,g=en*f.ef;totalE+=en;totalGHG+=g;if(f.rfnbo&&rfnboActive)totalE_rfnbo+=en;}
+  });
+  const elecMJ=(e.elec||0)*3600000;
+  const denom=totalE+totalE_rfnbo+elecMJ;
+  const intensity=denom>0?totalGHG/denom:0;
+  const limit=emGetLimit(year);
+  const scopedE=(totalE+elecMJ)*scope;
+  const compBal=(limit-intensity)*scopedE/1e6;
+  const deficit=Math.max(0,-compBal);
+  const penaltyRate=intensity>0?2400e6/(intensity*41000):640;
+  const penalty=deficit*penaltyRate;
+  return{totalE,totalGHG,elecMJ,denom,intensity,limit,scope,scopedE,compBal,deficit,penalty};
+}
+
+function voyRender(){
+  const list=voyLoad();
+  const wrap=document.getElementById('voyTableWrap');
+  const summCard=document.getElementById('voySummaryCard');
+  if(!wrap) return;
+  if(!list.length){
+    wrap.innerHTML='<div style="text-align:center;padding:30px;color:var(--text3);font-size:13px;">No voyage records yet.</div>';
+    if(summCard) summCard.style.display='none';
+    return;
+  }
+  const year=parseInt(emYear);
+  let rows='',totalCB=0,sumGHG=0,sumDenom=0;
+  list.forEach((e,i)=>{
+    const c=voyCalcEntry(e,year);
+    totalCB+=c.compBal; sumGHG+=c.totalGHG; sumDenom+=c.denom;
+    const ok=c.compBal>=0;
+    const dur=(e.dateFrom&&e.dateTo)?Math.round((new Date(e.dateTo)-new Date(e.dateFrom))/86400000)+' days':'—';
+    const fuelList=Object.entries(e.fuels).map(([id,t])=>{const f=EM_FUELS.find(x=>x.id===id);return f?`<span style="font-size:10px;color:${f.color};">${id.toUpperCase()}:${parseFloat(t).toFixed(0)}t</span> `:''}).join('');
+    rows+=`<tr>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px;">${e.no||('V'+(i+1))}</td>
+      <td style="font-size:12px;">${e.from||'—'} → ${e.to||'—'}</td>
+      <td style="font-size:11px;color:var(--text3);">${e.dateFrom||''} ${e.dateTo?'→ '+e.dateTo:''}<br>${dur}</td>
+      <td><span style="font-size:10px;padding:2px 6px;border-radius:10px;background:rgba(37,99,235,.1);color:var(--accent);">${VOYAGE_SCOPE_LABEL[e.type]||e.type}</span></td>
+      <td style="font-size:11px;">${fuelList}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px;">${c.intensity.toFixed(2)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:${ok?'#059669':'#dc2626'};">${c.compBal>=0?'+':''}${c.compBal.toFixed(1)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${c.deficit>0?'#dc2626':'var(--text3)'};">${c.deficit>0?'€'+c.penalty.toLocaleString(undefined,{maximumFractionDigits:0}):'—'}</td>
+      <td style="white-space:nowrap;">
+        <button onclick="voyEdit('${e.id}')" style="background:transparent;border:1px solid var(--border2);color:var(--text3);padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer;margin-right:4px;">✏</button>
+        <button onclick="voyDelete('${e.id}')" style="background:transparent;border:1px solid rgba(220,38,38,.3);color:#dc2626;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer;">×</button>
+      </td>
+    </tr>`;
+  });
+  wrap.innerHTML=`<div style="overflow-x:auto;"><table class="em-table">
+    <thead><tr>
+      <th>Voyage No.</th><th>Route</th><th>Date / Duration</th><th>Type / Scope</th>
+      <th>Fuels</th><th>GHG Int.<br><span style="font-size:9px;">(gCO₂/MJ)</span></th>
+      <th>Comp.Bal.<br><span style="font-size:9px;">(tCO₂eq)</span></th>
+      <th>Est.Penalty<br><span style="font-size:9px;">(€)</span></th><th>Actions</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+
+  if(summCard){
+    summCard.style.display='block';
+    const limit=emGetLimit(year);
+    const wInt=sumDenom>0?sumGHG/sumDenom:0;
+    const ok=totalCB>=0;
+    const totalDeficit=Math.max(0,-totalCB);
+    const avgPenaltyRate=wInt>0?2400e6/(wInt*41000):640;
+    const totalPenalty=totalDeficit*avgPenaltyRate;
+    document.getElementById('voySummaryContent').innerHTML=`
+      <div class="em-grid-3" style="margin-bottom:14px;">
+        <div class="em-stat"><div class="em-stat-label">Total Voyages</div><div class="em-stat-val">${list.length}</div></div>
+        <div class="em-stat">
+          <div class="em-stat-label">Weighted GHG Int.</div>
+          <div class="em-stat-val" style="color:${wInt<=limit?'#059669':'#dc2626'};">${wInt.toFixed(2)}</div>
+          <div style="font-size:11px;color:var(--text3);">gCO₂eq/MJ · limit ${limit.toFixed(2)}</div>
+        </div>
+        <div class="em-stat">
+          <div class="em-stat-label">Total Compliance Bal.</div>
+          <div class="em-stat-val" style="color:${ok?'#059669':'#dc2626'};">${totalCB>=0?'+':''}${totalCB.toFixed(1)} t</div>
+          <div style="font-size:11px;color:var(--text3);">${ok?'✓ COMPLIANT':'✗ DEFICIT'}</div>
+        </div>
+      </div>
+      ${!ok?`<div style="padding:10px 14px;background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);border-radius:8px;font-size:12px;color:#dc2626;margin-bottom:10px;">
+        ✗ Total deficit: ${Math.abs(totalCB).toFixed(1)} tCO₂eq · Estimated penalty: ~€${totalPenalty.toLocaleString(undefined,{maximumFractionDigits:0})}
+      </div>`:''}
+      <div style="padding:10px 14px;background:rgba(37,99,235,.06);border:1px solid rgba(37,99,235,.15);border-radius:8px;font-size:12px;color:var(--text2);">
+        ℹ These values cover the ${list.length} recorded voyages only. Use <b>↑ Export to Annual</b> to update the Fuel &amp; Voyage tab.
+      </div>`;
+  }
+}
+
+function voyExportToYearly(){
+  if(!emVessel){showToast('Select a vessel','error');return;}
+  const list=voyLoad();
+  if(!list.length){showToast('No voyage records','error');return;}
+  const fuels={};let totalElec=0;
+  list.forEach(e=>{
+    Object.entries(e.fuels).forEach(([id,t])=>{fuels[id]=(fuels[id]||0)+parseFloat(t||0);});
+    totalElec+=parseFloat(e.elec||0);
+  });
+  const typeCounts={};
+  list.forEach(e=>{typeCounts[e.type]=(typeCounts[e.type]||0)+1;});
+  const total=list.length;
+  const voyages={intra_eu:0,extra_eu:0,berth_eu:0,omr:0,exempt:0};
+  Object.keys(typeCounts).forEach(t=>{voyages[t]=Math.round(typeCounts[t]/total*100);});
+  const sum=Object.values(voyages).reduce((a,b)=>a+b,0);
+  if(sum!==100) voyages.extra_eu=(voyages.extra_eu||0)+(100-sum);
+  emData={...emData,fuels,voyages,elec:totalElec};
+  emSaveData(emVessel,emYear,emData);
+  emPopulate();emRecalc();
+  document.querySelectorAll('.em-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.em-page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.em-tab')[1].classList.add('active');
+  document.getElementById('emPage-input')?.classList.add('active');
+  showToast(list.length+' voyage(s) exported to Fuel & Voyage tab','success');
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  ORDER FOLLOW — DRAG & DROP EMAIL IMPORT
+// ══════════════════════════════════════════════════════════════════
+
+// ── Drag events ──────────────────────────────────────────
+function ordDragEnter(e){ e.preventDefault(); document.getElementById('ordDropZone')?.classList.add('drag-over'); }
+function ordDragOver(e) { e.preventDefault(); }
+function ordDragLeave(e){ if(!e.currentTarget.contains(e.relatedTarget)) document.getElementById('ordDropZone')?.classList.remove('drag-over'); }
+function ordDrop(e){
+  e.preventDefault();
+  document.getElementById('ordDropZone')?.classList.remove('drag-over');
+  [...(e.dataTransfer?.files||[])].forEach(ordProcessEmailFile);
+}
+function ordFileInput(e){ [...(e.target?.files||[])].forEach(ordProcessEmailFile); if(e.target) e.target.value=''; }
+
+function ordProcessEmailFile(file){
+  const isMsg = file.name.toLowerCase().endsWith('.msg');
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+
+      let subject = file.name.replace(/\.(eml|msg|txt)$/i,'');
+      let date = new Date().toISOString().slice(0,10);
+      let from = '';
+      let body = '';
+
+      if (isMsg) {
+        if (typeof MSGReader === 'undefined' || typeof MSGReader !== 'function') {
+          throw new Error("MSGReader library could not be loaded. Please check your internet connection.");
+        }
+        const msgReader = new MSGReader(new Uint8Array(ev.target.result));
+        const fileData = msgReader.getFileData();
+        if (fileData.error) throw new Error(fileData.error);
+        
+        subject = fileData.subject || subject;
+        const msgDate = fileData.messageDeliveryTime || fileData.clientSubmitTime || fileData.creationTime;
+        if (msgDate) {
+            const d = new Date(msgDate);
+            if (!isNaN(d)) date = d.toISOString().slice(0,10);
+        }
+        
+        from = fileData.senderName || '';
+        if (fileData.senderEmail) from += (from ? ` <${fileData.senderEmail}>` : fileData.senderEmail);
+        
+        body = fileData.body || fileData.bodyHTML || '(No readable text content found in this email)';
+        if (fileData.bodyHTML && !fileData.body) {
+            // Yalnızca HTML metni bulduysa ham HTML'i okunaklı metne çeviriyoruz
+            body = body.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                       .replace(/<\/?[^>]+(>|$)/g, ' ')
+                       .replace(/&nbsp;/g, ' ')
+                       .replace(/\s+/g, ' ')
+                       .trim();
+        }
+      } else {
+         const norm = ev.target.result.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+         const sepIdx = norm.indexOf('\n\n');
+         if (sepIdx > 0 && sepIdx < 15000) {
+           const headerStr = norm.slice(0, sepIdx);
+           const headers = {};
+           headerStr.replace(/\n[ \t]+/g,' ').split('\n').forEach(line => {
+             const m = line.match(/^([\w-]+)\s*:\s*(.*)$/);
+             if (m) headers[m[1].toLowerCase()] = m[2].trim();
+           });
+           if (headers['subject']) subject = ordDecodeRFC2047(headers['subject']) || subject;
+           if (headers['date']) {
+             try { const d=new Date(headers['date']); if(!isNaN(d)) date=d.toISOString().slice(0,10); } catch(e){}
+           }
+           if (headers['from']) from = ordDecodeRFC2047(headers['from']);
+         }
+
+         const parts = ordFindPlainTextParts(norm);
+         if (parts.length > 0) {
+           body = parts.join('\n\n---\n\n');
+         } else {
+           let fallback = sepIdx > 0 ? norm.slice(sepIdx) : norm;
+           fallback = fallback.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                              .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                              .replace(/<\/?[^>]+(>|$)/g, ' ')
+                              .replace(/&nbsp;/g, ' ')
+                              .replace(/\s+/g, ' ')
+                              .trim();
+           body = fallback || '(No readable text content found in this email)';
+         }
+      }
+
+      body = body.slice(0, 10000);
+      ordAutoSave({ subject, date, from, body }, file.name);
+    } catch(err) {
+      ordShowDropToast('Error: ' + err.message, true);
+    }
+  };
+  
+  if (isMsg) reader.readAsArrayBuffer(file);
+  else reader.readAsText(file, 'utf-8');
+}
+
+function ordFindPlainTextParts(norm) {
+  const results = [];
+  ordWalkMime(norm, results);
+  
+  const plains = results.filter(r => r.type === 'plain').map(r => r.text);
+  if (plains.length > 0) return plains;
+  
+  const htmls = results.filter(r => r.type === 'html').map(r => r.text);
+  if (htmls.length > 0) return htmls;
+  
+  return [];
+}
+
+function ordWalkMime(text, results) {
+  const sep = text.indexOf('\n\n');
+  if (sep < 0) return;
+
+  const headerStr = text.slice(0, sep).replace(/\n[ \t]+/g,' ');
+  const body      = text.slice(sep + 2);
+  const headers   = {};
+  headerStr.split('\n').forEach(line => {
+    const m = line.match(/^([\w-]+)\s*:\s*(.*)$/);
+    if (m) headers[m[1].toLowerCase()] = m[2].trim();
+  });
+
+  const ct  = headers['content-type']  || 'text/plain';
+  const cte = headers['content-transfer-encoding'] || '7bit';
+  const cd  = headers['content-disposition'] || '';
+  const ctL = ct.toLowerCase();
+
+  // Skip attachments entirely
+  if (cd.toLowerCase().startsWith('attachment')) return;
+
+  // Multipart — walk sub-parts
+  const bm = ct.match(/boundary\s*=\s*"?([^";,\n]+)"?/i);
+  if (bm || ctL.includes('multipart')) {
+    if (!bm) return;
+    const boundary = bm[1].trim();
+    const parts    = ordSplitMime(body, boundary);
+    parts.forEach(p => ordWalkMime(p, results));
+    return;
+  }
+
+  const decoded = ordDecodePart(body, cte);
+
+  if (ctL.startsWith('text/plain')) {
+    if (decoded.trim()) results.push({ type: 'plain', text: decoded.trim() });
+  } else if (ctL.startsWith('text/html')) {
+    const stripped = decoded.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                            .replace(/<\/?[^>]+(>|$)/g, ' ')
+                            .replace(/&nbsp;/g, ' ')
+                            .replace(/\s+/g, ' ')
+                            .trim();
+    if (stripped) results.push({ type: 'html', text: stripped });
+  }
+}
+
+function ordSplitMime(body, boundary) {
+  const delim  = '--' + boundary;
+  const delimE = '--' + boundary + '--';
+  const parts  = [];
+  const lines  = body.split('\n');
+  let cur      = null;
+  for (const line of lines) {
+    const t = line.trim();
+    if (t === delimE) { if (cur !== null) parts.push(cur.join('\n')); break; }
+    if (t === delim)  { if (cur !== null) parts.push(cur.join('\n')); cur = []; }
+    else if (cur !== null) cur.push(line);
+  }
+  if (cur && cur.length) parts.push(cur.join('\n'));
+  return parts;
+}
+
+function ordDecodePart(body, cte) {
+  const enc = (cte||'').toLowerCase().trim();
+  if (enc.includes('base64')) {
+    try {
+      const bin = atob(body.replace(/\s+/g,''));
+      try { return new TextDecoder('utf-8').decode(Uint8Array.from(bin,c=>c.charCodeAt(0))); }
+      catch(e){ return bin; }
+    } catch(e){ return body; }
+  }
+  if (enc.includes('quoted-printable')) {
+    let qp = body.replace(/=\n/g,'').replace(/=\r\n/g,'');
+    qp = qp.replace(/(?:=[0-9A-Fa-f]{2})+/g, match => {
+        const uriComp = match.replace(/=/g, '%');
+        try { return decodeURIComponent(uriComp); }
+        catch(e) { return match.replace(/=/g,'').replace(/../g, h=>String.fromCharCode(parseInt(h,16))); }
+    });
+    return qp;
+  }
+  return body;
+}
+
+function ordDecodeRFC2047(str) {
+  if (!str) return '';
+  return str.replace(/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/g,(full,charset,enc,text)=>{
+    try {
+      if (enc.toUpperCase()==='B'){
+        const bin=atob(text);
+        try{ return new TextDecoder('utf-8').decode(Uint8Array.from(bin,c=>c.charCodeAt(0))); }catch(e){return bin;}
+      } else {
+        let qp = text.replace(/_/g,' ');
+        qp = qp.replace(/(?:=[0-9A-Fa-f]{2})+/g, match => {
+            const uriComp = match.replace(/=/g, '%');
+            try { return decodeURIComponent(uriComp); }
+            catch(e) { return match.replace(/=/g,'').replace(/../g, h=>String.fromCharCode(parseInt(h,16))); }
+        });
+        return qp;
+      }
+    }catch(e){return full;}
+  });
+}
+// Alias used elsewhere
+const ordDecodeEncodedWords = ordDecodeRFC2047;
+
+// ── Auto-detect category ──────────────────────────────────────────
+const ORD_CAT_KEYWORDS = {
+  safety:       ['safety','drill','muster','lifeboat','fire','accident','ism','sms','risk','emergency'],
+  technical:    ['technical','engine','repair','maintenance','defect','dry dock','survey','class','annual','ecdis','vdr','ais'],
+  environmental:['environment','marpol','annex','waste','ballast','bwm','garbage','emission','ghg','fueleu','co2','ets'],
+  crew:         ['crew','sailor','seaman','seafarer','master','chief','officer','salary','sign'],
+  commercial:   ['commercial','ticari','voyage','charter','cargo','freight','hire','bill of lading','laytime'],
+  ops:          ['ops','operation','voyage','departure','arrival','eta','etd','port call','port','bunkering','fuel'],
+};
+function ordAutoDetectCategory(text){
+  const lower=text.toLowerCase();
+  for(const [cat,kws] of Object.entries(ORD_CAT_KEYWORDS)){
+    if(kws.some(kw=>lower.includes(kw))) return cat;
+  }
+  return 'other';
+}
+
+// ── Auto-detect vessels ───────────────────────────────────────────
+function ordAutoDetectVessels(text){
+  const upper=text.toUpperCase();
+  return VESSELS_ALL.filter(v=>{
+    const clean=v.replace(/^M\/V\s*/i,'').toUpperCase();
+    return clean.length>3 && upper.includes(clean);
+  });
+}
+
+// ── Save parsed email as order ────────────────────────────────────
+function ordAutoSave(parsed, filename){
+  const { subject, date, from, body } = parsed;
+  const fullText = subject+' '+body;
+  const cat     = ordAutoDetectCategory(fullText);
+  const vessels = ordAutoDetectVessels(fullText);
+  const entry = {
+    id:       'ord'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    subject:  subject || filename,
+    date:     date || new Date().toISOString().slice(0,10),
+    cat, vessels,
+    content:  (from?'From: '+from+'\n\n':'')+body,
+    createdBy:(typeof _currentUser!=='undefined'?_currentUser:'')||'',
+    savedAt:  new Date().toISOString(),
+    source:   'email_import', filename
+  };
+  const list=ordLoad(); list.push(entry); ordSave(list); ordRender();
+  const vi=vessels.length?' · '+vessels.slice(0,2).join(', ')+(vessels.length>2?'…':''):'';
+  ordShowDropToast('✓ Kaydedildi: '+subject.slice(0,50)+vi, false);
+}
+
+function ordShowDropToast(msg,isError){
+  const t=document.getElementById('ordDropToast');
+  if(!t) return;
+  t.textContent=msg;
+  t.className='ord-drop-toast'+(isError?' error':'');
+  t.style.display='block';
+  clearTimeout(t._timeout);
+  t._timeout=setTimeout(()=>{ t.style.display='none'; },4000);
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  ORDER FOLLOW MODULE
+// ══════════════════════════════════════════════════════════════════
+
+const ORD_CAT_LABELS = { safety:'Safety', technical:'Technical', ops:'Operations', crew:'Crew', environmental:'Environmental', commercial:'Commercial', other:'Other' };
+let _ordEditId = null;
+let _ordSelectedVessels = [];
+
+function ordKey(){ return 'yasa_orders'; }
+function ordLoad(){ try{ return JSON.parse(localStorage.getItem(ordKey())||'[]'); }catch(e){ return []; } }
+function ordSave(list){ localStorage.setItem(ordKey(),JSON.stringify(list)); cloudSave().catch(()=>{}); }
+
+function ordInit(){
+  // Populate vessel dropdowns
+  const sel = document.getElementById('ordFilterVessel');
+  const addSel = document.getElementById('ordVesselAdd');
+  if(sel && sel.options.length<=1){
+    VESSELS_ALL.forEach(v=>{
+      const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o);
+    });
+  }
+  if(addSel && addSel.options.length<=2){
+    VESSELS_ALL.forEach(v=>{
+      const o=document.createElement('option'); o.value=v; o.textContent=v; addSel.appendChild(o);
+    });
+  }
+  ordRender();
+}
+
+function ordRender(){
+  const list     = ordLoad();
+  const catF     = document.getElementById('ordFilterCat')?.value   || '';
+  const vesselF  = document.getElementById('ordFilterVessel')?.value || '';
+  const searchF  = (document.getElementById('ordSearch')?.value||'').toLowerCase();
+
+  let filtered = list.filter(o=>{
+    if(catF    && o.cat!==catF) return false;
+    if(vesselF && !o.vessels.includes(vesselF) && !o.vessels.includes('ALL')) return false;
+    if(searchF && !o.subject.toLowerCase().includes(searchF) && !(o.content||'').toLowerCase().includes(searchF)) return false;
+    return true;
+  });
+
+  // Sort newest first
+  filtered.sort((a,b)=> new Date(b.date||0)-new Date(a.date||0));
+
+  // Stats
+  const statsEl = document.getElementById('ordStats');
+  if(statsEl){
+    const catCounts = {};
+    list.forEach(o=>{ catCounts[o.cat]=(catCounts[o.cat]||0)+1; });
+    const catColors = { safety:'#dc2626',technical:'#2563eb',ops:'#d97706',crew:'#7c3aed',environmental:'#059669',commercial:'#0ea5e9',other:'#64748b' };
+    statsEl.innerHTML = `
+      <div style="background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:12px;color:var(--text2);">
+        <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:18px;color:var(--text);">${list.length}</span> toplam order
+      </div>
+      ${Object.entries(catCounts).map(([cat,cnt])=>`
+        <div style="background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 14px;display:flex;align-items:center;gap:8px;">
+          <span class="ord-badge ord-cat-${cat}">${ORD_CAT_LABELS[cat]||cat}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:${catColors[cat]||'var(--text)'};">${cnt}</span>
+        </div>`).join('')}`;
+  }
+
+  const listEl = document.getElementById('ordList');
+  if(!listEl) return;
+  if(!filtered.length){
+    listEl.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3);font-size:13px;">No results found.</div>';
+    return;
+  }
+
+  listEl.innerHTML = filtered.map(o=>{
+    const vesselChips = o.vessels.includes('ALL')
+      ? '<span class="ord-vessel-chip">⚓ ALL VESSELS</span>'
+      : o.vessels.map(v=>`<span class="ord-vessel-chip">${escHtml(v)}</span>`).join('');
+    const preview = (o.content||'').substring(0,150).replace(/\n/g,' ');
+    return `
+      <div class="ord-row" id="ordRow_${o.id}" onclick="ordToggle('${o.id}')">
+        <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap;">
+              <span class="ord-badge ord-cat-${o.cat}">${ORD_CAT_LABELS[o.cat]||o.cat}</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);">${o.date||'—'}</span>
+            </div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:.3px;">${escHtml(o.subject)}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:4px;">${vesselChips}</div>
+            ${preview?`<div style="font-size:12px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:600px;">${escHtml(preview)}${o.content&&o.content.length>150?'…':''}</div>`:''}
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;" onclick="event.stopPropagation()">
+            <button onclick="ordOpenForm('${o.id}')" style="background:transparent;border:1px solid var(--border2);color:var(--text3);padding:5px 12px;border-radius:5px;font-size:12px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;">✏ Edit</button>
+            <button onclick="ordDelete('${o.id}')" style="background:transparent;border:1px solid rgba(220,38,38,.3);color:#dc2626;padding:5px 10px;border-radius:5px;font-size:12px;cursor:pointer;">🗑</button>
+          </div>
+        </div>
+        <div class="ord-content-wrap" id="ordContent_${o.id}">
+          ${o.content
+            ? `<div class="ord-content-text">${escHtml(o.content)}</div>`
+            : '<div style="font-size:12px;color:var(--text3);font-style:italic;">No content added.</div>'}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function ordToggle(id){
+  const row  = document.getElementById('ordRow_'+id);
+  const wrap = document.getElementById('ordContent_'+id);
+  if(!wrap) return;
+  const open = wrap.classList.toggle('open');
+  if(row) row.classList.toggle('ord-expanded', open);
+}
+
+function ordOpenForm(id){
+  _ordEditId = id;
+  _ordSelectedVessels = [];
+  const modal = document.getElementById('ordModal');
+  if(!modal) return;
+
+  if(id){
+    const o = ordLoad().find(x=>x.id===id);
+    if(!o) return;
+    document.getElementById('ordFormTitle').textContent = '✏ Edit Order';
+    document.getElementById('ordSubject').value  = o.subject||'';
+    document.getElementById('ordDate').value     = o.date||'';
+    document.getElementById('ordCat').value      = o.cat||'safety';
+    document.getElementById('ordContent').value  = o.content||'';
+    _ordSelectedVessels = [...(o.vessels||[])];
+  } else {
+    document.getElementById('ordFormTitle').textContent = '+ New Order';
+    document.getElementById('ordSubject').value  = '';
+    document.getElementById('ordDate').value     = new Date().toISOString().slice(0,10);
+    document.getElementById('ordCat').value      = 'safety';
+    document.getElementById('ordContent').value  = '';
+    _ordSelectedVessels = [];
+  }
+  ordRenderSelectedVessels();
+  modal.style.display = 'flex';
+}
+
+function ordCloseForm(){
+  const modal = document.getElementById('ordModal');
+  if(modal) modal.style.display='none';
+  _ordEditId=null; _ordSelectedVessels=[];
+}
+
+function ordAddVessel(){
+  const sel = document.getElementById('ordVesselAdd');
+  const v = sel?.value;
+  if(!v) return;
+  if(v==='ALL'){ _ordSelectedVessels=['ALL']; }
+  else {
+    _ordSelectedVessels = _ordSelectedVessels.filter(x=>x!=='ALL');
+    if(!_ordSelectedVessels.includes(v)) _ordSelectedVessels.push(v);
+  }
+  sel.value='';
+  ordRenderSelectedVessels();
+}
+
+function ordRemoveVessel(v){
+  _ordSelectedVessels = _ordSelectedVessels.filter(x=>x!==v);
+  ordRenderSelectedVessels();
+}
+
+function ordRenderSelectedVessels(){
+  const wrap = document.getElementById('ordSelectedVessels');
+  if(!wrap) return;
+  if(!_ordSelectedVessels.length){
+    wrap.innerHTML='<span style="font-size:12px;color:var(--text3);">No vessel selected</span>';
+    return;
+  }
+  wrap.innerHTML = _ordSelectedVessels.map(v=>`
+    <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(37,99,235,.1);color:var(--accent);border:1px solid rgba(37,99,235,.2);border-radius:12px;padding:3px 10px;font-size:12px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">
+      ${escHtml(v==='ALL'?'⚓ ALL VESSELS':v)}
+      <span onclick="ordRemoveVessel('${escAttr(v)}')" style="cursor:pointer;opacity:.6;font-size:14px;line-height:1;">×</span>
+    </span>`).join('');
+}
+
+function ordSaveForm(){
+  const subject = document.getElementById('ordSubject')?.value.trim();
+  const date    = document.getElementById('ordDate')?.value;
+  if(!subject){ showToast('Subject cannot be empty','error'); return; }
+  if(!date)   { showToast('Select a date','error'); return; }
+  const entry = {
+    id:      _ordEditId || ('ord'+Date.now()),
+    subject,
+    date,
+    cat:     document.getElementById('ordCat')?.value    || 'other',
+    vessels: [..._ordSelectedVessels],
+    content: document.getElementById('ordContent')?.value || '',
+    createdBy: typeof _currentUser !== 'undefined' ? (_currentUser||'') : '',
+    savedAt: new Date().toISOString()
+  };
+  const list = ordLoad();
+  if(_ordEditId){
+    const i = list.findIndex(x=>x.id===_ordEditId);
+    if(i>=0) list[i]=entry; else list.push(entry);
+  } else { list.push(entry); }
+  ordSave(list);
+  ordCloseForm();
+  ordRender();
+  showToast(_ordEditId?'Order updated':'Order saved','success');
+}
+
+function ordDelete(id){
+  if(!confirm('Delete this order?')) return;
+  ordSave(ordLoad().filter(x=>x.id!==id));
+  ordRender();
+}
+
+// ESC closes modal
+document.addEventListener('keydown', function(e){
+  if(e.key==='Escape'){
+    const m=document.getElementById('ordModal');
+    if(m && m.style.display==='flex') ordCloseForm();
+  }
+});
+
+
+
+// ══════════════════════════════════════════════════
+//  EMISSION MODULE — FuelEU Maritime
+// ══════════════════════════════════════════════════
+// Annex II değerleri (FuelEU Maritime Reg. EU 2023/1805) — AR5 GWP (CH4=28, N2O=265)
+// LCV: MJ/t, EF: gCO2eq/MJ (WtW)
+// rfnbo:true → 2025-2033 arası ×2 enerji çarpanı (GHG intensity paydasında)
+const EM_FUELS = [
+  { id:'hfo',   label:'VLSFO / HFO',              lcv:40500, ef:91.60, color:'#dc2626', rfnbo:false },
+  { id:'lfo',   label:'LFO',                       lcv:41000, ef:91.25, color:'#f97316', rfnbo:false },
+  { id:'mdo',   label:'MDO / MGO',                 lcv:42700, ef:90.64, color:'#ea580c', rfnbo:false },
+  { id:'lng',   label:'LNG fossil (Diesel SS)',     lcv:48000, ef:76.08, color:'#2563eb', rfnbo:false },
+  { id:'b30',   label:'Biofuel B30 (65% RED)',      lcv:40500, ef:73.99, color:'#16a34a', rfnbo:false },
+  { id:'bio65', label:'Biofuel 100% (65% RED)',     lcv:40500, ef:32.90, color:'#059669', rfnbo:false },
+  { id:'bio80', label:'Biofuel 100% (80% RED)',     lcv:40500, ef:14.10, color:'#0d9488', rfnbo:false },
+  { id:'elng',  label:'e-LNG / bio-LNG (RFNBO)',   lcv:48000, ef:11.38, color:'#0f766e', rfnbo:true  },
+  { id:'emeoh', label:'e-MeOH / Green MeOH (RFNBO)',lcv:19900, ef: 3.16, color:'#0891b2', rfnbo:true  },
+];
+
+
+const EM_VOYAGES = [
+  { id:'intra_eu', label:'Intra-EU Voyage',    scope:1.0, desc:'EU ↔ EU' },
+  { id:'extra_eu', label:'Extra-EU Voyage',    scope:0.5, desc:'EU ↔ Non-EU (50%)' },
+  { id:'berth_eu', label:'At Berth (EU Port)', scope:1.0, desc:'At berth/loading in EU port' },
+  { id:'omr',      label:'OMR Voyage',         scope:0.5, desc:'Outermost Region (50%)' },
+  { id:'exempt',   label:'Non-EU / Exempt',    scope:0.0, desc:'Exempt (0%)' },
+];
+
+// GHG Intensity limitleri — Art.4(2), referans 91.16 gCO2e/MJ
+// 2025: -%2 → 89.34 | 2030: -%6 → 85.69 | 2035: -%14.5 → 77.94
+// 2040: -%31 → 62.90 | 2045: -%62 → 34.64 | 2050: -%80 → 18.23
+const EM_LIMITS = { 2025:89.34,2030:85.69,2035:77.94,2040:62.90,2045:34.64,2050:18.23 };
+const EM_REF    = 91.16; // Referans GHG yoğunluğu (gCO2e/MJ)
+const EM_DEF_VOYAGES = { intra_eu:20, extra_eu:70, berth_eu:10, omr:0, exempt:0 };
+
+let emVessel='', emYear=2025, emData=null, emResult=null, emPool=[];
+
+function emInit() {
+  const vSel = document.getElementById('emVesselSel');
+  const pSel = document.getElementById('emPoolAddSel');
+  if (vSel && vSel.options.length <= 1) {
+    VESSELS_ALL.forEach(v => {
+      [vSel,pSel].forEach(s => { const o=document.createElement('option'); o.value=v; o.textContent=v; s.appendChild(o); });
+    });
+  }
+  emBuildFuelTable();
+  emBuildVoyageTable();
+  emBuildTimeline();
+  emReset();
+  voyBuildFuelInputs();
+  voyRender();
+}
+
+function emSwitchTab(id, el) {
+  document.querySelectorAll('.em-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.em-page').forEach(p=>p.classList.remove('active'));
+  if(el) el.classList.add('active');
+  const pg=document.getElementById('emPage-'+id);
+  if(pg) pg.classList.add('active');
+}
+
+function emOnVesselChange() {
+  emVessel = document.getElementById('emVesselSel').value;
+  emYear   = parseInt(document.getElementById('emYearSel').value);
+  if(!emVessel) return;
+  emData = emLoadData(emVessel, emYear);
+  emPopulate();
+  emRecalc();
+}
+
+function emOnYearChange() {
+  emYear = parseInt(document.getElementById('emYearSel').value);
+  const pyEl = document.getElementById('emPoolYear');
+  if(pyEl) pyEl.textContent = emYear;
+  if(!emVessel) return;
+  emData = emLoadData(emVessel, emYear);
+  emPopulate();
+  emRecalc();
+}
+
+function emKey(v,y){ return 'em_data_'+canonicalize(v)+'_'+y; }
+
+function emLoadData(v,y) {
+  try {
+    const raw = localStorage.getItem(emKey(v,y));
+    if(raw) return JSON.parse(raw);
+  } catch(e){}
+  return { year:y, fuels:{}, voyages:{...EM_DEF_VOYAGES}, banking:0 };
+}
+
+function emSaveData(v,y,d) {
+  localStorage.setItem(emKey(v,y), JSON.stringify(d));
+  cloudSave().catch(e=>console.warn('em cloud save:',e));
+}
+
+function emGetLimit(y) {
+  const pts=[2050,2045,2040,2035,2030,2025];
+  const lims=[18.23,34.64,62.90,77.94,85.69,89.34];
+  for(let i=0;i<pts.length;i++) if(parseInt(y)>=pts[i]) return lims[i];
+  return 89.34;
+}
+
+function emCalc(d) {
+  // GWP seçimi (AR5 varsayılan)
+  const gwp = d.gwp || 'ar5';
+  const GWP_CH4 = gwp==='ar4' ? 25 : 28;
+  const GWP_N2O = gwp==='ar4' ? 298 : 265;
+  const year = parseInt(d.year||emYear);
+  const rfnboActive = year <= 2033; // RFNBO ×2 multiplier 2025-2033
+
+  let totalE=0, totalGHG=0;
+  let totalE_rfnbo=0;  // RFNBOs için ×2 uygulanan ek enerji
+  const fb=[];
+
+  EM_FUELS.forEach(f=>{
+    const t=parseFloat(d.fuels[f.id]||0)||0;
+    if(t>0){
+      const e=t*f.lcv;   // MJ
+      const g=e*f.ef;    // gCO2e
+      totalE+=e; totalGHG+=g;
+      if(f.rfnbo && rfnboActive) totalE_rfnbo+=e; // Bu enerji paydada ×2 sayılır
+      fb.push({...f,tonnes:t,energy:e,ghg:g});
+    }
+  });
+  if(totalE===0) return null;
+
+  // Elektrik (OPS) — paydaya eklenir, GHG'ye 0 katkı
+  const eElec = parseFloat(d.elec||0)*3600000; // kWh → MJ (1 kWh = 3.6 MJ)
+
+  // GHG Intensity — Annex I formülü
+  // Payda: Σ(m × LCV × RWD) + E_elec  (RWD=2 for RFNBO 2025-2033)
+  const denomIntensity = totalE + totalE_rfnbo + eElec; // RFNBO enerjisi ekstra bir kez daha sayılır
+  const intensity = totalGHG / denomIntensity;
+
+  // Scoped enerji (sefer profili × kapsam oranı) — CB hesabında RWD kullanılmaz (Annex IV)
+  const scopedE_noRWD_base = totalE + eElec; // RWD olmadan
+  let scopedE=0;
+  EM_VOYAGES.forEach(vt=>{
+    const pct=parseFloat(d.voyages[vt.id]||0)/100;
+    scopedE += scopedE_noRWD_base*pct*vt.scope;
+  });
+
+  const limit   = emGetLimit(year);
+  // Compliance Balance — Annex IV (RWD olmadan)
+  const compBal = (limit-intensity)*scopedE/1e6; // tCO2eq
+  const banking = parseFloat(d.banking||0);
+  const netBal  = compBal+banking;
+  const deficit = Math.max(0,-netBal);
+
+  // Penalty = |CB| × 2400€ / (GHG_intensity × 41,000)  (Art. PDF Annex)
+  // Basit hesap: penalty per tCO2e = 2400e6 / (intensity × 41000)
+  const penaltyRate = intensity>0 ? 2400e6/(intensity*41000) : 640;
+  const penalty = deficit * penaltyRate;
+
+  // Max borrowable: 2% of limit × scoped energy
+  const maxBorrow = limit*0.02*scopedE/1e6;
+
+  return {
+    totalE, totalGHG, scopedE, eElec,
+    intensity, denomIntensity,
+    limit, compBal, banking, netBal, deficit,
+    penalty, penaltyRate, maxBorrow,
+    fb, avgScope: scopedE/(scopedE_noRWD_base||1),
+    rfnboActive, gwp
+  };
+}
+
+function emBuildFuelTable() {
+  const tb=document.getElementById('emFuelTbody');
+  if(!tb) return;
+  tb.innerHTML = EM_FUELS.map(f=>`
+    <tr>
+      <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${f.color};margin-right:7px;flex-shrink:0;"></span>${f.label}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text3);">${f.lcv.toLocaleString()}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text3);">${f.ef}</td>
+      <td><input type="number" min="0" step="10" class="em-input" id="emF_${f.id}" placeholder="0" oninput="emOnFuelInput()" style="width:110px;"></td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text3);" id="emFE_${f.id}">—</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text3);" id="emFG_${f.id}">—</td>
+    </tr>`).join('');
+}
+
+function emBuildVoyageTable() {
+  const tb=document.getElementById('emVoyageTbody');
+  if(!tb) return;
+  tb.innerHTML = EM_VOYAGES.map(vt=>`
+    <tr>
+      <td>${vt.label}</td>
+      <td style="font-size:12px;color:var(--text3);">${vt.desc}</td>
+      <td><span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;
+        color:${vt.scope===1.0?'#059669':vt.scope===0.5?'#ea580c':'#94a3b8'};">%${Math.round(vt.scope*100)}</span></td>
+      <td style="display:flex;align-items:center;gap:8px;">
+        <input type="number" min="0" max="100" step="1" class="em-input" id="emV_${vt.id}"
+          value="0" oninput="emOnVoyInput()" style="width:80px;">
+        <span style="font-size:12px;color:var(--text3);min-width:28px;" id="emVP_${vt.id}">0%</span>
+      </td>
+    </tr>`).join('');
+}
+
+function emPopulate() {
+  if(!emData) return;
+  EM_FUELS.forEach(f=>{
+    const el=document.getElementById('emF_'+f.id);
+    if(el) el.value = emData.fuels[f.id]||'';
+  });
+  EM_VOYAGES.forEach(vt=>{
+    const el=document.getElementById('emV_'+vt.id);
+    if(el){ el.value=emData.voyages[vt.id]||0;
+      const pe=document.getElementById('emVP_'+vt.id);
+      if(pe) pe.textContent=(emData.voyages[vt.id]||0)+'%';
+    }
+  });
+  const elecEl=document.getElementById('emElec');
+  if(elecEl) elecEl.value=emData.elec||'';
+  emOnFuelInput();
+  emCheckVoyTotal();
+}
+
+function emOnFuelInput() {
+  let tt=0,te=0,tg=0;
+  EM_FUELS.forEach(f=>{
+    const el=document.getElementById('emF_'+f.id);
+    const t=parseFloat(el?.value||0)||0;
+    const e=t*f.lcv, g=e*f.ef/1e6;
+    tt+=t; te+=e; tg+=g;
+    const ee=document.getElementById('emFE_'+f.id);
+    const ge=document.getElementById('emFG_'+f.id);
+    if(ee) ee.textContent = t>0?(e/1e6).toFixed(1)+' TJ':'—';
+    if(ge) ge.textContent = t>0?g.toFixed(0)+' t':'—';
+  });
+  const elecKwh=parseFloat(document.getElementById('emElec')?.value||0)||0;
+  const elecMJ=elecKwh*3.6;
+  const elecEl=document.getElementById('emElecMJ');
+  if(elecEl) elecEl.textContent=elecKwh>0?(elecMJ/1e6).toFixed(2)+' TJ':'—';
+  const te2=document.getElementById('emTotalTonnes');
+  const ee2=document.getElementById('emTotalEnergy');
+  const ge2=document.getElementById('emTotalGHG');
+  if(te2) te2.textContent = tt>0?tt.toLocaleString()+' MT':'—';
+  if(ee2) ee2.textContent = te>0?((te+elecMJ)/1e6).toFixed(1)+' TJ':'—';
+  if(ge2) ge2.textContent = tg>0?tg.toFixed(0)+' t':'—';
+}
+
+function emOnVoyInput() {
+  emCheckVoyTotal();
+}
+
+function emCheckVoyTotal() {
+  let sum=0;
+  EM_VOYAGES.forEach(vt=>{
+    const el=document.getElementById('emV_'+vt.id);
+    const v=parseFloat(el?.value||0)||0;
+    sum+=v;
+    const pe=document.getElementById('emVP_'+vt.id);
+    if(pe) pe.textContent=v+'%';
+  });
+  const totEl=document.getElementById('emVoyageTotal');
+  if(totEl){ totEl.textContent=sum+'%'; totEl.style.color=Math.abs(sum-100)<0.01?'#059669':'#dc2626'; }
+}
+
+function emSaveAndCalc() {
+  if(!emVessel){ showToast('Select a vessel first','error'); return; }
+  const fuels={};
+  EM_FUELS.forEach(f=>{ const v=parseFloat(document.getElementById('emF_'+f.id)?.value||0)||0; if(v>0) fuels[f.id]=v; });
+  const elec=parseFloat(document.getElementById('emElec')?.value||0)||0;
+  const voyages={};
+  let vs=0;
+  EM_VOYAGES.forEach(vt=>{ const v=parseFloat(document.getElementById('emV_'+vt.id)?.value||0)||0; voyages[vt.id]=v; vs+=v; });
+  if(Math.abs(vs-100)>0.5){ showToast('Voyage profile must total 100% (currently '+vs.toFixed(0)+'%)','error'); return; }
+  if(Object.keys(fuels).length===0){ showToast('Enter consumption for at least one fuel','error'); return; }
+  emData={ ...emData, year:emYear, fuels, voyages, elec };
+  emSaveData(emVessel,emYear,emData);
+  emRecalc();
+  showToast('Saved and calculated','success');
+  document.querySelectorAll('.em-tab')[2].click();
+}
+
+function emRecalc() {
+  if(!emData) return;
+  emResult = emCalc(emData);
+  emRenderResults();
+  emRenderCompliance();
+  emRenderProjection();
+}
+
+function emRenderResults() {
+  const cont=document.getElementById('emResultsContent');
+  if(!cont) return;
+  const r=emResult;
+  if(!r){ cont.innerHTML='<div style="text-align:center;padding:60px;color:var(--text3);">No data entered.</div>'; return; }
+
+  const ok=r.netBal>=0;
+  const pct=Math.min(r.intensity/r.limit*100,140);
+  const gColor=ok?'#059669':'#dc2626';
+
+  cont.innerHTML=`
+    <div class="em-grid-2" style="margin-bottom:14px;">
+      <div class="em-card">
+        <div class="em-label">GHG Intensity (WtW)</div>
+        <div style="display:flex;align-items:flex-end;gap:10px;margin-bottom:10px;">
+          <span class="em-big-num" style="color:${gColor};">${r.intensity.toFixed(2)}</span>
+          <span style="font-size:13px;color:var(--text3);margin-bottom:6px;">gCO₂eq/MJ</span>
+          <span class="em-badge ${ok?'em-badge-ok':'em-badge-bad'}" style="margin-bottom:4px;">${ok?'✓ Compliant':'✗ Limit Exceeded'}</span>
+        </div>
+        <div class="em-gauge-track">
+          <div class="em-gauge-fill" style="width:${Math.min(pct,100)}%;background:${gColor};"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);">
+          <span>0</span>
+          <span>Limit ${emYear}: <b style="color:var(--accent);">${r.limit.toFixed(2)}</b></span>
+          <span>100+</span>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--text3);">
+          Vs limit: <b style="color:${gColor};">${ok?'':'+'}${(r.intensity-r.limit).toFixed(2)} gCO₂eq/MJ ${ok?'below':'above'}</b>
+        </div>
+      </div>
+      <div class="em-card">
+        <div class="em-label">Compliance Balance</div>
+        <div style="display:flex;align-items:flex-end;gap:10px;margin-bottom:10px;">
+          <span class="em-big-num" style="color:${r.netBal>=0?'#059669':'#dc2626'};">${r.netBal>=0?'+':''}${r.netBal.toFixed(0)}</span>
+          <span style="font-size:13px;color:var(--text3);margin-bottom:6px;">tCO₂eq</span>
+        </div>
+        ${r.banking>0?`<div style="font-size:11px;color:var(--text3);">Period: ${r.compBal>=0?'+':''}${r.compBal.toFixed(0)}t + Banking: +${r.banking.toFixed(0)}t</div>`:''}
+        ${r.deficit>0?`<div style="margin-top:10px;padding:8px 12px;background:rgba(220,38,38,.08);border-radius:6px;border:1px solid rgba(220,38,38,.2);">
+          <span style="font-size:13px;color:#dc2626;font-weight:600;">⚠ Estimated Penalty: €${r.penalty.toLocaleString(undefined,{maximumFractionDigits:0})}</span>
+        </div>`:`<div style="margin-top:10px;padding:8px 12px;background:rgba(5,150,105,.08);border-radius:6px;border:1px solid rgba(5,150,105,.2);">
+          <span style="font-size:12px;color:#059669;font-weight:600;">✓ Compliant — surplus can be banked or used in a pool</span>
+        </div>`}
+      </div>
+    </div>
+    <div class="em-grid-3" style="margin-bottom:14px;">
+      <div class="em-stat"><div class="em-stat-label">Total Energy</div><div class="em-stat-val">${(r.denomIntensity/1e6).toFixed(1)} TJ</div><div style="font-size:11px;color:var(--text3);">${r.eElec>0?'incl. OPS':''} ${r.rfnboActive?'RFNBO ×2':'no RFNBO'}</div></div>
+      <div class="em-stat"><div class="em-stat-label">FuelEU Scope Energy</div><div class="em-stat-val">${(r.scopedE/1e6).toFixed(1)} TJ</div><div style="font-size:11px;color:var(--text3);">${(r.avgScope*100).toFixed(0)}% scope</div></div>
+      <div class="em-stat"><div class="em-stat-label">Total GHG (WtW)</div><div class="em-stat-val">${(r.totalGHG/1e6).toFixed(0)} t CO₂eq</div></div>
+    </div>
+    <div class="em-card">
+      <div class="em-label">Fuel Mix</div>
+      <table class="em-table">
+        <thead><tr><th>Fuel</th><th>Consumption</th><th>Energy</th><th>GHG</th><th>EF</th><th>Energy Share</th></tr></thead>
+        <tbody>${r.fb.map(f=>`
+          <tr>
+            <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${f.color};margin-right:7px;"></span>${f.label}</td>
+            <td style="font-family:'JetBrains Mono',monospace;">${f.tonnes.toLocaleString()} MT</td>
+            <td style="font-family:'JetBrains Mono',monospace;">${(f.energy/1e6).toFixed(1)} TJ</td>
+            <td style="font-family:'JetBrains Mono',monospace;">${(f.ghg/1e6).toFixed(0)} t</td>
+            <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);">${f.ef}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="flex:1;height:6px;background:var(--navy3);border-radius:3px;min-width:80px;">
+                  <div style="width:${(f.energy/r.totalE*100).toFixed(1)}%;height:100%;background:${f.color};border-radius:3px;"></div>
+                </div>
+                <span style="font-size:11px;color:var(--text3);min-width:34px;">${(f.energy/r.totalE*100).toFixed(1)}%</span>
+              </div>
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function emRenderCompliance() {
+  const cont=document.getElementById('emComplianceContent');
+  if(!cont) return;
+  const r=emResult;
+  if(!r){ cont.innerHTML='<div style="text-align:center;padding:60px;color:var(--text3);">No data entered.</div>'; return; }
+
+  const canBorrow = r.deficit>0 && r.deficit<=r.maxBorrow;
+  const borrowRepay = (r.deficit*1.1).toFixed(0);
+
+  cont.innerHTML=`
+    <!-- Banking -->
+    <div class="em-card">
+      <div class="em-label">🏦 Banking</div>
+      <div class="em-info-box" style="margin-bottom:14px;">Surplus can only be carried forward to the <b>same vessel</b>. No time limit. Banking is no longer possible once the DoC has been issued.</div>
+      <div class="em-grid-2">
+        <div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">Compliance balance this period (excl. banking):</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:${r.compBal>=0?'#059669':'#dc2626'};">
+            ${r.compBal>=0?'+':''}${r.compBal.toFixed(0)} tCO₂eq
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">Banked surplus from previous period:</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="number" min="0" step="1" id="emBankingIn" value="${r.banking||0}"
+              style="background:var(--input-bg);border:1px solid var(--border2);border-radius:5px;padding:6px 10px;font-size:14px;font-family:'JetBrains Mono',monospace;color:var(--text);width:120px;outline:none;"
+              onchange="emUpdateBanking(this.value)">
+            <span style="font-size:12px;color:var(--text3);">tCO₂eq</span>
+          </div>
+        </div>
+      </div>
+      ${r.compBal>0?`<div style="margin-top:12px;padding:10px 14px;background:rgba(5,150,105,.08);border:1px solid rgba(5,150,105,.2);border-radius:8px;">
+        <span style="font-size:12px;color:#059669;font-weight:600;">✓ +${r.compBal.toFixed(0)} tCO₂eq can be banked this period</span>
+      </div>`:r.compBal<0?`<div style="margin-top:12px;padding:10px 14px;background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);border-radius:8px;">
+        <span style="font-size:12px;color:#dc2626;font-weight:600;">✗ Deficit — surplus must be achieved before banking</span>
+      </div>`:''}
+    </div>
+
+    <!-- Borrowing -->
+    <div class="em-card">
+      <div class="em-label">💳 Borrowing</div>
+      <div class="em-info-box" style="margin-bottom:14px;">Borrowing is possible up to <b>2% of the limit</b>. Borrowed surplus is repaid the next period at <b>×1.1</b>. Cannot be used <b>2 consecutive years</b>. Borrowing and pooling <b>cannot be combined</b> in the same period.</div>
+      ${r.netBal>=0
+        ?`<div style="padding:12px;background:rgba(5,150,105,.06);border-radius:8px;font-size:12px;color:#059669;">✓ You are compliant — borrowing not needed.</div>`
+        :canBorrow
+        ?`<div class="em-grid-2" style="margin-bottom:12px;">
+            <div class="em-stat"><div class="em-stat-label">Current Deficit</div><div class="em-stat-val" style="color:#dc2626;">${r.deficit.toFixed(0)} t</div></div>
+            <div class="em-stat"><div class="em-stat-label">Max Borrowable (2%)</div><div class="em-stat-val">${r.maxBorrow.toFixed(0)} t</div></div>
+          </div>
+          <div style="padding:12px 14px;background:rgba(234,88,12,.08);border:1px solid rgba(234,88,12,.2);border-radius:8px;">
+            <div style="font-size:12px;color:#ea580c;font-weight:600;">⚠ If borrowing is used:</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:4px;">This period: deficit covered (${r.deficit.toFixed(0)} t borrowed)<br>Next period extra burden: <b>-${borrowRepay} tCO₂eq</b> (×1.1 repayment)<br>No penalty this period — next period compliance harder</div>
+          </div>`
+        :`<div style="padding:12px;background:rgba(220,38,38,.08);border-radius:8px;font-size:12px;color:#dc2626;">
+            ✗ Deficit exceeds 2% limit (${r.deficit.toFixed(0)} t > max ${r.maxBorrow.toFixed(0)} t) — borrowing not possible. Pooling or penalty payment required.
+          </div>`
+      }
+    </div>
+
+    <!-- Biofuel Hesaplayıcı -->
+    <div class="em-card">
+      <div class="em-label">🌿 Biofuel / Alternative Fuel Requirement</div>
+      <div class="em-info-box" style="margin-bottom:14px;">
+        How many tonnes of biofuel need to be bunkered to eliminate the current deficit? Select which fossil fuel to replace with biofuel.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div>
+          <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Fossil Fuel to Replace</div>
+          <select id="emBioReplace" onchange="emCalcBiofuel()" style="background:var(--input-bg);border:1px solid var(--border2);border-radius:6px;padding:7px 10px;font-size:13px;color:var(--text);width:100%;outline:none;">
+            <option value="hfo">VLSFO / HFO (LCV 40,500 MJ/t)</option>
+            <option value="lfo">LFO (LCV 41,000 MJ/t)</option>
+            <option value="mdo">MDO / MGO (LCV 42,700 MJ/t)</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Biofuel / Alt. Fuel to Use</div>
+          <select id="emBioType" onchange="emCalcBiofuel()" style="background:var(--input-bg);border:1px solid var(--border2);border-radius:6px;padding:7px 10px;font-size:13px;color:var(--text);width:100%;outline:none;">
+            <option value="b30">Biofuel B30 blend (73.99 gCO2e/MJ)</option>
+            <option value="bio65">Biofuel 100% – %65 RED (32.90 gCO2e/MJ)</option>
+            <option value="bio80">Biofuel 100% – %80 RED (14.10 gCO2e/MJ)</option>
+            <option value="elng">e-LNG / bio-LNG RFNBO (11.38 gCO2e/MJ, x2)</option>
+            <option value="emeoh">e-MeOH RFNBO (3.16 gCO2e/MJ, x2)</option>
+          </select>
+        </div>
+      </div>
+      <div id="emBioResult"></div>
+    </div>
+
+    <!-- Özet Tablo -->
+    <div class="em-card">
+      <div class="em-label">📋 Compliance Options Comparison</div>
+      <table class="em-table">
+        <thead><tr><th>Option</th><th>Cost This Period</th><th>Next Period</th><th>Assessment</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>Pay Penalty</b></td>
+            <td style="color:${r.deficit>0?'#dc2626':'#059669'};">${r.deficit>0?'€'+r.penalty.toLocaleString(undefined,{maximumFractionDigits:0}):'Not required'}</td>
+            <td style="color:var(--text3);">Independent</td>
+            <td>${r.deficit>0?'Last resort':'N/A'}</td>
+          </tr>
+          <tr>
+            <td><b>Biofuel Bunkering</b></td>
+            <td id="emBioCostCell" style="color:var(--accent);">—</td>
+            <td style="color:var(--text3);">Direct reduction</td>
+            <td>Subject to supply</td>
+          </tr>
+          <tr>
+            <td><b>Borrowing</b></td>
+            <td style="color:${canBorrow?'#059669':'#94a3b8'};">${canBorrow?'Penalty-free (this period)':'Not possible'}</td>
+            <td style="color:${canBorrow?'#ea580c':'#94a3b8'};">${canBorrow?'-'+borrowRepay+' t burden':'—'}</td>
+            <td>${canBorrow?'Last resort, use carefully':'—'}</td>
+          </tr>
+          <tr>
+            <td><b>Pooling</b></td>
+            <td style="color:var(--accent);">Market-dependent</td>
+            <td style="color:var(--text3);">Independent</td>
+            <td>Recommended</td>
+          </tr>
+          <tr>
+            <td><b>Banking (surplus)</b></td>
+            <td style="color:${r.compBal>0?'#059669':'#94a3b8'};">${r.compBal>0?'+'+r.compBal.toFixed(0)+' t carryable':'No surplus'}</td>
+            <td style="color:${r.compBal>0?'#059669':'#94a3b8'};">${r.compBal>0?'Used next period':'—'}</td>
+            <td>${r.compBal>0?'Recommended':'—'}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`;
+  setTimeout(()=>emCalcBiofuel(),50);
+}
+
+function emUpdateBanking(val) {
+  if(!emVessel) return;
+  emData.banking = parseFloat(val)||0;
+  emSaveData(emVessel,emYear,emData);
+  emResult = emCalc(emData);
+  emRenderResults();
+  emRenderCompliance();
+}
+
+// ── Biofuel Gereksinim Hesaplayıcı ───────────────────────────────────────
+// Analitik çözüm: GHG yoğunluğunu tam limite getirmek için
+// R fossil ton → R biofuel ton değişiminde gereken R değeri
+//
+// intensity_new = (GHG - R*(EF_f*LCV_f - EF_b*LCV_b)) / (E_denom - R*LCV_f + R*LCV_b*RWD) = limit
+// → R = (GHG - limit*E_denom) / (EF_f*LCV_f - EF_b*LCV_b - limit*(LCV_b*RWD - LCV_f))
+//
+// Eğer tam compliance (netBal=0) yetersizse, daha büyük değer döner.
+function emCalcBiofuel() {
+  const cont = document.getElementById('emBioResult');
+  const costCell = document.getElementById('emBioCostCell');
+  if(!cont) return;
+  const r = emResult;
+  if(!r){ cont.innerHTML=''; return; }
+
+  const replaceId = document.getElementById('emBioReplace')?.value || 'hfo';
+  const bioId     = document.getElementById('emBioType')?.value   || 'bio65';
+
+  const fFossil = EM_FUELS.find(f=>f.id===replaceId) || EM_FUELS[0];
+  const fBio    = EM_FUELS.find(f=>f.id===bioId)     || EM_FUELS[3];
+
+  const year   = parseInt(emData?.year||emYear);
+  const RWD    = (fBio.rfnbo && year<=2033) ? 2 : 1;
+
+  // Mevcut fossil tüketimi bu yakıt tipinde
+  const currentFossilT = parseFloat(emData?.fuels?.[replaceId]||0)||0;
+
+  if(r.totalGHG===0 || r.denomIntensity===0){
+    cont.innerHTML='<div style="font-size:12px;color:var(--text3);">Enter fuel data first.</div>';
+    return;
+  }
+
+  const EFf  = fFossil.ef;  const LCVf = fFossil.lcv;  // gCO2e/MJ, MJ/t
+  const EFb  = fBio.ef;     const LCVb = fBio.lcv;
+  const lim  = r.limit;
+
+  // Payda değişimi: -R*LCVf + R*LCVb*RWD
+  const numerator   = r.totalGHG - lim * r.denomIntensity;
+  const denominator = EFf*LCVf - EFb*LCVb - lim*(LCVb*RWD - LCVf);
+
+  if(Math.abs(denominator) < 0.001){
+    cont.innerHTML='<div style="font-size:12px;color:var(--text3);">Cannot calculate for this fuel combination (EF difference too small).</div>';
+    return;
+  }
+
+  // Tam compliance (intensity=limit) için gereken miktar
+  const R_compliance = numerator / denominator;
+
+  // Net balance 0 için gereken (banking dahil)
+  // CB = (limit-intensity)*scopedE/1e6 + banking = 0 demek
+  // intensity'yi değiştirerek CB=0 → aynı R değeri (scoped oran sabit varsayımıyla)
+  const R = Math.max(0, R_compliance);
+
+  // Hesaplanamaz durum
+  if(!isFinite(R) || R > 1e7){
+    cont.innerHTML='<div style="font-size:12px;color:var(--text3);">Compliance not achievable with this biofuel combination.</div>';
+    return;
+  }
+
+  const alreadyHasFossil = currentFossilT > 0;
+  const replaceable = alreadyHasFossil ? Math.min(R, currentFossilT) : R;
+  const extra = Math.max(0, R - currentFossilT);
+
+  // Yeni GHG intensity tahmini
+  const newGHG   = r.totalGHG   - R*LCVf*EFf + R*LCVb*EFb;
+  const newDenom = r.denomIntensity - R*LCVf  + R*LCVb*RWD;
+  const newInt   = newGHG / newDenom;
+
+  // Yeni compliance balance tahmini
+  const newCompBal = (lim - newInt) * r.scopedE / 1e6;
+  const newBal     = newCompBal + r.banking;
+
+  const ok = newBal >= -0.01;
+
+  // Biofuel premium tahmini (yaklaşık €200/t premium B30, daha fazla B100)
+  const premiumMap = { b30:200, bio65:350, bio80:500, elng:600, emeoh:800 };
+  const premium = premiumMap[bioId] || 300;
+  const estCost = R * premium;
+
+  cont.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;">
+      <div class="em-stat">
+        <div class="em-stat-label">Required Biofuel</div>
+        <div class="em-stat-val" style="color:#059669;">${R.toFixed(1)} t</div>
+        <div style="font-size:11px;color:var(--text3);">${fBio.label}</div>
+      </div>
+      <div class="em-stat">
+        <div class="em-stat-label">New GHG Intensity</div>
+        <div class="em-stat-val" style="color:${ok?'#059669':'#ea580c'};">${newInt.toFixed(2)}</div>
+        <div style="font-size:11px;color:var(--text3);">gCO₂eq/MJ (limit: ${lim.toFixed(2)})</div>
+      </div>
+      <div class="em-stat">
+        <div class="em-stat-label">New Compliance Bal.</div>
+        <div class="em-stat-val" style="color:${newBal>=0?'#059669':'#dc2626'};">${newBal>=0?'+':''}${newBal.toFixed(0)} t</div>
+        <div style="font-size:11px;color:var(--text3);">tCO₂eq</div>
+      </div>
+    </div>
+    <div style="background:${ok?'rgba(5,150,105,.08)':'rgba(234,88,12,.08)'};border:1px solid ${ok?'rgba(5,150,105,.2)':'rgba(234,88,12,.2)'};border-radius:8px;padding:12px 14px;font-size:12px;">
+      <div style="font-weight:600;color:${ok?'#059669':'#ea580c'};margin-bottom:6px;">${ok?'✓ This biofuel quantity is sufficient':'⚠ Partial improvement'}</div>
+      <div style="color:var(--text2);line-height:1.8;">
+        ${alreadyHasFossil && currentFossilT>0
+          ? `Replace <b>${replaceable.toFixed(1)} t</b> of existing <b>${fFossil.label}</b> consumption (${currentFossilT.toFixed(0)} t) with biofuel.`
+          : `Bunker <b>${R.toFixed(1)} t ${fBio.label}</b> instead of <b>${fFossil.label}</b>.`}
+        ${extra>0 ? `<br>⚠ Exceeds current ${fFossil.label} consumption (${extra.toFixed(1)} t additional required).` : ''}
+        ${RWD===2 ? '<br>📌 RFNBO ×2 multiplier applied (2025-2033).' : ''}
+        <br>Estimated additional cost: <b>~€${estCost.toLocaleString(undefined,{maximumFractionDigits:0})}</b> (assuming premium ≈€${premium}/t)
+      </div>
+    </div>`;
+
+  // Özet tabloya maliyet yaz
+  if(costCell) costCell.textContent = '~€'+estCost.toLocaleString(undefined,{maximumFractionDigits:0})+' (premium)';
+}
+
+// ── Pooling ────────────────────────────────────────
+function emPoolAdd() {
+  const sel=document.getElementById('emPoolAddSel');
+  const v=sel?.value;
+  if(!v) return;
+  if(emPool.find(p=>p.vessel===v)){ showToast('This vessel is already in the pool','error'); return; }
+  const d=emLoadData(v,emYear);
+  const r=emCalc(d);
+  emPool.push({vessel:v,result:r});
+  emRenderPool();
+  sel.value='';
+}
+
+function emPoolRemove(v) {
+  emPool=emPool.filter(p=>p.vessel!==v);
+  emRenderPool();
+}
+
+function emPoolClear() {
+  emPool=[];
+  emRenderPool();
+}
+
+function emRenderPool() {
+  const lEl=document.getElementById('emPoolList');
+  const rEl=document.getElementById('emPoolResult');
+  if(!lEl||!rEl) return;
+  if(emPool.length===0){
+    lEl.innerHTML='<div style="color:var(--text3);font-size:13px;padding:8px 0;">Pool is empty — add a vessel.</div>';
+    rEl.innerHTML=''; return;
+  }
+  lEl.innerHTML=emPool.map(p=>{
+    const r=p.result;
+    const bal=r?r.netBal:null;
+    return `<div class="em-pool-vessel">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:var(--text);flex:1;">${p.vessel}</div>
+      ${r?`
+        <div style="text-align:right;margin-right:16px;">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;">Balance</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-weight:700;color:${bal>=0?'#059669':'#dc2626'};">
+            ${bal>=0?'+':''}${bal.toFixed(0)} t
+          </div>
+        </div>
+        <div style="text-align:right;margin-right:16px;">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;">GHG Int.</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;">${r.intensity.toFixed(2)}</div>
+        </div>
+      `:'<span style="font-size:12px;color:var(--text3);">No data (enter via Fuel &amp; Voyage tab)</span>'}
+      <button onclick="emPoolRemove('${escAttr(p.vessel)}')" style="background:transparent;border:none;color:#dc2626;cursor:pointer;font-size:18px;padding:4px 6px;">×</button>
+    </div>`;
+  }).join('');
+
+  const valid=emPool.filter(p=>p.result);
+  if(valid.length<2){ rEl.innerHTML='<div style="font-size:12px;color:var(--text3);">At least 2 vessels with calculated data required.</div>'; return; }
+
+  const total=valid.reduce((s,p)=>s+p.result.netBal,0);
+  const r1=total>=0;
+  const surplusShips=valid.filter(p=>p.result.netBal>0);
+  const deficitShips=valid.filter(p=>p.result.netBal<0);
+
+  rEl.innerHTML=`
+    <div style="background:${r1?'rgba(5,150,105,.08)':'rgba(220,38,38,.08)'};border:1px solid ${r1?'rgba(5,150,105,.2)':'rgba(220,38,38,.2)'};border-radius:8px;padding:14px 16px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:${r1?'#059669':'#dc2626'};margin-bottom:8px;">
+        ${r1?'✓ Pool Valid':'✗ Pool Invalid (Rule 1 violation)'}
+        — Toplam: ${total>=0?'+':''}${total.toFixed(0)} tCO₂eq
+      </div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7;">
+        ${valid.length} vessel(s) · ${surplusShips.length} surplus (+${surplusShips.reduce((s,p)=>s+p.result.netBal,0).toFixed(0)} t) · ${deficitShips.length} deficit (${deficitShips.reduce((s,p)=>s+p.result.netBal,0).toFixed(0)} t)
+      </div>
+      ${r1?`<div style="margin-top:10px;font-size:12px;color:var(--text2);">Surplus vessels can support deficit vessels. Allocation details must be recorded in the FuelEU database (deadline: 30 April 2026).</div>`
+          :`<div style="margin-top:10px;font-size:12px;color:#dc2626;">Total is negative — external surplus purchase or fuel optimisation required.</div>`}
+    </div>`;
+}
+
+// ── Timeline ───────────────────────────────────────
+function emBuildTimeline() {
+  const cont=document.getElementById('emTimelineContent');
+  if(!cont) return;
+  const rows=[
+    [2025,89.34,2],   [2030,85.69,6],  [2035,77.94,14.5],
+    [2040,62.90,31],  [2045,34.64,62], [2050,18.23,80]
+  ];
+  cont.innerHTML=`
+    <table class="em-table">
+      <thead><tr><th>Period</th><th>GHG Intensity Limit</th><th>Reduction</th><th>Visual</th></tr></thead>
+      <tbody>${rows.map(([y,lim,red],i)=>`
+        <tr>
+          <td><b style="font-family:'JetBrains Mono',monospace;">${y}</b>${y<=2030?' (near)':''}</td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:${i===0?'var(--text)':i<3?'#ea580c':'#dc2626'};">${lim.toFixed(2)} gCO₂eq/MJ</td>
+          <td style="font-family:'JetBrains Mono',monospace;color:#059669;">-%${red}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="flex:1;max-width:200px;height:8px;background:var(--navy3);border-radius:4px;">
+                <div style="width:${(lim/91.16*100).toFixed(0)}%;height:100%;background:${i<3?'var(--accent)':i<5?'#ea580c':'#dc2626'};border-radius:4px;"></div>
+              </div>
+              <span style="font-size:11px;color:var(--text3);">${(lim/91.16*100).toFixed(0)}%</span>
+            </div>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    <div style="margin-top:12px;font-size:11px;color:var(--text3);">Source: FuelEU Maritime Regulation (EU) 2023/1805. WtW reference value: 91.16 gCO₂eq/MJ.</div>`;
+}
+
+function emRenderProjection() {
+  const card=document.getElementById('emProjectionCard');
+  const cont=document.getElementById('emProjectionContent');
+  if(!card||!cont||!emResult) return;
+  card.style.display='block';
+  const r=emResult;
+  const years=[2025,2030,2035,2040,2045,2050];
+  const limits=[91.16,89.34,85.69,77.94,62.90,18.23];
+  cont.innerHTML=`
+    <table class="em-table">
+      <thead><tr><th>Year</th><th>GHG Limit</th><th>This Vessel Intensity</th><th>Status</th><th>Est. Compliance Balance</th></tr></thead>
+      <tbody>${years.map((y,i)=>{
+        const lim=limits[i];
+        const ok=r.intensity<=lim;
+        const bal=((lim-r.intensity)*r.scopedE/1e6).toFixed(0);
+        return `<tr>
+          <td style="font-family:'JetBrains Mono',monospace;font-weight:700;">${y}</td>
+          <td style="font-family:'JetBrains Mono',monospace;">${lim.toFixed(2)}</td>
+          <td style="font-family:'JetBrains Mono',monospace;color:${ok?'#059669':'#dc2626'};">${r.intensity.toFixed(2)}</td>
+          <td><span class="em-badge ${ok?'em-badge-ok':'em-badge-bad'}">${ok?'✓ Compliant':'✗ Deficit'}</span></td>
+          <td style="font-family:'JetBrains Mono',monospace;color:${ok?'#059669':'#dc2626'};">${ok?'+':''}${bal} t</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>
+    <div style="margin-top:10px;font-size:11px;color:var(--text3);">* Assumes current fuel mix and voyage profile remain constant. Actual results may vary.</div>`;
+}
+
+function emReset() {
+  EM_FUELS.forEach(f=>{
+    const el=document.getElementById('emF_'+f.id);
+    if(el) el.value='';
+    const ee=document.getElementById('emFE_'+f.id);
+    const ge=document.getElementById('emFG_'+f.id);
+    if(ee) ee.textContent='—'; if(ge) ge.textContent='—';
+  });
+  EM_VOYAGES.forEach(vt=>{
+    const el=document.getElementById('emV_'+vt.id);
+    if(el) el.value=EM_DEF_VOYAGES[vt.id]||0;
+    const pe=document.getElementById('emVP_'+vt.id);
+    if(pe) pe.textContent=(EM_DEF_VOYAGES[vt.id]||0)+'%';
+  });
+  ['emTotalTonnes','emTotalEnergy','emTotalGHG','emElecMJ'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.textContent='—';
+  });
+  const elecResetEl=document.getElementById('emElec'); if(elecResetEl) elecResetEl.value='';
+  emCheckVoyTotal();
+}
+
 </script>
+
+<!-- ════════════════════════ ORDER FOLLOW ════════════════════════ -->
+<div id="page-orders" class="page">
+<style>
+.ord-badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:12px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.5px;white-space:nowrap;}
+.ord-cat-safety{background:rgba(220,38,38,.12);color:#dc2626;border:1px solid rgba(220,38,38,.25);}
+.ord-cat-technical{background:rgba(37,99,235,.12);color:#2563eb;border:1px solid rgba(37,99,235,.25);}
+.ord-cat-ops{background:rgba(245,158,11,.12);color:#d97706;border:1px solid rgba(245,158,11,.25);}
+.ord-cat-crew{background:rgba(124,58,237,.12);color:#7c3aed;border:1px solid rgba(124,58,237,.25);}
+.ord-cat-environmental{background:rgba(5,150,105,.12);color:#059669;border:1px solid rgba(5,150,105,.25);}
+.ord-cat-commercial{background:rgba(14,165,233,.12);color:#0ea5e9;border:1px solid rgba(14,165,233,.25);}
+.ord-cat-other{background:rgba(148,163,184,.12);color:#64748b;border:1px solid rgba(148,163,184,.25);}
+.ord-row{background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin-bottom:8px;cursor:pointer;transition:border-color .15s,box-shadow .15s;}
+.ord-row:hover{border-color:var(--accent);box-shadow:0 2px 8px rgba(37,99,235,.08);}
+.ord-row.ord-expanded{border-color:var(--accent);}
+.ord-content-wrap{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+.ord-content-wrap.open{display:block;}
+.ord-content-text{font-size:13px;color:var(--text2);white-space:pre-wrap;line-height:1.7;background:var(--navy2);border-radius:6px;padding:12px 14px;max-height:320px;overflow-y:auto;font-family:'Barlow',sans-serif;}
+.ord-vessel-chip{display:inline-block;background:rgba(37,99,235,.1);color:var(--accent);border:1px solid rgba(37,99,235,.2);border-radius:10px;padding:1px 8px;font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;margin-right:3px;margin-top:2px;}
+body.dark .ord-row{background:#1e1e1e;border-color:#333;}
+body.dark .ord-content-text{background:#181818;}
+</style>
+
+
+<style>
+.ord-drop-zone{border:2px dashed var(--border2);border-radius:12px;padding:28px;text-align:center;transition:all .2s;cursor:default;margin-bottom:18px;position:relative;}
+.ord-drop-zone.drag-over{border-color:var(--accent);background:rgba(37,99,235,.05);transform:scale(1.005);}
+.ord-drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.ord-drop-toast{position:fixed;bottom:80px;right:24px;background:#059669;color:#fff;padding:14px 20px;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.2);z-index:900;display:none;max-width:380px;}
+.ord-drop-toast.error{background:#dc2626;}
+</style>
+
+<div id="ordDropToast" class="ord-drop-toast"></div>
+
+<div style="padding:20px 24px 60px;max-width:1100px;">
+
+  <!-- DRAG & DROP ZONE -->
+  <div id="ordDropZone" class="ord-drop-zone"
+    ondragenter="ordDragEnter(event)" ondragover="ordDragOver(event)"
+    ondragleave="ordDragLeave(event)" ondrop="ordDrop(event)">
+    <input type="file" accept=".eml,.msg,.txt" multiple onchange="ordFileInput(event)">
+    <div style="font-size:32px;margin-bottom:8px;pointer-events:none;">📧</div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:var(--text);pointer-events:none;">Drag email file here</div>
+    <div style="font-size:12px;color:var(--text3);margin-top:4px;pointer-events:none;">.eml · .msg · .txt formats supported — auto-saved as order</div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:1px;color:var(--text);">📋 Order Follow</div>
+    <div style="flex:1;"></div>
+    <!-- Filtreler -->
+    <select id="ordFilterCat" onchange="ordRender()" style="background:var(--navy2);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:7px 12px;font-size:13px;font-family:'Barlow Condensed',sans-serif;outline:none;">
+      <option value="">All Categories</option>
+      <option value="safety">Safety</option>
+      <option value="technical">Technical</option>
+      <option value="ops">Operations</option>
+      <option value="crew">Crew</option>
+      <option value="environmental">Environmental</option>
+      <option value="commercial">Commercial</option>
+      <option value="other">Other</option>
+    </select>
+    <select id="ordFilterVessel" onchange="ordRender()" style="background:var(--navy2);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:7px 12px;font-size:13px;font-family:'Barlow Condensed',sans-serif;outline:none;min-width:180px;">
+      <option value="">All Vessels</option>
+    </select>
+    <input id="ordSearch" type="text" placeholder="🔍 Search subject..." oninput="ordRender()"
+      style="background:var(--navy2);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:7px 12px;font-size:13px;font-family:'Barlow',sans-serif;outline:none;min-width:180px;">
+    <button onclick="ordOpenForm(null)" style="background:var(--accent);color:#fff;border:none;padding:8px 18px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">+ New Order</button>
+  </div>
+
+  <!-- Stats -->
+  <div id="ordStats" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;"></div>
+
+  <!-- List -->
+  <div id="ordList"><div style="text-align:center;padding:60px;color:var(--text3);"><div style="font-size:40px;opacity:.15;margin-bottom:12px;">📋</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;">No orders yet. Add one with + New Order.</div></div></div>
+</div>
+
+<!-- ORDER FORM MODAL -->
+<div id="ordModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:600;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--navy);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.2);width:100%;max-width:720px;max-height:90vh;overflow-y:auto;padding:28px 32px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--text);" id="ordFormTitle">+ New Order</div>
+      <button onclick="ordCloseForm()" style="background:transparent;border:none;font-size:22px;color:var(--text3);cursor:pointer;line-height:1;">×</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+      <div style="grid-column:1/-1;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text3);margin-bottom:5px;">Subject *</div>
+        <input id="ordSubject" type="text" placeholder="e.g. ECDIS update instruction — YASA SPRING" style="background:var(--input-bg);border:1px solid var(--border2);border-radius:6px;padding:9px 12px;font-size:14px;color:var(--text);font-family:'Barlow',sans-serif;width:100%;outline:none;box-sizing:border-box;">
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text3);margin-bottom:5px;">Date Sent *</div>
+        <input id="ordDate" type="date" style="background:var(--input-bg);border:1px solid var(--border2);border-radius:6px;padding:9px 12px;font-size:14px;color:var(--text);font-family:'Barlow',sans-serif;width:100%;outline:none;box-sizing:border-box;">
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text3);margin-bottom:5px;">Category</div>
+        <select id="ordCat" style="background:var(--input-bg);border:1px solid var(--border2);border-radius:6px;padding:9px 12px;font-size:14px;color:var(--text);font-family:'Barlow',sans-serif;width:100%;outline:none;">
+          <option value="safety">Safety</option>
+          <option value="technical">Technical</option>
+          <option value="ops">Operations</option>
+          <option value="crew">Crew</option>
+          <option value="environmental">Environmental</option>
+          <option value="commercial">Commercial</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Vessel selection -->
+    <div style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text3);margin-bottom:5px;">Related Vessel(s)</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+        <select id="ordVesselAdd" style="background:var(--input-bg);border:1px solid var(--border2);border-radius:6px;padding:7px 10px;font-size:13px;color:var(--text);font-family:'Barlow',sans-serif;flex:1;outline:none;">
+          <option value="">— Select vessel —</option>
+          <option value="ALL">⚓ ALL VESSELS</option>
+        </select>
+        <button onclick="ordAddVessel()" style="background:var(--accent);color:#fff;border:none;padding:8px 14px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Add</button>
+      </div>
+      <div id="ordSelectedVessels" style="display:flex;flex-wrap:wrap;gap:6px;min-height:28px;"></div>
+    </div>
+
+    <!-- Email content -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text3);margin-bottom:5px;">Email Content</div>
+      <textarea id="ordContent" rows="10" placeholder="Paste email content here..." style="background:var(--input-bg);border:1px solid var(--border2);border-radius:6px;padding:10px 12px;font-size:13px;color:var(--text);font-family:'Barlow',sans-serif;width:100%;outline:none;resize:vertical;line-height:1.6;box-sizing:border-box;"></textarea>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="ordCloseForm()" style="background:transparent;border:1px solid var(--border2);color:var(--text2);padding:9px 20px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:14px;cursor:pointer;">Cancel</button>
+      <button onclick="ordSaveForm()" style="background:var(--accent);color:#fff;border:none;padding:9px 24px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">💾 Save</button>
+    </div>
+  </div>
+</div>
+
+</div>
 
 <div id="page-settings" class="page">
   <div style="max-width:860px;margin:0 auto;padding:24px 20px 60px;">
@@ -3623,7 +5762,7 @@ function _applySnapshot(cloudData) {
     </div>
 
     <!-- Header row -->
-    <div style="display:grid;grid-template-columns:180px 1fr 1fr;gap:12px;padding:8px 16px;background:var(--navy3,#e2e8f0);border:1px solid var(--border2);border-radius:8px 8px 0 0;border-bottom:2px solid var(--border2);">
+    <div style="display:grid;grid-template-columns:180px 1fr 1fr;gap:8px;padding:6px 12px;background:var(--navy3,#e2e8f0);border:1px solid var(--border2);border-radius:8px 8px 0 0;border-bottom:2px solid var(--border2);">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;">Vessel</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:var(--accent);text-transform:uppercase;">⚓ Marine Superintendent</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:#c9a84c;text-transform:uppercase;">📋 Operator</div>
@@ -3631,12 +5770,29 @@ function _applySnapshot(cloudData) {
     <!-- Rows injected by JS -->
     <div id="settingsGrid" style="border:1px solid var(--border2);border-top:none;border-radius:0 0 8px 8px;overflow:hidden;"></div>
 
-    <div style="margin-top:18px;display:flex;gap:10px;justify-content:space-between;align-items:center;">
+    <div style="margin-top:14px;display:flex;gap:10px;justify-content:space-between;align-items:center;">
       <div style="display:flex;gap:8px;">
         <button onclick="resetMarineDefaults()" style="background:transparent;border:1px solid var(--border2);color:var(--text3);padding:7px 14px;border-radius:5px;font-size:12px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px;">↺ Reset Marine to Defaults</button>
         <button onclick="resetOpsDefaults()" style="background:transparent;border:1px solid var(--border2);color:var(--text3);padding:7px 14px;border-radius:5px;font-size:12px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px;">↺ Reset Operators to Defaults</button>
       </div>
       <button onclick="applySettings()" style="background:var(--accent);color:#fff;border:none;padding:9px 28px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.8px;cursor:pointer;">✓ Apply &amp; Close</button>
+    </div>
+
+    <!-- ── Add Vessel ── -->
+    <div style="margin-top:28px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:.8px;color:var(--text);margin-bottom:4px;">➕ Add Vessel</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Add a vessel to the fleet list. Custom vessels are stored locally and persist between sessions.</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="newVesselInput" type="text" placeholder="e.g. YASA HORIZON"
+          style="flex:1;background:var(--input-bg);border:1px solid var(--border2);border-radius:6px;padding:8px 12px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;color:var(--text);text-transform:uppercase;outline:none;letter-spacing:.5px;"
+          oninput="this.value=this.value.toUpperCase()"
+          onkeydown="if(event.key==='Enter')addCustomVessel()">
+        <button type="button" onclick="addCustomVessel()"
+          style="background:var(--accent);color:#fff;border:none;padding:8px 20px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;white-space:nowrap;">
+          + Add
+        </button>
+      </div>
+      <div id="customVesselList" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;"></div>
     </div>
   </div>
 </div>
