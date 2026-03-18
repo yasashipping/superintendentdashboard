@@ -1800,7 +1800,7 @@ body.dark .mn-critical-banner { background:#2d1515; border-color:#7f1d1d; }
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--text3);flex-shrink:0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         <input type="text" id="searchInput" placeholder="Search vessels..." oninput="filterVessels()">
       </div>
-      <select id="marineFilter" onchange="currentMarine=this.value;renderVessels();"
+      <select id="marineFilter" onchange="currentMarine=this.value;renderVessels();renderAlertPanel();"
         style="background:var(--navy2);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:5px 10px;font-size:12px;font-family:'Barlow Condensed',sans-serif;font-weight:600;cursor:pointer;outline:none;min-width:160px;">
         <option value="">⚓ All Marine Superintendents</option>
       </select>
@@ -3606,6 +3606,7 @@ function renderAlertPanel() {
   const alertRows = [];
 
   allVessels.forEach(v => {
+    if (currentMarine && getMarine(v.name) !== currentMarine) return;
     const vn = canonicalize(v.name);
     const n = notes[vn];
     if (!n) return;
