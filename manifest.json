@@ -2,7 +2,7 @@
   "name": "YASA Superintendent Dashboard",
   "short_name": "YASA Dashboard",
   "description": "YASA Shipping Fleet Management Dashboard",
-  "start_url": "./superintendent_dashboard_supabase.html",
+  "start_url": "./app.html",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#1a3a6b",
