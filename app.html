@@ -3470,20 +3470,24 @@ function onCertChange(el, key, vesselName) {
 
 function saveCertsFromModal(vesselName) {
   const existing = loadCerts(vesselName);
-  const data = { _ts: existing._ts || {} };
+  // START with existing as baseline — if any DOM el is missing (e.g. modal
+  // was already closed/rebuilt), the old value is preserved, not silently dropped.
+  const data = Object.assign({}, existing, { _ts: Object.assign({}, existing._ts || {}) });
   const now = new Date().toISOString();
   CERT_FIELDS.forEach(f => {
     const el = document.getElementById('cert_' + f.key);
     if (el) {
-      data[f.key] = el.value.trim();
-      // Only update timestamp if the value actually changed
-      if (data[f.key] !== existing[f.key]) {
-        data._ts[f.key] = now;
+      const newVal = el.value.trim();
+      if (newVal !== (existing[f.key] || '')) {
+        data[f.key] = newVal;
+        data._ts[f.key] = now;  // stamp only changed fields
       }
+      // If unchanged: data[f.key] already has existing value from Object.assign above
     }
+    // If el is null: data[f.key] retains existing value — NO DATA LOSS
   });
   saveCertsLocal(vesselName, data);
-  renderVessels(); // Refresh cards immediately
+  renderVessels();
   showToast('Certificate dates saved!', 'success');
 }
 
@@ -4498,10 +4502,10 @@ window.manualSync = async function() {
   try {
     var cloudData = await _fetchCloud();
     if (cloudData) {
-      _applySnapshot(cloudData);
-      var merged = _buildSnapshot();
-      await _writeCloud(merged);
-      _lastCloudStr = _deepSortStringify(merged);
+      _applySnapshot(cloudData);          // merge cloud → localStorage
+      var merged = _buildSnapshot();      // read merged result
+      await _writeCloud(merged);          // write complete merged to cloud
+      _lastCloudStr = _deepSortStringify(merged);  // track MERGED, not raw cloud
       _setStatus('☁️', 'Last updated: ' + _nowStr());
       showToast('Synced', 'success');
     } else {
@@ -4659,8 +4663,17 @@ async function cloudInit() {
         if (!cd) return;
         var cs = _deepSortStringify(cd);
         if (cs !== _lastCloudStr) {
-          _lastCloudStr = cs;
+          // Apply cloud changes, merge with local
           _applySnapshot(cd);
+          // Build merged result and write back to cloud so our local
+          // data (e.g. certs) is not lost on the next poll cycle.
+          var merged = _buildSnapshot();
+          var mergedStr = _deepSortStringify(merged);
+          if (mergedStr !== cs) {
+            // Local had data that wasn't in cloud — write it back
+            await _writeCloud(merged).catch(function() {});
+          }
+          _lastCloudStr = mergedStr;
           _setStatus('☁️', 'Updated: ' + _nowStr());
         }
       } catch(e) { /* silent poll failure */ }
