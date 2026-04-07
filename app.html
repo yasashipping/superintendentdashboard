@@ -953,7 +953,7 @@ body {
   display: flex;
   flex-direction: column;
   padding: 0;
-  overflow: hidden;
+  overflow-y: auto;  /* sağ kolon scroll eder */
 }
 
 /* ── Big prominent tab navigation ── */
@@ -1035,37 +1035,38 @@ body {
 .ntab-dot-watch    { background: #f59e0b; }
 
 /* ── Tab Panes ── */
-.ntab-pane { display: none; flex: 1; overflow-y: auto; padding: 20px 20px 0; flex-direction: column; }
-.ntab-pane.active { display: flex; }
+.ntab-pane { display: none; flex: 1; overflow-y: visible; overflow-x: visible; padding: 0; flex-direction: column; min-height: 0; }
+.ntab-pane.active { display: block; }
 .ntab-pane::-webkit-scrollbar { width: 5px; }
 .ntab-pane::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
 
 /* note-block: transparent wrapper, kept for JS compatibility */
-.note-block { background: transparent; border: none; margin: 0; }
+.note-block { background: #fff; border: none; margin: 0; border-radius: 0 0 7px 7px; overflow: hidden; }
 
 /* Save row at bottom of each notes pane */
 .ntab-save-row {
-  padding: 12px 0 16px;
+  position: sticky;
+  bottom: 0;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  padding: 10px 16px;
   display: flex;
   justify-content: flex-end;
-  margin-top: 4px;
+  z-index: 2;
 }
 .ntab-save-row button {
   background: #2563eb;
   color: #fff;
   border: none;
   border-radius: 8px;
-  padding: 10px 24px;
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: .05em;
+  padding: 9px 24px;
+  font-family: Barlow Condensed, sans-serif;
+  font-size: 13px; font-weight: 700; letter-spacing: .05em;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  display: flex; align-items: center; gap: 6px;
   transition: background .15s;
 }
+.ntab-save-row button:hover { background: #1d4ed8; }
 .ntab-save-row button:hover { background: #1d4ed8; }
 .ntab-save-row button {
   width: 100%;
@@ -1203,12 +1204,106 @@ body {
 }
 .nc-add-btn:hover { color: var(--accent); background: rgba(37,99,235,.04); }
 
+/* ══════════════════════════════════════════
+   NOTE LIST (nl-*) — sade satır tabanlı
+   ══════════════════════════════════════════ */
+/* nl-header removed */
+
+.nl-row {
+  display: grid;
+  grid-template-columns: 26px 1fr 72px 52px 22px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  min-height: 0;
+}
+.nl-row:last-child { border-bottom: none; }
+.nl-row:hover { background: rgba(0,0,0,.013); }
+.nl-row-blank { border-top: 1px dashed var(--border2); }
+.nl-row-blank:hover .nl-ta { background: rgba(37,99,235,.02); }
+
+.nl-num {
+  font-family: JetBrains Mono, monospace;
+  font-size: 11px; font-weight: 800;
+  padding: 0; text-align: center;
+  color: #c4c9d4; line-height: 1;
+  align-self: center;
+}
+
+.nl-ta {
+  display: block; width: 100%;
+  border: none; outline: none; resize: none;
+  background: transparent;
+  font-family: Barlow, sans-serif;
+  font-size: 13px; line-height: 1.45;
+  color: var(--text);
+  padding: 5px 6px 5px 4px;
+  min-height: 28px;
+  height: auto;
+  overflow: hidden; box-sizing: border-box;
+}
+.nl-ta::placeholder { color: #c8d0dc; font-style: italic; font-size: 12px; }
+.nl-ta:focus { background: rgba(37,99,235,.022); outline: none; }
+
+.nl-prio {
+  font-family: Barlow Condensed, sans-serif;
+  font-size: 9.5px; font-weight: 700;
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  background: var(--navy2);
+  color: var(--text2);
+  padding: 2px 2px;
+  cursor: pointer; outline: none;
+  width: 68px; margin: 0 3px;
+}
+.nl-time {
+  font-family: JetBrains Mono, monospace;
+  font-size: 9px; color: var(--text3);
+  padding: 0 2px; text-align: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.nl-del {
+  background: none; border: none;
+  color: #d1d5db; cursor: pointer;
+  font-size: 12px; line-height: 1;
+  padding: 0 3px; text-align: center;
+  transition: color .12s;
+}
+.nl-del:hover { color: #ef4444; }
+
+.nl-add-inline {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 26px; height: 26px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin: 0 3px;
+  transition: background .15s, transform .1s;
+}
+.nl-add-inline:hover { background: #1d4ed8; transform: scale(1.1); }
+body.dark .nl-add-inline { background: #3b82f6; }
+
+/* Dark mode */
+body.dark .nl-ta { color: #f0f0f0; }
+body.dark .nl-ta:focus { background: rgba(37,99,235,.07); }
+body.dark .nl-prio { background: #2a2a2a; border-color: #444; color: #aaa; }
+body.dark .nl-del { color: #555; }
+body.dark .nl-row-blank { border-top-color: #333; }
+
 /* ── Note category sections (stacked in NOTES pane) ── */
 .ncat-section {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  border: 1px solid var(--border);
 }
 .ncat-header {
   display: flex;
@@ -4014,10 +4109,10 @@ function openModal(vesselName) {
   // Show overlay
   document.getElementById('vesselModal').classList.add('open');
   document.body.style.overflow = 'hidden';
-  // Auto-resize all textareas after render
-  setTimeout(() => {
-    document.querySelectorAll('#vesselModal .nc-text').forEach(ta => autoResizeTA(ta));
-  }, 30);
+  // Auto-resize all note textareas after render — biraz bekle ki DOM tam oturusun
+  setTimeout(function() {
+    document.querySelectorAll('#vesselModal .nl-ta').forEach(function(ta) { autoResizeTA(ta); });
+  }, 60);
 }
 
 function buildModalBody(v) {
@@ -4391,10 +4486,10 @@ function buildNotesTabs(v, n, vn) {
 
   // ── NOTES pane: all 4 categories stacked ──
   const notesPaneActive = (_activeNoteTab === 'notes') ? ' active' : '';
-  const notesPane = `<div class="ntab-pane${notesPaneActive}" id="ntab_notes">
+  const notesPane = `<div class="ntab-pane${notesPaneActive}" id="ntab_notes" style="padding:16px 16px 0;">
     ${CATS.map(c => `
-      <div class="ncat-section" style="--cat-color:${c.color}">
-        <div class="ncat-header">
+      <div class="ncat-section" style="--cat-color:${c.color};margin-bottom:14px;">
+        <div class="ncat-header" style="border-radius:7px 7px 0 0;">
           <span class="ncat-icon">${c.icon}</span>
           <span class="ncat-label">${c.label}</span>
           <span class="ncat-count">${(c.data?.items||[]).length}</span>
@@ -4415,8 +4510,8 @@ function buildNotesTabs(v, n, vn) {
 
   return `${tabBar}
     ${notesPane}
-    <div class="ntab-pane${findActive}" id="ntab_findings" style="padding:20px 20px;">${buildAntbiSection(vn)}</div>
-    <div class="ntab-pane${todoActive}"  id="ntab_todo"     style="padding:20px 20px;">${buildTodoSection(vn)}</div>`;
+    <div class="ntab-pane${findActive}" id="ntab_findings" style="padding:16px 16px 24px;">${buildAntbiSection(vn)}</div>
+    <div class="ntab-pane${todoActive}"  id="ntab_todo"     style="padding:16px 16px 24px;">${buildTodoSection(vn)}</div>`;
 }
 
 function switchNotesTab(cat, el) {
@@ -4430,77 +4525,127 @@ function switchNotesTab(cat, el) {
   const target = document.getElementById('ntab_' + cat);
   if (target) {
     target.classList.add('active');
-    setTimeout(() => {
-      target.querySelectorAll('.nc-text[contenteditable]').forEach(el => el.focus && 0);
+  }
+  // Notes tab'a geçince tüm textarea'ları resize et
+  if (cat === 'notes') {
+    setTimeout(function() {
+      var pane = document.getElementById('ntab_notes');
+      if (pane) pane.querySelectorAll('.nl-ta').forEach(function(ta) { autoResizeTA(ta); });
     }, 20);
   }
 }
 
 function noteBlock(cat, data, placeholder) {
   const items = data?.items || [];
-  const itemsHtml = items.length > 0
-    ? items.map((item, idx) => buildNoteItem(cat, idx, item, placeholder)).join('')
-    : `<div class="nc-empty">No notes yet</div>`;
-  return `<div class="note-block" id="note_block_${cat}">
-    <div id="note_items_${cat}">${itemsHtml}</div>
-    <button class="nc-add-btn" onclick="addNoteItem('${cat}')">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Add Note
-    </button>
-  </div>`;
+  // Mevcut notlar + en sonda bir blank satır
+  const rows = items.map((item, idx) => buildNoteItem(cat, idx, item, placeholder, false)).join('')
+    + buildNoteItem(cat, items.length, { text:'', time:'', priority:'' }, placeholder, true);
+  return '<div class="note-block" id="note_block_' + cat + '">'
+    + rows
+    + '</div>';
 }
 
-function buildNoteItem(cat, idx, item, placeholder) {
-  const p = item.priority || '';
-  const prioClass  = p ? ` prio-${p}` : '';
-  const staleClass = item.text && isNoteStale(item.time) ? ' stale' : '';
-  const opts = Object.entries(PRIORITY_LABELS).map(([val, lbl]) =>
-    `<option value="${val}"${val === p ? ' selected' : ''}>${lbl}</option>`
-  ).join('');
+function buildNoteItem(cat, idx, item, placeholder, isBlank) {
+  const p         = item.priority || '';
+  const prioColor = p === 'critical' ? '#dc2626' : p === 'watch' ? '#d97706' : '#c4c9d4';
+  const rowBg     = p === 'critical' ? 'rgba(220,38,38,.04)' : p === 'watch' ? 'rgba(245,158,11,.04)' : '';
+  const cleanText = (item.text || '').replace(/<[^>]*>/g, '');
+  const rowNum    = idx + 1;  // blank satırda da bir sonraki numara göster
 
-  // Format timestamp: "DD/MM/YYYY, HH:MM" → "DD MMM HH:MM"
   let timeDisplay = '';
-  if (item.time) {
+  if (item.time && !isBlank) {
     const m = item.time.match(/(\d{2})\/(\d{2})\/(\d{4}),\s*(\d{2}:\d{2})/);
     if (m) {
       const months = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      timeDisplay = `${+m[1]} ${months[+m[2]]} ${m[4]}`;
-    } else {
-      timeDisplay = item.time;
+      timeDisplay = +m[1] + ' ' + months[+m[2]];
     }
   }
 
-  // Sanitize stored HTML — allow only safe formatting tags
-  function sanitizeHtml(s) {
-    if (!s) return '';
-    return (s + '').replace(/<(?!\/?(?:strong|b|em|i|br)\b)[^>]*>/gi, '');
+  const opts = Object.entries(PRIORITY_LABELS).map(([val, lbl]) =>
+    '<option value="' + val + '"' + (val === p ? ' selected' : '') + '>' + lbl + '</option>'
+  ).join('');
+
+  const rowId = isBlank ? ('note_item_' + cat + '_new') : ('note_item_' + cat + '_' + idx);
+  const taId  = isBlank ? ('modal_note_' + cat + '_new')  : ('modal_note_' + cat + '_' + idx);
+  const selId = isBlank ? ('modal_priority_' + cat + '_new') : ('modal_priority_' + cat + '_' + idx);
+
+  var addBtn = isBlank
+    ? '<button type="button" class="nl-add-inline" id="nladd_' + cat + '" title="Add note"'
+      + ' onclick="nlCommit(\'' + cat + '\')"'
+      + ' style="display:none;">+</button>'
+    : '';
+
+  return '<div class="nl-row' + (isBlank ? ' nl-row-blank' : '') + '" id="' + rowId + '"' + (rowBg ? ' style="background:' + rowBg + ';"' : '') + '>'
+    + '<div class="nl-num" style="color:' + (isBlank ? '#d1d5db' : prioColor) + ';">' + rowNum + '</div>'
+    + '<textarea class="nl-ta" id="' + taId + '"'
+    + ' placeholder="' + escAttr(placeholder) + '"'
+    + ' oninput="autoResizeTA(this);' + (isBlank ? 'nlShowAdd(\'' + cat + '\',this);' : '') + '"'
+    + ' onfocus="autoResizeTA(this)"'
+    + ' rows="1">'
+    + escHtml(cleanText)
+    + '</textarea>'
+    + (isBlank ? addBtn : (
+        '<select class="nl-prio" id="' + selId + '"'
+      + ' onchange="noteRowPrioChange(this,\'' + cat + '\',' + idx + ')" title="Priority">'
+      + opts + '</select>'
+      + '<span class="nl-time">' + timeDisplay + '</span>'
+      + '<button type="button" class="nl-del" onclick="deleteNoteItem(\'' + cat + '\',' + idx + ')" title="Delete">×</button>'
+      ))
+    + '</div>';
+}
+
+
+// "+" butonunu göster / gizle
+function nlShowAdd(cat, ta) {
+  var btn = document.getElementById('nladd_' + cat);
+  if (!btn) return;
+  btn.style.display = ta.value.trim() ? 'flex' : 'none';
+}
+
+// "+" tıklanınca: notu kaydet, yeni blank satır
+function nlCommit(cat) {
+  if (!activeVessel) return;
+  var vn = canonicalize(activeVessel.name);
+  var ta  = document.getElementById('modal_note_' + cat + '_new');
+  var sel = document.getElementById('modal_priority_' + cat + '_new');
+  if (!ta || !ta.value.trim()) return;
+  if (!notes[vn]) notes[vn] = { operational:EMPTY_CAT(), procurement:EMPTY_CAT(), personnel:EMPTY_CAT(), other:EMPTY_CAT() };
+  if (!notes[vn][cat]) notes[vn][cat] = EMPTY_CAT();
+  // Önce kaydedilecek metni al, sonra blank ta'yı temizle
+  var text    = ta.value.trim();
+  var prioVal = sel ? sel.value : '';
+  var now     = new Date().toLocaleString('en-GB');
+  ta.value = '';  // blank temizle — _collectNotesFromDOM çift eklemesin
+  // Mevcut DOM notlarını topla
+  _collectNotesFromDOM(vn);
+  // Yeni notu ekle
+  notes[vn][cat].items.push({ id: Date.now(), text: text, time: now, priority: prioVal });
+  // Block'u yeniden render et
+  var block = document.getElementById('note_block_' + cat);
+  if (block) {
+    var tmp = document.createElement('div');
+    tmp.innerHTML = noteBlock(cat, notes[vn][cat], CAT_PLACEHOLDERS[cat] || '');
+    block.replaceWith(tmp.firstElementChild);
   }
-  const displayHtml = sanitizeHtml(item.text || '');
+  // Yeni blank satıra focus
+  setTimeout(function() {
+    var newTa = document.getElementById('modal_note_' + cat + '_new');
+    if (newTa) { autoResizeTA(newTa); newTa.focus(); }
+    // Kategori count badge'ini güncelle
+    var countEl = document.querySelector('.ncat-section[style*="--cat-color"] .ncat-count');
+    var header = document.querySelector('#note_block_' + cat)?.closest('.ncat-section')?.querySelector('.ncat-count');
+    if (header) header.textContent = notes[vn][cat].items.length;
+  }, 30);
+}
 
-  const numColor = p === 'critical' ? '#dc2626' : p === 'watch' ? '#d97706' : 'var(--accent)';
-
-  return `<div class="nc${prioClass}${staleClass}" id="note_item_${cat}_${idx}">
-    <div class="nc-header">
-      <span class="nc-num" style="background:${numColor}">${idx + 1}</span>
-      <div class="nc-header-right">
-        <button type="button" class="nc-bold-btn" title="Bold (Ctrl+B)"
-          onmousedown="event.preventDefault();document.execCommand('bold')"><b>B</b></button>
-        <button type="button" class="nc-italic-btn" title="Italic (Ctrl+I)"
-          onmousedown="event.preventDefault();document.execCommand('italic')"><i>I</i></button>
-        <select class="nc-prio${p ? ' prio-'+p : ''}" id="modal_priority_${cat}_${idx}"
-          onchange="updateNoteItemStyle('${cat}',${idx},this.value)">${opts}</select>
-        <button type="button" class="nc-del" title="Delete note"
-          onclick="deleteNoteItem('${cat}',${idx})">✕</button>
-      </div>
-    </div>
-    <div class="nc-text" contenteditable="true"
-      id="modal_note_${cat}_${idx}"
-      spellcheck="true"
-    >${displayHtml}</div>
-    <div class="nc-footer">
-      <span class="nc-time" id="modal_time_${cat}_${idx}">${timeDisplay ? '⏱ ' + timeDisplay : ''}</span>
-    </div>
-  </div>`;
+function noteRowPrioChange(sel, cat, idx) {
+  if (idx === -1) return; // blank satır
+  const val = sel.value;
+  const row = document.getElementById('note_item_' + cat + '_' + idx);
+  if (row) row.style.background = val === 'critical' ? 'rgba(220,38,38,.04)' : val === 'watch' ? 'rgba(245,158,11,.04)' : '';
+  const numEl = row && row.querySelector('.nl-num');
+  if (numEl) numEl.style.color = val === 'critical' ? '#dc2626' : val === 'watch' ? '#d97706' : '#c4c9d4';
+  _refreshTabDot();
 }
 
 
@@ -4535,18 +4680,15 @@ function _refreshTabDot() {
 function _collectNotesFromDOM(vn) {
   const now = new Date().toLocaleString('en-GB');
   ['operational','procurement','personnel','other'].forEach(cat => {
-    const items = notes[vn]?.[cat]?.items;
-    if (!items) return;
+    if (!notes[vn] || !notes[vn][cat]) return;
+    const items = notes[vn][cat].items;
     items.forEach((item, idx) => {
-      const el  = document.getElementById(`modal_note_${cat}_${idx}`);
-      const sel = document.getElementById(`modal_priority_${cat}_${idx}`);
-      if (el) {
-        const raw = (el.innerHTML || '').replace(/<(?!\/?(strong|b|em|i|br)\b)[^>]*>/gi, '').trim();
-        item.text = raw;
-        if (raw && !item.time) item.time = now;
-      }
+      const ta  = document.getElementById('modal_note_' + cat + '_' + idx);
+      const sel = document.getElementById('modal_priority_' + cat + '_' + idx);
+      if (ta)  { item.text = ta.value.trim(); if (item.text && !item.time) item.time = now; }
       if (sel) item.priority = sel.value;
     });
+    // blank satır nlCommit tarafından ayrıca yönetilir
   });
 }
 
@@ -4560,18 +4702,17 @@ function saveAllNotes() {
   ['operational','procurement','personnel','other'].forEach(cat => {
     const items = notes[vn][cat]?.items || [];
     items.forEach((item, idx) => {
-      const el  = document.getElementById(`modal_note_${cat}_${idx}`);
-      const sel = document.getElementById(`modal_priority_${cat}_${idx}`);
-      if (!el) return;
-      const raw = (el.innerHTML || '').replace(/<(?!\/?(strong|b|em|i|br)\b)[^>]*>/gi, '').trim();
-      item.text     = raw;
+      const ta  = document.getElementById('modal_note_' + cat + '_' + idx);
+      const sel = document.getElementById('modal_priority_' + cat + '_' + idx);
+      if (!ta) return;
+      item.text     = ta.value.trim();
       item.priority = sel ? sel.value : (item.priority || '');
-      if (raw) item.time = now;
-      const timeEl = document.getElementById(`modal_time_${cat}_${idx}`);
-      if (timeEl && raw) {
+      if (item.text) item.time = now;
+      const timeEl = document.getElementById('modal_time_' + cat + '_' + idx);
+      if (timeEl && item.text) {
         const m = now.match(/(\d{2})\/(\d{2})\/(\d{4}),\s*(\d{2}:\d{2})/);
         const months = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        timeEl.textContent = m ? `⏱ ${+m[1]} ${months[+m[2]]} ${m[4]}` : '';
+        timeEl.textContent = m ? (+m[1] + ' ' + months[+m[2]] + ' ' + m[4]) : '';
       }
     });
     // Filter out fully empty (no text) items
@@ -4589,36 +4730,20 @@ function saveAllNotes() {
 
   // Re-render modal body to update numbering after empty items removed
   if (activeVessel) {
-    document.getElementById('modalBody').innerHTML = buildModalBody(activeVessel);
-    setTimeout(() => {
-      const pane = document.getElementById('ntab_' + _activeNoteTab);
-      if (pane) pane.querySelectorAll('.nc-text').forEach(ta => autoResizeTA(ta));
-    }, 30);
+          document.getElementById('modalBody').innerHTML = buildModalBody(activeVessel);
+      setTimeout(function() {
+        document.querySelectorAll('#vesselModal .nl-ta').forEach(function(ta) { autoResizeTA(ta); });
+      }, 60);    setTimeout(function() {
+      var pane = document.getElementById('ntab_notes');
+      if (pane) pane.querySelectorAll('.nl-ta').forEach(function(ta) { autoResizeTA(ta); });
+    }, 60);
   }
 }
 
 function addNoteItem(cat) {
-  if (!activeVessel) return;
-  const vn = canonicalize(activeVessel.name);
-  if (!notes[vn]) notes[vn] = { operational:EMPTY_CAT(), procurement:EMPTY_CAT(), personnel:EMPTY_CAT(), other:EMPTY_CAT() };
-  if (!notes[vn][cat]) notes[vn][cat] = EMPTY_CAT();
-  // Collect DOM state first
-  _collectNotesFromDOM(vn);
-  const items = notes[vn][cat].items;
-  items.push({ id: Date.now(), text: '', time: '', priority: '' });
-  // Re-render this block
-  const block = document.getElementById(`note_block_${cat}`);
-  if (block) {
-    const tmp = document.createElement('div');
-    tmp.innerHTML = noteBlock(cat, notes[vn]?.[cat], CAT_PLACEHOLDERS[cat] || '');
-    block.replaceWith(tmp.firstElementChild);
-  }
-  // Focus the new textarea
-  const newIdx = items.length - 1;
-  setTimeout(() => {
-    const el = document.getElementById(`modal_note_${cat}_${newIdx}`);
-    if (el) { el.focus(); const r = document.createRange(); r.selectNodeContents(el); r.collapse(false); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); }
-  }, 50);
+  // blank satıra odaklan
+  const ta = document.querySelector('#note_block_' + cat + ' .nl-row-blank .nl-ta');
+  if (ta) { ta.focus(); ta.scrollIntoView({ block: 'nearest' }); }
 }
 
 function deleteNoteItem(cat, idx) {
@@ -4922,8 +5047,9 @@ function showToast(msg, type) {
 }
 
 function autoResizeTA(el) {
+  if (!el) return;
   el.style.height = 'auto';
-  el.style.height = Math.max(44, el.scrollHeight) + 'px';
+  el.style.height = Math.max(28, el.scrollHeight) + 'px';
 }
 
 // ─── START ───────────────────────────────────────────────────────────────────
