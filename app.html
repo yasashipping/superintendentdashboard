@@ -6101,7 +6101,20 @@ function _applySnapshot(cloudData) {
 //  VESSEL TO-DO LIST
 // ══════════════════════════════════════════════════════════════════
 
-function todoKey(vn) { return 'yasa_todos_' + vn; }
+function todoKey(vn)      { return 'yasa_todos_' + vn; }
+function todoTombKey(vn)  { return 'yasa_todo_tomb_' + vn; }
+function todoTombLoad(vn) {
+  try { return JSON.parse(localStorage.getItem(todoTombKey(vn)) || '{}'); } catch(e) { return {}; }
+}
+function todoTombAdd(vn, id) {
+  var t = todoTombLoad(vn); t[id] = Date.now();
+  localStorage.setItem(todoTombKey(vn), JSON.stringify(t));
+}
+function todoTombAddMany(vn, ids) {
+  var t = todoTombLoad(vn); var now = Date.now();
+  ids.forEach(function(id) { t[id] = now; });
+  localStorage.setItem(todoTombKey(vn), JSON.stringify(t));
+}
 
 function todoLoad(vn) {
   try { return JSON.parse(localStorage.getItem(todoKey(vn)) || '[]'); } catch(e) { return []; }
