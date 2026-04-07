@@ -1838,6 +1838,133 @@ body.dark .todo-item { background:#252525; }
 body.dark .todo-item:hover { background:#2e2e2e; }
 body.dark .todo-item.done { background:#1e1e1e; }
 
+/* ══════════════════════════════════════════════════════
+   URGENT NOTES PAGE
+   ══════════════════════════════════════════════════════ */
+
+/* Vessel block */
+.upv-vessel {
+  margin-bottom: 32px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 12px rgba(0,0,0,.07);
+}
+
+/* Vessel header (clickable → open modal) */
+.upv-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: #fff;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background .15s;
+}
+.upv-header:hover { background: #f8fafc; }
+body.dark .upv-header { background: #1e1e1e; }
+body.dark .upv-header:hover { background: #252525; }
+
+.upv-avatar {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  color: #fff;
+  font-family: Barlow Condensed, sans-serif;
+  font-size: 18px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.upv-info { flex: 1; min-width: 0; }
+.upv-name {
+  font-family: Barlow Condensed, sans-serif;
+  font-size: 18px; font-weight: 800;
+  color: var(--text); letter-spacing: .03em;
+}
+.upv-marine {
+  font-size: 12px; color: var(--text3); margin-top: 2px;
+}
+.upv-badges { display: flex; gap: 8px; align-items: center; }
+.upv-badge {
+  font-family: JetBrains Mono, monospace;
+  font-size: 10px; font-weight: 800;
+  border-radius: 20px; padding: 3px 10px;
+}
+.upv-badge-crit  { background: #dc2626; color: #fff; }
+.upv-badge-watch { background: #d97706; color: #fff; }
+.upv-open-icon   { color: var(--text3); flex-shrink: 0; margin-left: 8px; }
+
+/* Table */
+.upv-table { background: #fff; }
+body.dark .upv-table { background: #181818; }
+
+.upv-row {
+  display: grid;
+  grid-template-columns: 36px 72px 110px 1fr 150px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+.upv-row:last-child { border-bottom: none; }
+
+.upv-row-head {
+  background: #f1f5f9;
+  border-bottom: 2px solid var(--border);
+}
+body.dark .upv-row-head { background: #252525; }
+
+.upv-row-head > div {
+  font-family: Barlow Condensed, sans-serif;
+  font-size: 10px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .1em;
+  color: var(--text3);
+  padding: 9px 12px;
+}
+
+.upv-row-crit  { background: #fffbfb; }
+.upv-row-watch { background: #fffdf5; }
+body.dark .upv-row-crit  { background: rgba(220,38,38,.04); }
+body.dark .upv-row-watch { background: rgba(217,119,6,.04); }
+
+.upv-row-num {
+  font-family: JetBrains Mono, monospace;
+  font-size: 11px; font-weight: 700;
+  color: var(--text3);
+  padding: 12px 0 12px 14px;
+  text-align: center;
+}
+.upv-row-prio {
+  font-size: 12px;
+  padding: 12px;
+  display: flex; align-items: center; gap: 5px;
+}
+.upv-prio-critical {
+  font-family: Barlow Condensed, sans-serif;
+  font-size: 10px; font-weight: 800;
+  color: #dc2626; letter-spacing: .05em;
+}
+.upv-prio-watch {
+  font-family: Barlow Condensed, sans-serif;
+  font-size: 10px; font-weight: 800;
+  color: #d97706; letter-spacing: .05em;
+}
+.upv-row-cat {
+  font-family: Barlow Condensed, sans-serif;
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .07em;
+  padding: 12px;
+}
+.upv-row-text {
+  font-family: Barlow, sans-serif;
+  font-size: 13.5px; color: var(--text);
+  line-height: 1.55; padding: 12px 16px 12px 12px;
+}
+.upv-row-time {
+  font-family: JetBrains Mono, monospace;
+  font-size: 10.5px; color: var(--text3);
+  padding: 12px 14px 12px 0;
+  white-space: nowrap;
+}
+
 /* ── Findings PDF Export Button ── */
 .antbi-pdf-btn {
   display: inline-flex;
@@ -2336,18 +2463,30 @@ body.dark .mn-critical-banner { background:#2d1515; border-color:#7f1d1d; }
   <!-- ALERT PANEL -->
   <div id="alertPanel" style="display:none;"></div>
 
-  <!-- URGENT NOTES PANEL (overlay) -->
-  <div id="urgentPanel" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;background:var(--bg);overflow-y:auto;padding:0;">
-    <div style="position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:2px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--text);letter-spacing:.02em;">
-          🚨 Urgent Notes
-        </span>
-        <span id="urgentCount" style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;background:#dc2626;color:#fff;border-radius:12px;padding:2px 10px;"></span>
+  <!-- URGENT NOTES PAGE (full screen overlay) -->
+  <div id="urgentPanel" style="display:none;position:fixed;inset:0;z-index:600;background:var(--bg);flex-direction:column;overflow:hidden;">
+
+    <!-- Top bar -->
+    <div id="urgentTopbar" style="background:linear-gradient(135deg,#7f1d1d 0%,#dc2626 100%);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:60px;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span style="font-family:Barlow Condensed,sans-serif;font-size:20px;font-weight:800;color:#fff;letter-spacing:.06em;text-transform:uppercase;">Urgent Notes — Fleet Overview</span>
+        <span id="urgentCount" style="font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;background:rgba(0,0,0,.25);color:#fff;border-radius:20px;padding:3px 12px;letter-spacing:.04em;"></span>
       </div>
-      <button onclick="closeUrgentPanel()" style="background:var(--navy2);border:1px solid var(--border2);color:var(--text2);padding:7px 18px;border-radius:7px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.05em;">✕ Close</button>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span id="urgentDateStamp" style="font-family:JetBrains Mono,monospace;font-size:11px;color:rgba(255,255,255,.6);"></span>
+        <button onclick="closeUrgentPanel()" style="display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.35);color:#fff;padding:8px 18px;border-radius:8px;font-family:Barlow Condensed,sans-serif;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.05em;transition:all .15s;" onmouseover="this.style.background='rgba(255,255,255,.25)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Back to Fleet
+        </button>
+      </div>
     </div>
-    <div id="urgentBody" style="padding:24px;"></div>
+
+    <!-- Stats bar -->
+    <div id="urgentStatsBar" style="background:#fff;border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:center;gap:0;height:50px;flex-shrink:0;overflow-x:auto;"></div>
+
+    <!-- Content -->
+    <div id="urgentBody" style="flex:1;overflow-y:auto;padding:28px 28px 40px;"></div>
   </div>
 
   <!-- VESSEL GRID -->
@@ -3540,120 +3679,154 @@ function filterVessels() {
 }
 
 function openUrgentPanel() {
-  var panel = document.getElementById('urgentPanel');
-  var body  = document.getElementById('urgentBody');
-  var countEl = document.getElementById('urgentCount');
+  var panel    = document.getElementById('urgentPanel');
+  var body     = document.getElementById('urgentBody');
+  var statsBar = document.getElementById('urgentStatsBar');
+  var countEl  = document.getElementById('urgentCount');
+  var dateEl   = document.getElementById('urgentDateStamp');
   if (!panel || !body) return;
 
-  // Tüm gemilerdeki critical ve watch notları topla
+  // ── Tüm gemilerin urgent notlarını topla ──────────────────
   var results = [];
+  var CAT_LABELS = { operational:'Operational', procurement:'Procurement', personnel:'Crew', other:'Other' };
+  var CAT_COLORS = { operational:'#2563eb', procurement:'#0d9488', personnel:'#7c3aed', other:'#64748b' };
+
   VESSELS_ALL.forEach(function(vname) {
     var vn = canonicalize(vname);
     var vNotes = notes[vn];
     if (!vNotes) return;
     var urgentItems = [];
     ['operational','procurement','personnel','other'].forEach(function(cat) {
-      var items = vNotes[cat]?.items || [];
+      var items = (vNotes[cat] && vNotes[cat].items) || [];
       items.forEach(function(it) {
-        if ((it.priority === 'critical' || it.priority === 'watch') && it.text) {
+        if ((it.priority === 'critical' || it.priority === 'watch') && it.text && it.text.trim()) {
           urgentItems.push({ cat: cat, priority: it.priority, text: it.text, time: it.time });
         }
       });
     });
-    if (urgentItems.length) {
-      // Priority sırası: critical önce
-      urgentItems.sort(function(a,b) {
-        if (a.priority === b.priority) return 0;
-        return a.priority === 'critical' ? -1 : 1;
-      });
-      results.push({ vessel: vname, items: urgentItems });
-    }
+    if (!urgentItems.length) return;
+    // critical önce, sonra watch, sonra zaman (yeniden eskiye)
+    urgentItems.sort(function(a,b) {
+      if (a.priority !== b.priority) return a.priority === 'critical' ? -1 : 1;
+      return new Date(b.time||0) - new Date(a.time||0);
+    });
+    results.push({ vessel: vname, items: urgentItems });
   });
 
-  // Sırala: critical'ı olanlar önce, sonra watch
+  // critical'ı olanlar üstte
   results.sort(function(a,b) {
-    var aHasCrit = a.items.some(function(i){ return i.priority==='critical'; });
-    var bHasCrit = b.items.some(function(i){ return i.priority==='critical'; });
-    if (aHasCrit && !bHasCrit) return -1;
-    if (!aHasCrit && bHasCrit) return  1;
+    var ac = a.items.some(function(i){ return i.priority==='critical'; });
+    var bc = b.items.some(function(i){ return i.priority==='critical'; });
+    if (ac !== bc) return ac ? -1 : 1;
     return a.vessel.localeCompare(b.vessel);
   });
 
-  var totalCount = results.reduce(function(s,r){ return s + r.items.length; }, 0);
-  countEl.textContent = totalCount + ' urgent note' + (totalCount !== 1 ? 's' : '');
+  var totalNotes = results.reduce(function(s,r){ return s+r.items.length; }, 0);
+  var totalCrit  = results.reduce(function(s,r){ return s+r.items.filter(function(i){return i.priority==='critical';}).length; }, 0);
+  var totalWatch = results.reduce(function(s,r){ return s+r.items.filter(function(i){return i.priority==='watch';}).length; }, 0);
 
-  var CAT_LABELS = { operational:'Operational', procurement:'Procurement', personnel:'Crew', other:'Other' };
-  var CAT_COLORS = { operational:'#2563eb', procurement:'#0d9488', personnel:'#7c3aed', other:'#64748b' };
+  if (countEl) countEl.textContent = totalNotes + ' note' + (totalNotes!==1?'s':'') + ' · ' + results.length + ' vessel' + (results.length!==1?'s':'');
+  if (dateEl)  dateEl.textContent  = new Date().toLocaleDateString('en-GB', {weekday:'short',day:'numeric',month:'short',year:'numeric'});
 
+  // ── Stats bar ───────────────────────────────────────────────
+  if (statsBar) {
+    statsBar.innerHTML =
+      '<div style="display:flex;align-items:center;gap:6px;padding:0 20px 0 0;border-right:1px solid var(--border);margin-right:20px;">'
+    +   '<div style="width:10px;height:10px;border-radius:50%;background:#dc2626;flex-shrink:0;"></div>'
+    +   '<span style="font-family:Barlow Condensed,sans-serif;font-size:13px;font-weight:700;color:#dc2626;">' + totalCrit + ' Critical</span>'
+    + '</div>'
+    + '<div style="display:flex;align-items:center;gap:6px;padding:0 20px 0 0;border-right:1px solid var(--border);margin-right:20px;">'
+    +   '<div style="width:10px;height:10px;border-radius:50%;background:#d97706;flex-shrink:0;"></div>'
+    +   '<span style="font-family:Barlow Condensed,sans-serif;font-size:13px;font-weight:700;color:#d97706;">' + totalWatch + ' Watch</span>'
+    + '</div>'
+    + '<span style="font-family:Barlow Condensed,sans-serif;font-size:12px;color:var(--text3);font-weight:600;">' + results.length + ' vessel' + (results.length!==1?'s':'') + ' with pending items</span>';
+  }
+
+  // ── İçerik ──────────────────────────────────────────────────
   if (!results.length) {
-    body.innerHTML = '<div style="text-align:center;padding:80px 20px;color:var(--text3);font-size:16px;letter-spacing:.05em;">✅ No urgent notes across the fleet</div>';
+    body.innerHTML =
+      '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;gap:16px;">'
+    + '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'
+    + '<div style="font-family:Barlow Condensed,sans-serif;font-size:20px;font-weight:700;color:#22c55e;letter-spacing:.04em;">All Clear — No Urgent Notes</div>'
+    + '<div style="font-size:13px;color:var(--text3);">No critical or watch priority notes across the fleet.</div>'
+    + '</div>';
   } else {
     body.innerHTML = results.map(function(r) {
-      // Gemi bilgisi
-      var vessel = allVessels.find(function(v){ return v.name === r.vessel; }) || {};
-      var marine = getMarine(r.vessel) || '';
+      var vessel  = allVessels.find(function(v){ return v.name === r.vessel; }) || {};
+      var marine  = getMarine(r.vessel) || '';
       var hasCrit = r.items.some(function(i){ return i.priority==='critical'; });
-      var headerBg = hasCrit ? 'rgba(220,38,38,.08)' : 'rgba(245,158,11,.08)';
-      var headerBorder = hasCrit ? '#dc2626' : '#d97706';
+      var critCnt = r.items.filter(function(i){ return i.priority==='critical'; }).length;
+      var watchCnt= r.items.filter(function(i){ return i.priority==='watch'; }).length;
 
-      var itemsHtml = r.items.map(function(it) {
+      // ── Gemi başlık bloğu ──
+      var vesselBlock =
+        '<div class="upv-header" onclick="closeUrgentPanel();openModal(\'' + escAttr(r.vessel) + '\')">'
+      +   '<div class="upv-avatar" style="background:' + (hasCrit?'#dc2626':'#d97706') + ';">'
+      +     escHtml(r.vessel.replace(/^M\/V\s*/i,'').charAt(0))
+      +   '</div>'
+      +   '<div class="upv-info">'
+      +     '<div class="upv-name">' + escHtml(r.vessel) + '</div>'
+      +     (marine ? '<div class="upv-marine">🧑‍✈️ ' + escHtml(marine) + (vessel.position ? '&nbsp;&nbsp;·&nbsp;&nbsp;' + escHtml(vessel.position) : '') + '</div>' : '')
+      +   '</div>'
+      +   '<div class="upv-badges">'
+      +     (critCnt  ? '<span class="upv-badge upv-badge-crit">' + critCnt  + ' critical</span>' : '')
+      +     (watchCnt ? '<span class="upv-badge upv-badge-watch">' + watchCnt + ' watch</span>'    : '')
+      +   '</div>'
+      +   '<svg class="upv-open-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'
+      + '</div>';
+
+      // ── Not satırları ──
+      var rows = r.items.map(function(it, idx) {
         var isCrit = it.priority === 'critical';
-        var prioColor = isCrit ? '#dc2626' : '#d97706';
-        var prioBg    = isCrit ? 'rgba(220,38,38,.1)' : 'rgba(245,158,11,.1)';
-        var prioLabel = isCrit ? '🔴 Critical' : '🟡 Watch';
-        var catColor  = CAT_COLORS[it.cat] || '#64748b';
-        var catLabel  = CAT_LABELS[it.cat] || it.cat;
+        var catColor = CAT_COLORS[it.cat] || '#64748b';
+        var catLabel = CAT_LABELS[it.cat] || it.cat;
+        var cleanText = (it.text||'').replace(/<[^>]*>/g,'').trim();
 
-        // Format time
-        var timeStr = '';
+        // Zaman formatı
+        var timeStr = '—';
         if (it.time) {
           var m = it.time.match(/(\d{2})\/(\d{2})\/(\d{4}),\s*(\d{2}:\d{2})/);
           if (m) {
-            var months = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-            timeStr = +m[1] + ' ' + months[+m[2]] + ' ' + m[4];
+            var months=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            timeStr = +m[1] + ' ' + months[+m[2]] + ' ' + m[3].slice(2) + ', ' + m[4];
+          } else {
+            timeStr = it.time;
           }
         }
 
-        return '<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);background:#fff;">'
-          + '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;flex-shrink:0;">'
-          + '<span style="font-family:Barlow Condensed,sans-serif;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:' + prioBg + ';color:' + prioColor + ';letter-spacing:.05em;">' + prioLabel + '</span>'
-          + '<span style="font-family:Barlow Condensed,sans-serif;font-size:9px;font-weight:700;color:' + catColor + ';text-transform:uppercase;letter-spacing:.06em;">' + catLabel + '</span>'
-          + '</div>'
-          + '<div style="flex:1;font-family:Barlow,sans-serif;font-size:13.5px;color:var(--text);line-height:1.5;">' + escHtml(it.text.replace(/<[^>]*>/g,'')) + '</div>'
-          + (timeStr ? '<div style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--text3);white-space:nowrap;flex-shrink:0;padding-top:2px;">⏱ ' + timeStr + '</div>' : '')
+        return '<div class="upv-row' + (isCrit ? ' upv-row-crit' : ' upv-row-watch') + '">'
+          + '<div class="upv-row-num">' + (idx+1) + '</div>'
+          + '<div class="upv-row-prio upv-prio-' + it.priority + '">' + (isCrit ? '🔴' : '🟡') + '</div>'
+          + '<div class="upv-row-cat" style="color:' + catColor + ';">' + catLabel + '</div>'
+          + '<div class="upv-row-text">' + escHtml(cleanText) + '</div>'
+          + '<div class="upv-row-time">' + timeStr + '</div>'
           + '</div>';
       }).join('');
 
-      return '<div style="margin-bottom:20px;border-radius:12px;overflow:hidden;border:1.5px solid ' + headerBorder + ';box-shadow:0 2px 8px rgba(0,0,0,.08);">'
-        // Vessel header
-        + '<div style="display:flex;align-items:center;gap:14px;padding:14px 20px;background:' + headerBg + ';border-bottom:1.5px solid ' + headerBorder + ';cursor:pointer;" onclick="closeUrgentPanel();openModal(\'' + escAttr(r.vessel) + '\');">'
-        + '<div style="width:38px;height:38px;border-radius:50%;background:' + headerBorder + ';color:#fff;display:flex;align-items:center;justify-content:center;font-family:Barlow Condensed,sans-serif;font-size:14px;font-weight:800;flex-shrink:0;">' + escHtml(r.vessel.split(' ').pop().charAt(0)) + '</div>'
-        + '<div style="flex:1;">'
-        + '<div style="font-family:Barlow Condensed,sans-serif;font-size:17px;font-weight:800;color:var(--text);letter-spacing:.03em;">' + escHtml(r.vessel) + '</div>'
-        + (marine ? '<div style="font-size:11px;color:var(--text3);margin-top:1px;">🧑‍✈️ ' + escHtml(marine) + '</div>' : '')
-        + '</div>'
-        + '<div style="display:flex;align-items:center;gap:8px;">'
-        + (hasCrit ? '<span style="font-family:JetBrains Mono,monospace;font-size:10px;font-weight:800;background:#dc2626;color:#fff;border-radius:10px;padding:2px 8px;">' + r.items.filter(function(i){return i.priority==='critical';}).length + ' critical</span>' : '')
-        + (r.items.some(function(i){return i.priority==='watch';}) ? '<span style="font-family:JetBrains Mono,monospace;font-size:10px;font-weight:800;background:#d97706;color:#fff;border-radius:10px;padding:2px 8px;">' + r.items.filter(function(i){return i.priority==='watch';}).length + ' watch</span>' : '')
-        + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--text3);margin-left:4px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'
-        + '</div>'
-        + '</div>'
-        // Items
-        + '<div>' + itemsHtml + '</div>'
-        + '</div>';
+      return '<div class="upv-vessel">' + vesselBlock + '<div class="upv-table">'
+        + '<div class="upv-thead"><div class="upv-row upv-row-head">'
+        + '<div class="upv-row-num">#</div>'
+        + '<div class="upv-row-prio">Priority</div>'
+        + '<div class="upv-row-cat">Category</div>'
+        + '<div class="upv-row-text">Note</div>'
+        + '<div class="upv-row-time">Date / Time</div>'
+        + '</div></div>'
+        + '<div class="upv-tbody">' + rows + '</div>'
+        + '</div></div>';
     }).join('');
   }
 
-  panel.style.display = 'block';
+  // ── Panel'i göster ─────────────────────────────────────────
+  panel.style.display = 'flex';
   document.getElementById('filterUrgent').classList.add('active');
+  body.scrollTop = 0;
 }
-
 function closeUrgentPanel() {
   var panel = document.getElementById('urgentPanel');
   if (panel) panel.style.display = 'none';
-  document.getElementById('filterUrgent').classList.remove('active');
+  var btn = document.getElementById('filterUrgent');
+  if (btn) btn.classList.remove('active');
 }
-
 function setFilter(f) {
   currentFilter = f;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
