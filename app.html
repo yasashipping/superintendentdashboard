@@ -132,7 +132,7 @@ body.dark .modal-col-notes            { background: #181818; }
 body.dark .data-val                   { color: #f0f0f0; }
 body.dark .rob-section                { background: #252525; border-color: #404040; }
 body.dark .voyage-section             { background: #252525; border-color: #404040; }
-body.dark .ntab-bar                   { background: #1a1a1a; border-bottom-color: #333; }
+body.dark .ntab-bar                   { background: #161616; border-bottom-color: #333; }
 body.dark .ntab                       { color: #7a90b4; border-bottom-color: transparent; }
 body.dark .ntab.active                { color: #93b4f0; }
 body.dark .ntab:not(.active):hover    { background: rgba(255,255,255,.04); color: #b0c4e8; }
@@ -371,6 +371,14 @@ body {
 
 .search-box input::placeholder { color: var(--text3); }
 
+.filter-btn-urgent {
+  border-color: rgba(220,38,38,.4) !important;
+  color: #dc2626 !important;
+}
+.filter-btn-urgent:hover, .filter-btn-urgent.active {
+  background: rgba(220,38,38,.08) !important;
+  border-color: #dc2626 !important;
+}
 .filter-btn {
   padding: 8px 14px;
   background: var(--input-bg);
@@ -504,7 +512,9 @@ body {
 
 /* ── VESSEL GRID ── */
 .vessels-list {
-  padding: 0 16px 24px;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
 }
 
 .list-container {
@@ -746,10 +756,36 @@ body {
 
 .modal-close:hover { color: #ffffff; border-color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.25); }
 
+.vessel-pdf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 16px;
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+  border: 1.5px solid rgba(255,255,255,0.45);
+  border-radius: 8px;
+  font-family: Barlow Condensed, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  cursor: pointer;
+  margin-right: 8px;
+  transition: all .2s;
+  backdrop-filter: blur(4px);
+}
+.vessel-pdf-btn:hover {
+  background: rgba(255,255,255,0.30);
+  border-color: rgba(255,255,255,0.75);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.vessel-pdf-btn:active { transform: translateY(0); }
+
 .modal-body {
   flex: 1;
   display: grid;
-  grid-template-columns: 400px 1fr;
+  grid-template-columns: 440px 1fr;
   overflow: hidden;
   min-height: 0;
 }
@@ -762,11 +798,11 @@ body {
 
 .modal-col-details {
   border-right: 1px solid var(--border);
-  background: #fff;
+  background: #f9fafb;
 }
 
 .modal-col-notes {
-  background: #f8fafc;
+  background: #fff;
 }
 
 .modal-col::-webkit-scrollbar { width: 5px; }
@@ -776,14 +812,14 @@ body {
 /* SECTION DIVIDER */
 .modal-section-title {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: 8px;
-  padding-bottom: 5px;
-  border-bottom: 2px solid rgba(37,99,235,0.35);
+  color: var(--text3);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -913,84 +949,95 @@ body {
    NOTES COLUMN — INNER TAB BAR
    ══════════════════════════════════════════════════════════ */
 .modal-col-notes {
-  background: #f8fafc;
+  background: #fff;
   display: flex;
   flex-direction: column;
   padding: 0;
   overflow: hidden;
 }
 
+/* ── Big prominent tab navigation ── */
 .ntab-bar {
   display: flex;
-  background: #fff;
-  border-bottom: 1.5px solid var(--border2);
-  overflow-x: auto;
+  background: #f8fafc;
+  border-bottom: 2px solid var(--border);
   flex-shrink: 0;
-  scrollbar-width: none;
+  padding: 0 16px;
+  gap: 4px;
 }
-.ntab-bar::-webkit-scrollbar { display: none; }
 
 .ntab {
   flex: 1;
-  min-width: 80px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 2px;
-  padding: 8px 6px 7px;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 10px 12px;
   border: none;
   background: transparent;
   cursor: pointer;
   color: var(--text3);
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  border-bottom: 2.5px solid transparent;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
   white-space: nowrap;
   position: relative;
 }
 .ntab:not(.active):hover { color: var(--text2); background: rgba(0,0,0,.03); }
-.ntab.active { color: var(--accent); border-bottom-color: var(--accent); }
-.ntab-icon { font-size: 13px; line-height: 1; }
+.ntab.active { font-weight: 800; }
+
+.ntab-icon { font-size: 16px; line-height: 1; }
+
+.ntab-label { font-size: 13px; }
+
 .ntab-badge {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 9px; font-weight: 700;
-  background: var(--border2);
-  color: var(--text3);
-  border-radius: 8px;
-  padding: 1px 5px;
-  min-width: 16px;
+  font-size: 10px; font-weight: 800;
+  border-radius: 12px;
+  padding: 2px 7px;
+  min-width: 20px;
   text-align: center;
   transition: background 0.15s, color 0.15s;
+  background: var(--border2);
+  color: var(--text3);
 }
-.ntab.active .ntab-badge { background: rgba(37,99,235,.15); color: var(--accent); }
 
-/* Category accent colors for active tab underline */
-/* 3-tab accent colors */
+/* Tab accent colors */
+.ntab-notes { color: #4b7cf3; }
+.ntab-notes:not(.active):hover { color: #2563eb; }
 .ntab-notes.active  { border-bottom-color: #2563eb; color: #2563eb; }
-.ntab-notes.active .ntab-badge { background: rgba(37,99,235,.12); color: #2563eb; }
+.ntab-notes.active .ntab-badge { background: #2563eb; color: #fff; }
+
+.ntab-find { color: #e05252; }
+.ntab-find:not(.active):hover { color: #dc2626; }
 .ntab-find.active   { border-bottom-color: #dc2626; color: #dc2626; }
-.ntab-find.active .ntab-badge  { background: rgba(220,38,38,.12); color: #dc2626; }
+.ntab-find.active .ntab-badge  { background: #dc2626; color: #fff; }
+
+.ntab-td { color: #e0a020; }
+.ntab-td:not(.active):hover { color: #d97706; }
 .ntab-td.active     { border-bottom-color: #d97706; color: #d97706; }
-.ntab-td.active .ntab-badge    { background: rgba(217,119,6,.12); color: #d97706; }
+.ntab-td.active .ntab-badge    { background: #d97706; color: #fff; }
 
 /* Priority indicator dot on tab */
 .ntab-dot {
   position: absolute;
-  top: 4px; right: 4px;
-  width: 6px; height: 6px;
+  top: 8px; right: 8px;
+  width: 7px; height: 7px;
   border-radius: 50%;
 }
 .ntab-dot-critical { background: #dc2626; }
 .ntab-dot-watch    { background: #f59e0b; }
 
 /* ── Tab Panes ── */
-.ntab-pane { display: none; flex: 1; overflow-y: auto; padding: 12px 14px 0; flex-direction: column; }
+.ntab-pane { display: none; flex: 1; overflow-y: auto; padding: 20px 20px 0; flex-direction: column; }
 .ntab-pane.active { display: flex; }
-.ntab-pane::-webkit-scrollbar { width: 4px; }
+.ntab-pane::-webkit-scrollbar { width: 5px; }
 .ntab-pane::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
 
 /* note-block: transparent wrapper, kept for JS compatibility */
@@ -998,13 +1045,28 @@ body {
 
 /* Save row at bottom of each notes pane */
 .ntab-save-row {
-  position: sticky; bottom: 0;
-  background: #f8fafc;
-  border-top: 1px solid var(--border2);
-  padding: 8px 0 10px;
-  margin-top: auto;
-  flex-shrink: 0;
+  padding: 12px 0 16px;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
 }
+.ntab-save-row button {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background .15s;
+}
+.ntab-save-row button:hover { background: #1d4ed8; }
 .ntab-save-row button {
   width: 100%;
   display: flex; align-items: center; justify-content: center; gap: 7px;
@@ -1026,13 +1088,14 @@ body {
 .nc {
   background: #fff;
   border: 1px solid #e2e8f0;
-  border-left: 3px solid var(--accent);
-  border-radius: 6px;
-  margin-bottom: 5px;
-  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+  border-left: 4px solid var(--accent);
+  border-radius: 7px;
+  margin-bottom: 6px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
   overflow: hidden;
   transition: box-shadow .15s, border-color .15s;
 }
+.nc:hover { box-shadow: 0 3px 10px rgba(0,0,0,.1); }
 .nc:hover { box-shadow: 0 3px 10px rgba(0,0,0,.09); border-color: #cbd5e1; }
 .nc.prio-watch    { border-left-color: #f59e0b; border-color: rgba(245,158,11,.35); background: #fffef8; }
 .nc.prio-critical { border-left-color: #dc2626; border-color: rgba(220,38,38,.35); background: #fff9f9; }
@@ -1142,29 +1205,33 @@ body {
 
 /* ── Note category sections (stacked in NOTES pane) ── */
 .ncat-section {
-  margin-bottom: 14px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
 }
 .ncat-header {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 6px 10px;
-  background: rgba(var(--cat-rgb, 37,99,235), .06);
-  border-left: 3px solid var(--cat-color, var(--accent));
-  border-radius: 6px 6px 0 0;
+  gap: 8px;
+  padding: 9px 12px;
+  background: rgba(var(--cat-rgb, 37,99,235), .07);
+  border-left: 4px solid var(--cat-color, var(--accent));
+  border-radius: 8px 8px 0 0;
   margin-bottom: 0;
 }
-.ncat-icon  { font-size: 13px; line-height: 1; }
+.ncat-icon  { font-size: 14px; line-height: 1; }
 .ncat-label {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+  font-size: 13px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
   color: var(--cat-color, var(--accent)); flex: 1;
 }
 .ncat-count {
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px; font-weight: 700;
-  background: rgba(0,0,0,.07); color: var(--text3);
-  border-radius: 8px; padding: 1px 6px; min-width: 16px; text-align: center;
+  background: var(--cat-color, var(--accent));
+  color: #fff;
+  border-radius: 10px; padding: 1px 7px; min-width: 18px; text-align: center;
 }
 .ncat-section .note-block { border-radius: 0 0 6px 6px; overflow: hidden; }
 .ncat-section .nc         { border-radius: 0; border-left-color: var(--cat-color, var(--accent)); }
@@ -1202,11 +1269,12 @@ body.dark .nc-header { border-bottom-color: #333; }
 
 .nc-text[contenteditable] {
   cursor: text;
-  min-height: 28px;
-  line-height: 1.5;
-  font-size: 13px;
+  min-height: 32px;
+  line-height: 1.6;
+  font-size: 13.5px;
   word-break: break-word;
   white-space: pre-wrap;
+  padding: 8px 12px 6px;
 }
 .nc-text[contenteditable]:empty::before {
   content: attr(data-placeholder);
@@ -1375,7 +1443,7 @@ body.dark .nc-bold-btn:hover, body.dark .nc-italic-btn:hover { background: rgba(
 /* RESPONSIVE */
 @media (max-width: 1200px) {
   .vessels-grid { grid-template-columns: repeat(5, 1fr); }
-  .modal-body { grid-template-columns: 340px 1fr; }
+  .modal-body { grid-template-columns: 440px 1fr; }
 }
 @media (max-width: 900px) {
   .vessels-grid { grid-template-columns: repeat(3, 1fr); }
@@ -1529,33 +1597,33 @@ body.dark .nc-bold-btn:hover, body.dark .nc-italic-btn:hover { background: rgba(
 /* ── CERTIFICATE SECTION ── */
 .cert-section {
   margin-top: 8px;
-  padding: 10px 12px 12px;
+  padding: 10px 12px 10px;
   background: rgba(241,245,249,0.9);
   border-radius: 10px;
-  border: 2px solid var(--border2);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  border: 1.5px solid var(--border2);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
 .cert-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px 10px;
+  gap: 6px 8px;
 }
 .cert-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px 8px;
+  gap: 3px;
+  padding: 5px 7px;
   background: #fff;
-  border-radius: 7px;
+  border-radius: 6px;
   border: 1px solid var(--border);
   transition: border-color 0.15s;
 }
 .cert-item:has(.cert-input.cert-warn)    { border-color: rgba(245,158,11,0.45); background: #fffdf5; }
 .cert-item:has(.cert-input.cert-overdue) { border-color: rgba(220,38,38,0.4);  background: #fff8f8; }
 .cert-label {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text2);
   font-family: 'Barlow Condensed', sans-serif;
@@ -1573,8 +1641,8 @@ body.dark .nc-bold-btn:hover, body.dark .nc-italic-btn:hover { background: rgba(
 .cert-input {
   background: #ffffff;
   border: 1px solid var(--border2);
-  border-radius: 5px;
-  padding: 4px 6px;
+  border-radius: 4px;
+  padding: 3px 5px;
   color: var(--text);
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
@@ -1769,6 +1837,33 @@ body.dark .todo-textarea, body.dark .todo-date-input { background:#252525; borde
 body.dark .todo-item { background:#252525; }
 body.dark .todo-item:hover { background:#2e2e2e; }
 body.dark .todo-item.done { background:#1e1e1e; }
+
+/* ── Findings PDF Export Button ── */
+.antbi-pdf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-family: Barlow Condensed, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(37,99,235,.35);
+  transition: all .15s;
+}
+.antbi-pdf-btn:hover {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
+  box-shadow: 0 4px 14px rgba(37,99,235,.45);
+  transform: translateY(-1px);
+}
+.antbi-pdf-btn:active { transform: translateY(0); box-shadow: 0 1px 4px rgba(37,99,235,.3); }
+body.dark .antbi-pdf-btn { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); }
 
 /* ── INSPECTION LIST BAR (alb = antbi list bar) ── */
 .alb-bar {
@@ -2195,6 +2290,10 @@ body.dark .mn-critical-banner { background:#2d1515; border-color:#7f1d1d; }
       <button class="filter-btn" id="filterSailing" onclick="setFilter('sailing')"><span class="fdot fdot-blue"></span> Sailing</button>
       <button class="filter-btn" id="filterDischarging" onclick="setFilter('discharging')"><span class="fdot fdot-orange"></span> Discharging</button>
       <button class="filter-btn" id="filterNotes" onclick="setFilter('notes')">Has Notes</button>
+      <button class="filter-btn filter-btn-urgent" id="filterUrgent" onclick="openUrgentPanel()">
+        <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#dc2626;margin-right:4px;vertical-align:middle;"></span>
+        Urgent Notes
+      </button>
     </div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-outline btn-sm" onclick="exportNotes()">Export Notes</button>
@@ -2236,6 +2335,20 @@ body.dark .mn-critical-banner { background:#2d1515; border-color:#7f1d1d; }
 
   <!-- ALERT PANEL -->
   <div id="alertPanel" style="display:none;"></div>
+
+  <!-- URGENT NOTES PANEL (overlay) -->
+  <div id="urgentPanel" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;background:var(--bg);overflow-y:auto;padding:0;">
+    <div style="position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:2px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--text);letter-spacing:.02em;">
+          🚨 Urgent Notes
+        </span>
+        <span id="urgentCount" style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;background:#dc2626;color:#fff;border-radius:12px;padding:2px 10px;"></span>
+      </div>
+      <button onclick="closeUrgentPanel()" style="background:var(--navy2);border:1px solid var(--border2);color:var(--text2);padding:7px 18px;border-radius:7px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.05em;">✕ Close</button>
+    </div>
+    <div id="urgentBody" style="padding:24px;"></div>
+  </div>
 
   <!-- VESSEL GRID -->
   <div class="vessels-list" id="vesselsList">
@@ -2699,7 +2812,10 @@ body.dark .em-input{background:#222;border-color:#404040;color:#f0f0f0;}
           </div>
           <div class="modal-vessel-pos" id="modalVesselPos"></div>
         </div>
-        <button type="button" onclick="exportVesselPDF()" title="Export PDF" style="background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.4);color:#2563eb;border-radius:6px;padding:5px 12px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.4px;margin-right:8px;transition:all 0.2s;" onmouseover="this.style.background='#2563eb';this.style.color='#fff'" onmouseout="this.style.background='rgba(37,99,235,0.12)';this.style.color='#2563eb'">📄 PDF</button>
+        <button type="button" onclick="exportVesselPDF()" title="Export Vessel Report PDF" class="vessel-pdf-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
+          Export Report
+        </button>
         <button type="button" class="modal-close" onclick="closeModal()" title="Close">&times;</button>
       </div>
     </div>
@@ -3423,6 +3539,121 @@ function filterVessels() {
   renderVessels();
 }
 
+function openUrgentPanel() {
+  var panel = document.getElementById('urgentPanel');
+  var body  = document.getElementById('urgentBody');
+  var countEl = document.getElementById('urgentCount');
+  if (!panel || !body) return;
+
+  // Tüm gemilerdeki critical ve watch notları topla
+  var results = [];
+  VESSELS_ALL.forEach(function(vname) {
+    var vn = canonicalize(vname);
+    var vNotes = notes[vn];
+    if (!vNotes) return;
+    var urgentItems = [];
+    ['operational','procurement','personnel','other'].forEach(function(cat) {
+      var items = vNotes[cat]?.items || [];
+      items.forEach(function(it) {
+        if ((it.priority === 'critical' || it.priority === 'watch') && it.text) {
+          urgentItems.push({ cat: cat, priority: it.priority, text: it.text, time: it.time });
+        }
+      });
+    });
+    if (urgentItems.length) {
+      // Priority sırası: critical önce
+      urgentItems.sort(function(a,b) {
+        if (a.priority === b.priority) return 0;
+        return a.priority === 'critical' ? -1 : 1;
+      });
+      results.push({ vessel: vname, items: urgentItems });
+    }
+  });
+
+  // Sırala: critical'ı olanlar önce, sonra watch
+  results.sort(function(a,b) {
+    var aHasCrit = a.items.some(function(i){ return i.priority==='critical'; });
+    var bHasCrit = b.items.some(function(i){ return i.priority==='critical'; });
+    if (aHasCrit && !bHasCrit) return -1;
+    if (!aHasCrit && bHasCrit) return  1;
+    return a.vessel.localeCompare(b.vessel);
+  });
+
+  var totalCount = results.reduce(function(s,r){ return s + r.items.length; }, 0);
+  countEl.textContent = totalCount + ' urgent note' + (totalCount !== 1 ? 's' : '');
+
+  var CAT_LABELS = { operational:'Operational', procurement:'Procurement', personnel:'Crew', other:'Other' };
+  var CAT_COLORS = { operational:'#2563eb', procurement:'#0d9488', personnel:'#7c3aed', other:'#64748b' };
+
+  if (!results.length) {
+    body.innerHTML = '<div style="text-align:center;padding:80px 20px;color:var(--text3);font-size:16px;letter-spacing:.05em;">✅ No urgent notes across the fleet</div>';
+  } else {
+    body.innerHTML = results.map(function(r) {
+      // Gemi bilgisi
+      var vessel = allVessels.find(function(v){ return v.name === r.vessel; }) || {};
+      var marine = getMarine(r.vessel) || '';
+      var hasCrit = r.items.some(function(i){ return i.priority==='critical'; });
+      var headerBg = hasCrit ? 'rgba(220,38,38,.08)' : 'rgba(245,158,11,.08)';
+      var headerBorder = hasCrit ? '#dc2626' : '#d97706';
+
+      var itemsHtml = r.items.map(function(it) {
+        var isCrit = it.priority === 'critical';
+        var prioColor = isCrit ? '#dc2626' : '#d97706';
+        var prioBg    = isCrit ? 'rgba(220,38,38,.1)' : 'rgba(245,158,11,.1)';
+        var prioLabel = isCrit ? '🔴 Critical' : '🟡 Watch';
+        var catColor  = CAT_COLORS[it.cat] || '#64748b';
+        var catLabel  = CAT_LABELS[it.cat] || it.cat;
+
+        // Format time
+        var timeStr = '';
+        if (it.time) {
+          var m = it.time.match(/(\d{2})\/(\d{2})\/(\d{4}),\s*(\d{2}:\d{2})/);
+          if (m) {
+            var months = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            timeStr = +m[1] + ' ' + months[+m[2]] + ' ' + m[4];
+          }
+        }
+
+        return '<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);background:#fff;">'
+          + '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;flex-shrink:0;">'
+          + '<span style="font-family:Barlow Condensed,sans-serif;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:' + prioBg + ';color:' + prioColor + ';letter-spacing:.05em;">' + prioLabel + '</span>'
+          + '<span style="font-family:Barlow Condensed,sans-serif;font-size:9px;font-weight:700;color:' + catColor + ';text-transform:uppercase;letter-spacing:.06em;">' + catLabel + '</span>'
+          + '</div>'
+          + '<div style="flex:1;font-family:Barlow,sans-serif;font-size:13.5px;color:var(--text);line-height:1.5;">' + escHtml(it.text.replace(/<[^>]*>/g,'')) + '</div>'
+          + (timeStr ? '<div style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--text3);white-space:nowrap;flex-shrink:0;padding-top:2px;">⏱ ' + timeStr + '</div>' : '')
+          + '</div>';
+      }).join('');
+
+      return '<div style="margin-bottom:20px;border-radius:12px;overflow:hidden;border:1.5px solid ' + headerBorder + ';box-shadow:0 2px 8px rgba(0,0,0,.08);">'
+        // Vessel header
+        + '<div style="display:flex;align-items:center;gap:14px;padding:14px 20px;background:' + headerBg + ';border-bottom:1.5px solid ' + headerBorder + ';cursor:pointer;" onclick="closeUrgentPanel();openModal(\'' + escAttr(r.vessel) + '\');">'
+        + '<div style="width:38px;height:38px;border-radius:50%;background:' + headerBorder + ';color:#fff;display:flex;align-items:center;justify-content:center;font-family:Barlow Condensed,sans-serif;font-size:14px;font-weight:800;flex-shrink:0;">' + escHtml(r.vessel.split(' ').pop().charAt(0)) + '</div>'
+        + '<div style="flex:1;">'
+        + '<div style="font-family:Barlow Condensed,sans-serif;font-size:17px;font-weight:800;color:var(--text);letter-spacing:.03em;">' + escHtml(r.vessel) + '</div>'
+        + (marine ? '<div style="font-size:11px;color:var(--text3);margin-top:1px;">🧑‍✈️ ' + escHtml(marine) + '</div>' : '')
+        + '</div>'
+        + '<div style="display:flex;align-items:center;gap:8px;">'
+        + (hasCrit ? '<span style="font-family:JetBrains Mono,monospace;font-size:10px;font-weight:800;background:#dc2626;color:#fff;border-radius:10px;padding:2px 8px;">' + r.items.filter(function(i){return i.priority==='critical';}).length + ' critical</span>' : '')
+        + (r.items.some(function(i){return i.priority==='watch';}) ? '<span style="font-family:JetBrains Mono,monospace;font-size:10px;font-weight:800;background:#d97706;color:#fff;border-radius:10px;padding:2px 8px;">' + r.items.filter(function(i){return i.priority==='watch';}).length + ' watch</span>' : '')
+        + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--text3);margin-left:4px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'
+        + '</div>'
+        + '</div>'
+        // Items
+        + '<div>' + itemsHtml + '</div>'
+        + '</div>';
+    }).join('');
+  }
+
+  panel.style.display = 'block';
+  document.getElementById('filterUrgent').classList.add('active');
+}
+
+function closeUrgentPanel() {
+  var panel = document.getElementById('urgentPanel');
+  if (panel) panel.style.display = 'none';
+  document.getElementById('filterUrgent').classList.remove('active');
+}
+
 function setFilter(f) {
   currentFilter = f;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -3646,7 +3877,12 @@ function buildModalBody(v) {
 
   const marine = getMarine(v.name);
   const ops = getOps(v.name);
-  const cob = loadCob(v.name);
+  const cob    = loadCob(v.name);
+  const sludge = loadSludge(v.name);
+  const sludgeCap    = parseFloat(sludge.cap)    || 0;
+  const sludgeActual = parseFloat(sludge.actual) || 0;
+  const sludgePct    = sludgeCap > 0 ? Math.min(100, Math.round((sludgeActual / sludgeCap) * 100)) : 0;
+  const sludgeColor  = sludgePct >= 85 ? '#dc2626' : sludgePct >= 60 ? '#d97706' : '#059669';
 
   return `
     <!-- LEFT COL: VESSEL DETAILS -->
@@ -3662,7 +3898,45 @@ function buildModalBody(v) {
       ${robHtml}
       ${voyageHtml}
       ${nextHtml}
-      <div class="cert-section" style="margin-top:16px;padding:14px 16px 16px;">
+      <div class="cert-section" style="margin-top:12px;padding:10px 12px 12px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:10px;">Sludge Tank</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+          <div>
+            <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:4px;">Capacity (m³)</div>
+            <div style="display:flex;align-items:center;border:1px solid var(--border2);border-radius:6px;overflow:hidden;background:#fff;">
+              <input id="sludge_cap" type="number" min="0" step="0.1" placeholder="0.0"
+                value="${escAttr(sludge.cap)}"
+                oninput="sludgeUpdatePct()"
+                style="border:none;outline:none;background:transparent;padding:7px 10px;font-size:14px;font-weight:600;color:var(--text);font-family:'Barlow',sans-serif;width:100%;">
+              <span style="padding:0 8px;font-size:11px;font-weight:700;color:var(--text3);background:var(--navy2);border-left:1px solid var(--border2);white-space:nowrap;">m³</span>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:4px;">Actual (m³)</div>
+            <div style="display:flex;align-items:center;border:1px solid var(--border2);border-radius:6px;overflow:hidden;background:#fff;">
+              <input id="sludge_actual" type="number" min="0" step="0.1" placeholder="0.0"
+                value="${escAttr(sludge.actual)}"
+                oninput="sludgeUpdatePct()"
+                style="border:none;outline:none;background:transparent;padding:7px 10px;font-size:14px;font-weight:600;color:var(--text);font-family:'Barlow',sans-serif;width:100%;">
+              <span style="padding:0 8px;font-size:11px;font-weight:700;color:var(--text3);background:var(--navy2);border-left:1px solid var(--border2);white-space:nowrap;">m³</span>
+            </div>
+          </div>
+        </div>
+        <div style="background:var(--navy2);border-radius:6px;height:8px;overflow:hidden;margin-bottom:8px;">
+          <div id="sludge_bar" style="height:100%;border-radius:6px;transition:width .4s,background .4s;width:${sludgeCap > 0 ? sludgePct : 0}%;background:${sludgeColor};"></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div id="sludge_pct" style="font-size:12px;color:var(--text3);">
+            ${sludgeCap > 0 ? `<span style="font-weight:800;color:${sludgeColor};">${sludgePct}%</span> full` : '—'}
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            ${sludge._ts ? `<span style="font-size:10px;color:var(--text3);">⏱ ${escHtml(new Date(sludge._ts).toLocaleDateString('en-GB'))}</span>` : ''}
+            <button onclick="saveSludgeFromModal('${escAttr(v.name)}')"
+              style="background:var(--accent);color:#fff;border:none;padding:6px 14px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;">Save</button>
+          </div>
+        </div>
+      </div>
+      <div class="cert-section" style="margin-top:8px;padding:14px 16px 16px;">
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:10px;">Cash on Board</div>
         <div style="display:flex;gap:8px;align-items:center;">
           <div style="display:flex;align-items:center;flex:1;border:1px solid var(--border2);border-radius:6px;overflow:hidden;background:#fff;">
@@ -3787,11 +4061,47 @@ function saveCertsFromModal(vesselName) {
 // ─── CASH ON BOARD ──────────────────────────────────────────────────────────
 function cobKey(vessel)       { return 'yasa_cob_' + canonicalize(vessel); }
 function loadCob(vessel)      { try { return JSON.parse(localStorage.getItem(cobKey(vessel)) || 'null') || { amount: '', _ts: '' }; } catch(e) { return { amount: '', _ts: '' }; } }
+function sludgeKey(vessel)    { return 'yasa_sludge_' + canonicalize(vessel); }
+function loadSludge(vessel)   { try { return JSON.parse(localStorage.getItem(sludgeKey(vessel)) || 'null') || { cap: '', actual: '', _ts: '' }; } catch(e) { return { cap: '', actual: '', _ts: '' }; } }
+function saveSludgeLocal(vessel, cap, actual) {
+  const data = { cap: cap, actual: actual, _ts: new Date().toISOString() };
+  localStorage.setItem(sludgeKey(vessel), JSON.stringify(data));
+  cloudSave().catch(e => console.warn('Cloud save (sludge) failed:', e));
+}
 function saveCobLocal(vessel, amount) {
   const data = { amount: String(amount || ''), _ts: new Date().toISOString() };
   localStorage.setItem(cobKey(vessel), JSON.stringify(data));
   cloudSave().catch(e => console.warn('Cloud save (cob) failed:', e));
 }
+window.saveSludgeFromModal = function(vesselName) {
+  const capEl    = document.getElementById('sludge_cap');
+  const actualEl = document.getElementById('sludge_actual');
+  if (!capEl || !actualEl) return;
+  saveSludgeLocal(vesselName, capEl.value.trim(), actualEl.value.trim());
+  // Update percentage display
+  sludgeUpdatePct();
+  showToast('Sludge saved!', 'success');
+};
+window.sludgeUpdatePct = function() {
+  const capEl    = document.getElementById('sludge_cap');
+  const actualEl = document.getElementById('sludge_actual');
+  const pctEl    = document.getElementById('sludge_pct');
+  if (!pctEl) return;
+  const cap    = parseFloat(capEl?.value) || 0;
+  const actual = parseFloat(actualEl?.value) || 0;
+  if (cap > 0 && actual >= 0) {
+    const pct = Math.min(100, Math.round((actual / cap) * 100));
+    const color = pct >= 85 ? '#dc2626' : pct >= 60 ? '#d97706' : '#059669';
+    pctEl.innerHTML = '<span style="font-weight:800;color:' + color + ';">' + pct + '%</span> full';
+    // Progress bar
+    const bar = document.getElementById('sludge_bar');
+    if (bar) { bar.style.width = pct + '%'; bar.style.background = color; }
+  } else {
+    pctEl.textContent = '—';
+    const bar = document.getElementById('sludge_bar');
+    if (bar) bar.style.width = '0%';
+  }
+};
 window.saveCobFromModal = function(vesselName) {
   const el = document.getElementById('cob_amount');
   if (!el) return;
@@ -3842,7 +4152,7 @@ function buildNotesTabs(v, n, vn) {
       const active = (_activeNoteTab === t.id) ? ' active' : '';
       return `<button class="ntab ${t.cls}${active}" onclick="switchNotesTab('${t.id}',this)">
         <span class="ntab-icon">${t.icon}</span>
-        <span>${t.label}</span>
+        <span class="ntab-label">${t.label}</span>
         <span class="ntab-badge">${t.badge}</span>
         ${t.dot}
       </button>`;
@@ -3875,8 +4185,8 @@ function buildNotesTabs(v, n, vn) {
 
   return `${tabBar}
     ${notesPane}
-    <div class="ntab-pane${findActive}" id="ntab_findings" style="padding:12px 14px;">${buildAntbiSection(vn)}</div>
-    <div class="ntab-pane${todoActive}"  id="ntab_todo"     style="padding:12px 14px;">${buildTodoSection(vn)}</div>`;
+    <div class="ntab-pane${findActive}" id="ntab_findings" style="padding:20px 20px;">${buildAntbiSection(vn)}</div>
+    <div class="ntab-pane${todoActive}"  id="ntab_todo"     style="padding:20px 20px;">${buildTodoSection(vn)}</div>`;
 }
 
 function switchNotesTab(cat, el) {
@@ -5142,6 +5452,11 @@ function _buildSnapshot() {
     const raw = localStorage.getItem(cobKey(v));
     if (raw) { try { cobData[v] = JSON.parse(raw); } catch(e) {} }
   });
+  const sludgeData = {};
+  VESSELS_ALL.forEach(v => {
+    const raw = localStorage.getItem(sludgeKey(v));
+    if (raw) { try { sludgeData[v] = JSON.parse(raw); } catch(e) {} }
+  });
   return {
     vessels:        allVessels,
     reportFileName,
@@ -5151,12 +5466,22 @@ function _buildSnapshot() {
     lsa:            lsaData,
     certs:          certData,
     cob:            cobData,
+    sludge:         sludgeData,
     todos:          (function() {
       var t = {};
       VESSELS_ALL.forEach(function(v) {
         var vn = canonicalize(v);
         var raw = localStorage.getItem('yasa_todos_' + vn);
         if (raw) { try { t[vn] = JSON.parse(raw); } catch(e) {} }
+      });
+      return t;
+    })(),
+    todoTombstones: (function() {
+      var t = {};
+      VESSELS_ALL.forEach(function(v) {
+        var vn = canonicalize(v);
+        var tomb = todoTombLoad(vn);
+        if (Object.keys(tomb).length) t[vn] = tomb;
       });
       return t;
     })(),
@@ -5175,6 +5500,15 @@ function _buildSnapshot() {
         var vn = canonicalize(v);
         var raw = localStorage.getItem('yasa_antbi_lists_' + vn);
         if (raw) { try { a[vn] = JSON.parse(raw); } catch(e) {} }
+      });
+      return a;
+    })(),
+    antbiTombstones: (function() {
+      var a = {};
+      VESSELS_ALL.forEach(function(v) {
+        var vn = canonicalize(v);
+        var t = antbiTombstoneLoad(vn);
+        if (Object.keys(t).length) a[vn] = t;
       });
       return a;
     })(),
@@ -5378,6 +5712,17 @@ function _mergeSnapshots(cloud, local) {
     merged.certs[v] = mergedCert;
   });
 
+  // Merge Sludge: per-vessel last-write-wins using _ts
+  const cloudSludge = cloud.sludge || {};
+  const localSludge = local.sludge || {};
+  merged.sludge = {};
+  new Set([...Object.keys(cloudSludge), ...Object.keys(localSludge)]).forEach(v => {
+    const cs = cloudSludge[v]; const ls = localSludge[v];
+    if (!cs) { merged.sludge[v] = ls; return; }
+    if (!ls) { merged.sludge[v] = cs; return; }
+    merged.sludge[v] = new Date(ls._ts||0) >= new Date(cs._ts||0) ? ls : cs;
+  });
+
   // Merge COB: per-vessel last-write-wins using _ts
   const cloudCob = cloud.cob || {};
   const localCob = local.cob || {};
@@ -5391,7 +5736,21 @@ function _mergeSnapshots(cloud, local) {
     merged.cob[v] = new Date(lc._ts || 0) >= new Date(cc._ts || 0) ? lc : cc;
   });
 
-  // Merge todos: per-vessel, per-item last-write-wins by updatedAt
+  // Merge todo tombstones: union, max timestamp wins
+  const cloudTodoTombs = cloud.todoTombstones || {};
+  const localTodoTombs = local.todoTombstones || {};
+  const mergedTodoTombs = {};
+  new Set([...Object.keys(cloudTodoTombs), ...Object.keys(localTodoTombs)]).forEach(vn => {
+    const cT = cloudTodoTombs[vn] || {};
+    const lT = localTodoTombs[vn] || {};
+    mergedTodoTombs[vn] = {};
+    new Set([...Object.keys(cT), ...Object.keys(lT)]).forEach(id => {
+      mergedTodoTombs[vn][id] = Math.max(cT[id] || 0, lT[id] || 0);
+    });
+  });
+  merged.todoTombstones = mergedTodoTombs;
+
+  // Merge todos: per-vessel, per-item last-write-wins by updatedAt + tombstone filter
   const cloudTodos = cloud.todos || {};
   const localTodos = local.todos || {};
   const allTodoKeys = new Set([...Object.keys(cloudTodos), ...Object.keys(localTodos)]);
@@ -5399,8 +5758,11 @@ function _mergeSnapshots(cloud, local) {
   allTodoKeys.forEach(vn => {
     const cArr = cloudTodos[vn] || [];
     const lArr = localTodos[vn] || [];
+    const tomb = mergedTodoTombs[vn] || {};
     const map = {};
     [...cArr, ...lArr].forEach(it => {
+      const deletedAt = tomb[it.id];
+      if (deletedAt && deletedAt >= new Date(it.updatedAt || 0).getTime()) return;
       const ex = map[it.id];
       if (!ex || new Date(it.updatedAt || 0) >= new Date(ex.updatedAt || 0)) map[it.id] = it;
     });
@@ -5408,7 +5770,22 @@ function _mergeSnapshots(cloud, local) {
     if (merged_arr.length) merged.todos[vn] = merged_arr;
   });
 
+  // Merge antbi tombstones: union, en büyük timestamp kazanır
+  const cloudAntbiTombs = cloud.antbiTombstones || {};
+  const localAntbiTombs = local.antbiTombstones || {};
+  const mergedAntbiTombs = {};
+  new Set([...Object.keys(cloudAntbiTombs), ...Object.keys(localAntbiTombs)]).forEach(vn => {
+    const cT = cloudAntbiTombs[vn] || {};
+    const lT = localAntbiTombs[vn] || {};
+    mergedAntbiTombs[vn] = {};
+    new Set([...Object.keys(cT), ...Object.keys(lT)]).forEach(id => {
+      mergedAntbiTombs[vn][id] = Math.max(cT[id] || 0, lT[id] || 0);
+    });
+  });
+  merged.antbiTombstones = mergedAntbiTombs;
+
   // Merge antbi: per-vessel, per-item last-write-wins by updatedAt
+  // Tombstone kontrolü: silinen item'lar geri gelmesin
   const cloudAntbi = cloud.antbi || {};
   const localAntbi = local.antbi || {};
   const allAntbiKeys = new Set([...Object.keys(cloudAntbi), ...Object.keys(localAntbi)]);
@@ -5416,8 +5793,12 @@ function _mergeSnapshots(cloud, local) {
   allAntbiKeys.forEach(vn => {
     const cArr = cloudAntbi[vn] || [];
     const lArr = localAntbi[vn] || [];
+    const tomb = mergedAntbiTombs[vn] || {};
     const map = {};
     [...cArr, ...lArr].forEach(it => {
+      // Tombstone kontrolü: silme zamanı item'ın son güncelleme zamanından sonraysa geri getirme
+      const deletedAt = tomb[it.id];
+      if (deletedAt && deletedAt >= new Date(it.updatedAt || 0).getTime()) return;
       const ex = map[it.id];
       if (!ex || new Date(it.updatedAt || 0) >= new Date(ex.updatedAt || 0)) map[it.id] = it;
     });
@@ -5556,13 +5937,29 @@ function _applySnapshotSilent(merged) {
   if (merged.lsa) {
     Object.keys(merged.lsa).forEach(function(v) { localStorage.setItem('lsa_v2_' + v, JSON.stringify(merged.lsa[v])); });
   }
+  // Sludge
+  if (merged.sludge) {
+    Object.keys(merged.sludge).forEach(function(v) { localStorage.setItem(sludgeKey(v), JSON.stringify(merged.sludge[v])); });
+  }
   // COB
   if (merged.cob) {
     Object.keys(merged.cob).forEach(function(v) { localStorage.setItem(cobKey(v), JSON.stringify(merged.cob[v])); });
   }
+  // Todo Tombstones
+  if (merged.todoTombstones) {
+    Object.keys(merged.todoTombstones).forEach(function(vn) {
+      localStorage.setItem(todoTombKey(vn), JSON.stringify(merged.todoTombstones[vn]));
+    });
+  }
   // Todos
   if (merged.todos) {
     Object.keys(merged.todos).forEach(function(vn) { localStorage.setItem('yasa_todos_' + vn, JSON.stringify(merged.todos[vn])); });
+  }
+  // ANTBI TOMBSTONES — önce yaz ki ANTBI restore edilince silinmişler filtreli kalsın
+  if (merged.antbiTombstones) {
+    Object.keys(merged.antbiTombstones).forEach(function(vn) {
+      localStorage.setItem(antbiTombstoneKey(vn), JSON.stringify(merged.antbiTombstones[vn]));
+    });
   }
   // ANTBI
   if (merged.antbi) {
@@ -5635,6 +6032,12 @@ function _applySnapshot(cloudData) {
     Object.keys(merged.cob).forEach(v => localStorage.setItem(cobKey(v), JSON.stringify(merged.cob[v])));
   }
 
+  // Todo Tombstones
+  if (merged.todoTombstones) {
+    Object.keys(merged.todoTombstones).forEach(function(vn) {
+      localStorage.setItem(todoTombKey(vn), JSON.stringify(merged.todoTombstones[vn]));
+    });
+  }
   // Todos
   if (merged.todos) {
     Object.keys(merged.todos).forEach(function(vn) {
@@ -5642,6 +6045,12 @@ function _applySnapshot(cloudData) {
     });
   }
 
+  // ANTBI TOMBSTONES
+  if (merged.antbiTombstones) {
+    Object.keys(merged.antbiTombstones).forEach(function(vn) {
+      localStorage.setItem(antbiTombstoneKey(vn), JSON.stringify(merged.antbiTombstones[vn]));
+    });
+  }
   // ANTBI
   if (merged.antbi) {
     Object.keys(merged.antbi).forEach(function(vn) {
@@ -5793,6 +6202,7 @@ function todoToggle(vn, id, done) {
 }
 
 function todoDelete(vn, id) {
+  todoTombAdd(vn, id);
   var items = todoLoad(vn).filter(function(it) { return it.id !== id; });
   todoSave(vn, items);
   todoRerender(vn);
@@ -5800,11 +6210,9 @@ function todoDelete(vn, id) {
 
 function todoClearAll(vn) {
   var items = todoLoad(vn);
-  if (!items.length) {
-    showToast('Liste zaten boş.', 'info');
-    return;
-  }
+  if (!items.length) { showToast('Liste zaten boş.', 'info'); return; }
   if (!confirm('Tüm To-Do List maddelerini (' + items.length + ' adet) silmek istediğinize emin misiniz?\n\nBu işlem kalıcıdır ve geri alınamaz!')) return;
+  todoTombAddMany(vn, items.map(function(it) { return it.id; }));
   todoSave(vn, []);
   todoRerender(vn);
   showToast('To-Do List tamamen temizlendi.', 'success');
@@ -5841,7 +6249,22 @@ function todoRerender(vn) {
 
 var _activeAntbiListId = null; // currently selected inspection list (null = All)
 
-function antbiKey(vn)       { return 'yasa_antbi_' + vn; }
+function antbiKey(vn)           { return 'yasa_antbi_' + vn; }
+function antbiTombstoneKey(vn)  { return 'yasa_antbi_tomb_' + vn; }
+function antbiTombstoneLoad(vn) {
+  try { return JSON.parse(localStorage.getItem(antbiTombstoneKey(vn)) || '{}'); } catch(e) { return {}; }
+}
+function antbiTombstoneAdd(vn, id) {
+  var t = antbiTombstoneLoad(vn);
+  t[id] = Date.now();
+  localStorage.setItem(antbiTombstoneKey(vn), JSON.stringify(t));
+}
+function antbiTombstoneAddMany(vn, ids) {
+  var t = antbiTombstoneLoad(vn);
+  var now = Date.now();
+  ids.forEach(function(id) { t[id] = now; });
+  localStorage.setItem(antbiTombstoneKey(vn), JSON.stringify(t));
+}
 function antbiListsKey(vn)  { return 'yasa_antbi_lists_' + vn; }
 function antbiListsLoad(vn) { try { return JSON.parse(localStorage.getItem(antbiListsKey(vn)) || '[]'); } catch(e) { return []; } }
 function antbiListsSave(vn, lists) {
@@ -5928,10 +6351,10 @@ function buildAntbiSection(vn) {
 
   return ''
     + '<div class="antbi-section">'
-    +   '<div class="modal-section-title" style="margin-bottom:8px;justify-content:space-between;">'
-    +     '<span>⚠️ Findings</span>'
+    +   '<div class="modal-section-title" style="margin-bottom:12px;justify-content:space-between;font-size:13px;color:var(--text);">'
+    +     '<span style="font-size:15px;font-weight:800;color:#dc2626;">⚠️ Findings</span>'
     +     '<div style="display:flex;gap:6px;">'
-    +       '<button type="button" style="background:transparent;border:1px solid rgba(37,99,235,.3);color:#2563eb;border-radius:4px;padding:3px 8px;font-family:\'Barlow Condensed\',sans-serif;font-size:11px;font-weight:700;cursor:pointer;" onclick="antbiExportPDF(\'' + evn + '\')">📄 PDF</button>'
+    +       '<button type="button" class="antbi-pdf-btn" onclick="antbiExportPDF(\'' + evn + '\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg> Export PDF</button>'
     +       '<button type="button" style="background:transparent;border:1px solid rgba(220,38,38,.3);color:#dc2626;border-radius:4px;padding:3px 8px;font-family:\'Barlow Condensed\',sans-serif;font-size:11px;font-weight:700;cursor:pointer;" onclick="antbiClearAll(\'' + evn + '\')">🗑 Clear</button>'
     +     '</div>'
     +   '</div>'
@@ -6266,76 +6689,186 @@ function antbiSetDate(vn, id, date) {
 
 function antbiDelete(vn, id) {
   if (!confirm('Bu eksiklik silinsin mi?')) return;
+  antbiTombstoneAdd(vn, id);  // silineni kaydet — merge'de geri gelmesin
   antbiSave(vn, antbiLoad(vn).filter(function(it) { return it.id !== id; }));
   antbiRerender(vn);
 }
 
 function antbiExportPDF(vn) {
   var items = antbiLoad(vn);
-  if (!items.length) {
-    showToast('Export edilecek madde yok.', 'info');
-    return;
-  }
-  
-  var trToEng = function(text) {
-    return (text || '').replace(/ğ/g, 'g').replace(/Ğ/g, 'G')
-                       .replace(/ş/g, 's').replace(/Ş/g, 'S')
-                       .replace(/ı/g, 'i').replace(/İ/g, 'I')
-                       .replace(/ö/g, 'o').replace(/Ö/g, 'O')
-                       .replace(/ç/g, 'c').replace(/Ç/g, 'C')
-                       .replace(/ü/g, 'u').replace(/Ü/g, 'U');
+  if (!items.length) { showToast('Export edilecek madde yok.', 'info'); return; }
+
+  var tr = function(s) {
+    return (s||'').replace(/[ğĞ]/g,function(c){return c==='ğ'?'g':'G'})
+                  .replace(/[şŞ]/g,function(c){return c==='ş'?'s':'S'})
+                  .replace(/[ıİ]/g,function(c){return c==='ı'?'i':'I'})
+                  .replace(/[öÖ]/g,function(c){return c==='ö'?'o':'O'})
+                  .replace(/[çÇ]/g,function(c){return c==='ç'?'c':'C'})
+                  .replace(/[üÜ]/g,function(c){return c==='ü'?'u':'U'})
+                  .replace(/<[^>]*>/g,''); // strip HTML tags
   };
 
   var jsPDF = window.jspdf.jsPDF;
-  var doc = new jsPDF();
-  
+  // A4 landscape for more columns
+  var doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  var pageW = doc.internal.pageSize.getWidth();
+  var margin = 14;
+
+  // ── Header banner ──────────────────────────────────────────
+  doc.setFillColor(30, 58, 138);
+  doc.roundedRect(margin, 10, pageW - margin*2, 22, 3, 3, 'F');
+  doc.setTextColor(255, 255, 255);
   doc.setFontSize(16);
-  doc.text('Finding List - ' + trToEng(vn), 14, 20);
-  doc.setFontSize(10);
-  doc.setTextColor(100);
-  doc.text('Date: ' + new Date().toLocaleDateString('en-GB'), 14, 28);
-  
-  // Sort items: open ones first, then closed
-  var sortedItems = items.slice().sort(function(a, b) {
-    if (a.done === b.done) {
-      return (a.num || 0) - (b.num || 0);
+  doc.setFont('helvetica', 'bold');
+  doc.text('FINDING LIST REPORT', margin + 4, 22);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text(tr(vn), margin + 4, 28);
+  doc.text('Generated: ' + new Date().toLocaleDateString('en-GB'), pageW - margin - 2, 28, { align: 'right' });
+
+  // ── Vessel info bar ─────────────────────────────────────────
+  var vessel = allVessels.find(function(v){ return canonicalize(v.name) === vn; }) || {};
+  var marine = getMarine(vessel.name || vn) || '-';
+  var ops    = getOps(vessel.name || vn) || '-';
+  var y = 38;
+  doc.setFillColor(241, 245, 249);
+  doc.rect(margin, y, pageW - margin*2, 12, 'F');
+  doc.setTextColor(71, 85, 105);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Marine Supt:', margin + 2, y + 5); doc.setFont('helvetica','normal'); doc.text(tr(marine), margin + 22, y + 5);
+  doc.setFont('helvetica','bold');
+  doc.text('Operator:', margin + 70, y + 5); doc.setFont('helvetica','normal'); doc.text(tr(ops), margin + 84, y + 5);
+  doc.setFont('helvetica','bold');
+  doc.text('Status:', margin + 130, y + 5); doc.setFont('helvetica','normal'); doc.text(tr(vessel.position||vessel.atPort||'—'), margin + 142, y + 5);
+
+  // Stats
+  var openItems   = items.filter(function(i){ return !i.done; });
+  var closedItems = items.filter(function(i){ return  i.done; });
+  y += 17;
+  var statW = (pageW - margin*2) / 3;
+  [
+    { label: 'TOTAL', val: items.length,       bg: [37,99,235],   fg: [255,255,255] },
+    { label: 'OPEN',  val: openItems.length,   bg: [220,38,38],   fg: [255,255,255] },
+    { label: 'CLOSED',val: closedItems.length, bg: [5,150,105],   fg: [255,255,255] },
+  ].forEach(function(s, i) {
+    doc.setFillColor(s.bg[0], s.bg[1], s.bg[2]);
+    doc.roundedRect(margin + i*statW, y, statW - 2, 10, 2, 2, 'F');
+    doc.setTextColor(s.fg[0], s.fg[1], s.fg[2]);
+    doc.setFontSize(8); doc.setFont('helvetica','bold');
+    doc.text(s.label + ': ' + s.val, margin + i*statW + (statW-2)/2, y + 6.5, { align: 'center' });
+  });
+
+  // ── Inspection list label (if filtered) ────────────────────
+  y += 14;
+  if (_activeAntbiListId) {
+    var lists = antbiListsLoad(vn);
+    var activeList = lists.find(function(l){ return l.id === _activeAntbiListId; });
+    if (activeList) {
+      doc.setFillColor(255, 251, 235);
+      doc.setDrawColor(217, 119, 6);
+      doc.rect(margin, y, pageW - margin*2, 8, 'FD');
+      doc.setTextColor(120, 53, 15);
+      doc.setFontSize(8); doc.setFont('helvetica','bold');
+      doc.text('Inspection: ' + tr(activeList.title) + (activeList.inspectionDate ? '  |  Date: ' + new Date(activeList.inspectionDate).toLocaleDateString('en-GB') : ''), margin + 3, y + 5.5);
+      y += 11;
     }
-    return a.done ? 1 : -1;
-  });
-  
-  var rows = sortedItems.map(function(it) {
-    var status = it.done ? 'Closed' : 'Open';
-    if (it.done && it.closedAt) {
-      status += '\n(' + new Date(it.closedAt).toLocaleDateString('en-GB') + ')';
-    }
-    var target = it.dueDate ? new Date(it.dueDate).toLocaleDateString('en-GB') : '-';
-    
-    return [
-      (it.num || '-').toString(),
-      trToEng(it.text || ''),
-      target,
-      status
-    ];
-  });
-  
-  doc.autoTable({
-    startY: 35,
-    head: [['No', 'Finding', 'Target Date', 'Status']],
-    body: rows,
-    theme: 'grid',
-    headStyles: { fillColor: [37, 99, 235] },
-    columnStyles: {
-      0: { cellWidth: 15, halign: 'center' },
-      1: { cellWidth: 'auto' },
-      2: { cellWidth: 25, halign: 'center' },
-      3: { cellWidth: 30, halign: 'center' }
-    },
-    styles: { fontSize: 9, cellPadding: 3, overflow: 'linebreak' }
-  });
-  
-  var filename = 'Finding_List_' + vn.replace(/[^A-Za-z0-9]/g, '_') + '_' + new Date().toISOString().slice(0,10) + '.pdf';
-  doc.save(filename);
-  showToast('PDF indirildi.', 'success');
+  }
+
+  // ── Open findings table ─────────────────────────────────────
+  if (openItems.length) {
+    doc.setTextColor(220, 38, 38);
+    doc.setFontSize(9); doc.setFont('helvetica','bold');
+    doc.text('OPEN FINDINGS', margin, y + 4);
+    y += 6;
+
+    var openRows = openItems.sort(function(a,b){ return (a.num||999)-(b.num||999); }).map(function(it) {
+      return [
+        (it.num||'-').toString(),
+        tr(it.text||''),
+        it.dueDate ? new Date(it.dueDate).toLocaleDateString('en-GB') : '—',
+        it.source === 'paste' ? 'Imported' : 'Manual'
+      ];
+    });
+
+    doc.autoTable({
+      startY: y,
+      head: [['#', 'Finding Description', 'Target Date', 'Source']],
+      body: openRows,
+      theme: 'grid',
+      headStyles: { fillColor: [220,38,38], textColor: [255,255,255], fontStyle: 'bold', fontSize: 8, cellPadding: 3 },
+      bodyStyles: { fontSize: 8, cellPadding: 2.5, textColor: [30,41,59] },
+      columnStyles: {
+        0: { cellWidth: 10, halign: 'center', fontStyle: 'bold' },
+        1: { cellWidth: 'auto' },
+        2: { cellWidth: 24, halign: 'center' },
+        3: { cellWidth: 20, halign: 'center' }
+      },
+      alternateRowStyles: { fillColor: [255, 245, 245] },
+      margin: { left: margin, right: margin },
+      didDrawPage: function(data) {
+        // Footer on each page
+        doc.setFontSize(7); doc.setTextColor(148,163,184);
+        doc.setFont('helvetica','normal');
+        doc.text('YASA Shipping — Superintendent Dashboard', margin, doc.internal.pageSize.getHeight()-6);
+        doc.text('Page ' + data.pageNumber, pageW - margin, doc.internal.pageSize.getHeight()-6, { align:'right' });
+      }
+    });
+    y = doc.lastAutoTable.finalY + 6;
+  }
+
+  // ── Closed findings table ───────────────────────────────────
+  if (closedItems.length) {
+    doc.setTextColor(5, 150, 105);
+    doc.setFontSize(9); doc.setFont('helvetica','bold');
+    doc.text('CLOSED / RECTIFIED', margin, y + 4);
+    y += 6;
+
+    var closedRows = closedItems.sort(function(a,b){ return (a.num||999)-(b.num||999); }).map(function(it) {
+      return [
+        (it.num||'-').toString(),
+        tr(it.text||''),
+        it.closedAt ? new Date(it.closedAt).toLocaleDateString('en-GB') : '—'
+      ];
+    });
+
+    doc.autoTable({
+      startY: y,
+      head: [['#', 'Finding Description', 'Closed Date']],
+      body: closedRows,
+      theme: 'grid',
+      headStyles: { fillColor: [5,150,105], textColor: [255,255,255], fontStyle: 'bold', fontSize: 8, cellPadding: 3 },
+      bodyStyles: { fontSize: 8, cellPadding: 2.5, textColor: [30,41,59] },
+      columnStyles: {
+        0: { cellWidth: 10, halign: 'center', fontStyle: 'bold' },
+        1: { cellWidth: 'auto' },
+        2: { cellWidth: 28, halign: 'center' }
+      },
+      alternateRowStyles: { fillColor: [240,253,244] },
+      margin: { left: margin, right: margin },
+      didDrawPage: function(data) {
+        doc.setFontSize(7); doc.setTextColor(148,163,184);
+        doc.setFont('helvetica','normal');
+        doc.text('YASA Shipping — Superintendent Dashboard', margin, doc.internal.pageSize.getHeight()-6);
+        doc.text('Page ' + data.pageNumber, pageW - margin, doc.internal.pageSize.getHeight()-6, { align:'right' });
+      }
+    });
+    y = doc.lastAutoTable.finalY + 6;
+  }
+
+  // ── Footer ──────────────────────────────────────────────────
+  var totalPages = doc.internal.getNumberOfPages();
+  for (var p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    doc.setFontSize(7); doc.setTextColor(148,163,184);
+    doc.setFont('helvetica','normal');
+    doc.text('YASA Shipping — Superintendent Dashboard', margin, doc.internal.pageSize.getHeight()-6);
+    doc.text('Page ' + p + ' / ' + totalPages, pageW - margin, doc.internal.pageSize.getHeight()-6, { align:'right' });
+  }
+
+  var fname = 'FindingList_' + tr(vn).replace(/[^A-Za-z0-9]/g,'_') + '_' + new Date().toISOString().slice(0,10) + '.pdf';
+  doc.save(fname);
+  showToast('PDF exported successfully!', 'success');
 }
 
 function antbiClearAll(vn) {
@@ -6344,6 +6877,8 @@ function antbiClearAll(vn) {
   if (!toDelete.length) { showToast('Liste zaten boş.', 'info'); return; }
   var label = _activeAntbiListId ? 'bu listeki' : 'tüm';
   if (!confirm(toDelete.length + ' adet ' + label + ' kaydı silmek istediğinize emin misiniz?')) return;
+  // Silinen tüm ID'leri tombstone'a ekle — merge'de geri gelmesinler
+  antbiTombstoneAddMany(vn, toDelete.map(function(it) { return it.id; }));
   if (_activeAntbiListId) {
     antbiSave(vn, items.filter(function(it) { return it.listId !== _activeAntbiListId; }));
   } else {
@@ -6517,223 +7052,281 @@ function exportVesselPDF() {
   var tr = function(s) {
     return (s || '').replace(/ğ/g,'g').replace(/Ğ/g,'G').replace(/ş/g,'s').replace(/Ş/g,'S')
       .replace(/ı/g,'i').replace(/İ/g,'I').replace(/ö/g,'o').replace(/Ö/g,'O')
-      .replace(/ç/g,'c').replace(/Ç/g,'C').replace(/ü/g,'u').replace(/Ü/g,'U');
+      .replace(/ç/g,'c').replace(/Ç/g,'C').replace(/ü/g,'u').replace(/Ü/g,'U')
+      .replace(/<[^>]*>/g,'');
   };
 
   var jsPDF = window.jspdf.jsPDF;
-  var doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  var pageW = 210, margin = 14, cW = 210 - margin * 2;
-
-  // ── Header ──────────────────────────────────────────────────────
-  doc.setFillColor(15, 32, 69);
-  doc.rect(0, 0, pageW, 34, 'F');
-  doc.setFillColor(37, 99, 235);
-  doc.rect(0, 34, pageW, 1.2, 'F');
-
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  doc.text('YASA SHIPPING', margin, 14);
-
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(148, 163, 184);
-  doc.text('Superintendent Dashboard  |  Vessel Report', margin, 21);
-
+  // A4 landscape — 297mm × 210mm
+  var doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  var PW = 297, PH = 210, M = 12;
+  var colL = 110;           // sol sütun genişliği
+  var colR = PW - M*2 - colL - 6; // sağ sütun genişliği
+  var colLx = M;
+  var colRx = M + colL + 6;
   var now = new Date();
-  doc.text('Generated: ' + now.toLocaleString('en-GB'), margin, 28);
 
-  // ── Vessel Name + Status ─────────────────────────────────────────
-  var vname = tr(mvPrefix(v.name));
+  // ── Üst başlık bandı ─────────────────────────────────────────
+  doc.setFillColor(15, 32, 69);
+  doc.rect(0, 0, PW, 22, 'F');
+  doc.setFillColor(37, 99, 235);
+  doc.rect(0, 22, PW, 1, 'F');
+
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(15); doc.setFont('helvetica','bold');
+  doc.text('YASA SHIPPING', M, 10);
+  doc.setFontSize(8); doc.setFont('helvetica','normal');
+  doc.setTextColor(148,163,184);
+  doc.text('Superintendent Dashboard  |  Vessel Report', M, 16);
+  doc.text('Generated: ' + now.toLocaleString('en-GB'), PW - M, 16, { align:'right' });
+
+  // Gemi adı + durum
+  var vname = tr(v.name);
   var sc = posStatusConfig(v.position);
+  doc.setFontSize(13); doc.setFont('helvetica','bold');
+  doc.setTextColor(255,255,255);
+  doc.text(vname, PW/2, 12, { align:'center' });
+  doc.setFontSize(8); doc.setFont('helvetica','normal');
+  doc.setTextColor(186,219,255);
+  if (v.position) doc.text(tr(v.position), PW/2, 18, { align:'center' });
 
-  doc.setFillColor(236, 241, 255);
-  doc.roundedRect(margin, 40, cW, 18, 2, 2, 'F');
-  doc.setDrawColor(37, 99, 235);
-  doc.setLineWidth(0.4);
-  doc.roundedRect(margin, 40, cW, 18, 2, 2, 'S');
+  // ── Ayırıcı çizgi ─────────────────────────────────────────────
+  var bodyTop = 26;
 
-  doc.setTextColor(15, 32, 69);
-  doc.setFontSize(15);
-  doc.setFont('helvetica', 'bold');
-  doc.text(vname, margin + 4, 51);
+  // ── SOL SÜTUN: Gemi bilgileri + Sertifikalar ──────────────────
+  var yL = bodyTop;
 
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 116, 139);
-  if (v.position) doc.text(tr(v.position), margin + 4, 56);
-  if (sc && sc.label) {
-    var lblW = doc.getTextWidth(sc.label) + 6;
-    doc.setFillColor(37, 99, 235);
-    doc.roundedRect(margin + cW - lblW - 4, 43, lblW + 4, 7, 1.5, 1.5, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    doc.text(sc.label, margin + cW - lblW - 2, 48);
+  function secTitle(label, x, col) {
+    doc.setFillColor(37,99,235);
+    doc.rect(x, yL, 2, 5, 'F');
+    doc.setFontSize(7.5); doc.setFont('helvetica','bold');
+    doc.setTextColor(37,99,235);
+    doc.text(label.toUpperCase(), x + 4, yL + 4);
+    doc.setDrawColor(210,220,240); doc.setLineWidth(0.2);
+    doc.line(x, yL + 6.5, x + col, yL + 6.5);
+    yL += 9;
   }
 
-  // ── Section helper ───────────────────────────────────────────────
-  var y = 65;
-  function sectionTitle(title) {
-    doc.setFillColor(37, 99, 235);
-    doc.rect(margin, y, 2.5, 6, 'F');
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(37, 99, 235);
-    doc.text(title.toUpperCase(), margin + 5, y + 4.8);
-    doc.setDrawColor(220, 228, 245);
-    doc.setLineWidth(0.25);
-    doc.line(margin, y + 8, margin + cW, y + 8);
-    y += 11;
-  }
-  function row(label, val) {
-    if (!val || val === '—' || val === '-') return;
-    var safeVal = tr(String(val));
-    var safeLabel = tr(label);
-    doc.setFontSize(8.5);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.text(safeLabel, margin + 2, y);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(30, 41, 59);
-    var lines = doc.splitTextToSize(safeVal, cW * 0.6);
-    doc.text(lines, margin + cW * 0.38, y);
-    y += lines.length > 1 ? lines.length * 4.5 : 5.5;
-    if (y > 270) { doc.addPage(); y = 20; }
+  function dataRow(label, val, x, col) {
+    if (!val || val === '-' || val === '—') return;
+    var safeL = tr(label); var safeV = tr(String(val));
+    doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(100,116,139);
+    doc.text(safeL, x + 1, yL);
+    doc.setFont('helvetica','bold'); doc.setTextColor(30,41,59);
+    var lines = doc.splitTextToSize(safeV, col * 0.56);
+    doc.text(lines, x + col * 0.42, yL);
+    yL += lines.length > 1 ? lines.length * 3.8 : 4.5;
   }
 
-  // ── Vessel Details ───────────────────────────────────────────────
-  sectionTitle('Vessel Details');
-  var marine = getMarine(v.name);
-  var ops = getOps(v.name);
-  if (marine) row('Marine Supt', marine);
-  if (ops)    row('Operator', ops);
-  if (v.etaEtd1) row('ETA / ETD 1', v.etaEtd1);
-  if (v.etaEtd2) row('ETA / ETD 2', v.etaEtd2);
-  if (v.master || v.chiefEng) row('Master / Ch.Eng', [v.master, v.chiefEng].filter(Boolean).join(' / '));
-  if (v.crewChange) row('Crew Change', v.crewChange);
-  if (v.bunkerIntention && v.bunkerIntention !== '-') row('Bunker', v.bunkerIntention);
+  // Vessel Details
+  secTitle('Vessel Details', colLx, colL);
+  var marine = getMarine(v.name), ops = getOps(v.name);
+  if (marine) dataRow('Marine Supt', marine, colLx, colL);
+  if (ops)    dataRow('Operator', ops, colLx, colL);
+  if (v.etaEtd1) dataRow('ETA/ETD 1', v.etaEtd1, colLx, colL);
+  if (v.etaEtd2) dataRow('ETA/ETD 2', v.etaEtd2, colLx, colL);
+  if (v.master || v.chiefEng) dataRow('Master / Ch.Eng', [v.master,v.chiefEng].filter(Boolean).join(' / '), colLx, colL);
+  if (v.crewChange) dataRow('Crew Change', v.crewChange, colLx, colL);
+  if (v.bunkerIntention && v.bunkerIntention !== '-') dataRow('Bunker', v.bunkerIntention, colLx, colL);
 
-  // ── ROB ──────────────────────────────────────────────────────────
+  // ROB
   var hasRob = v.robLsifo || v.robMdo || v.robFw || v.meSys || v.meCyl || v.dg;
-  if (hasRob) {
-    y += 2;
-    sectionTitle('ROB — Remaining on Board');
-    if (v.robLsifo) row('LSIFO', v.robLsifo + ' MT');
-    if (v.robMdo)   row('MDO/MGO', v.robMdo + ' MT');
-    if (v.robFw)    row('FW', v.robFw + ' MT');
-    if (v.meSys)    row('ME SYS Oil', v.meSys + ' LT');
-    if (v.meCyl)    row('ME CYL Oil', v.meCyl + ' LT');
-    if (v.dg)       row('DG Oil', v.dg + ' LT');
+  if (hasRob) { yL += 2; secTitle('ROB — Remaining on Board', colLx, colL); }
+  if (v.robLsifo) dataRow('LSIFO', v.robLsifo + ' MT', colLx, colL);
+  if (v.robMdo)   dataRow('MDO/MGO', v.robMdo + ' MT', colLx, colL);
+  if (v.robFw)    dataRow('FW', v.robFw + ' MT', colLx, colL);
+  if (v.meSys)    dataRow('ME SYS', v.meSys + ' LT', colLx, colL);
+  if (v.meCyl)    dataRow('ME CYL', v.meCyl + ' LT', colLx, colL);
+
+  // Voyage
+  if (v.voyageNo || v.lPort || v.dPort || v.cargo) {
+    yL += 2; secTitle('Voyage' + (v.voyageNo ? ' — ' + tr(v.voyageNo) : ''), colLx, colL);
+    if (v.cargo)     dataRow('Cargo', v.cargo, colLx, colL);
+    if (v.lPort)     dataRow('L/Port', v.lPort, colLx, colL);
+    if (v.dPort)     dataRow('D/Port', v.dPort, colLx, colL);
+    if (v.charterer) dataRow('Charterer', v.charterer, colLx, colL);
+    if (v.delivery)  dataRow('Delivery', v.delivery, colLx, colL);
+    if (v.redelivery)dataRow('Redelivery', v.redelivery, colLx, colL);
   }
 
-  // ── Voyage ───────────────────────────────────────────────────────
-  var hasVoy = v.voyageNo || v.lPort || v.dPort || v.cargo;
-  if (hasVoy) {
-    y += 2;
-    sectionTitle('Present Voyage' + (v.voyageNo ? '  —  ' + tr(v.voyageNo) : ''));
-    if (v.cargo)      row('Cargo', v.cargo);
-    if (v.lPort)      row('L/Port', v.lPort);
-    if (v.dPort)      row('D/Port', v.dPort);
-    if (v.charterer)  row('Charterer', v.charterer);
-    if (v.delivery)   row('Delivery', v.delivery);
-    if (v.redelivery) row('Redelivery', v.redelivery);
-    if (v.duration)   row('Duration', v.duration);
-  }
-
-  // ── Next Voyage ──────────────────────────────────────────────────
-  var hasNext = v.nextLPort || v.nextDPort || v.nextCargo;
-  if (hasNext) {
-    y += 2;
-    sectionTitle('Next Voyage' + (v.nextVoyageNo ? '  —  ' + tr(v.nextVoyageNo) : ''));
-    if (v.nextCargo)     row('Cargo', v.nextCargo);
-    if (v.nextLPort)     row('L/Port', v.nextLPort);
-    if (v.nextDPort)     row('D/Port', v.nextDPort);
-    if (v.nextCharterer) row('Charterer', v.nextCharterer);
-  }
-
-  // ── Cash on Board ────────────────────────────────────────────────
+  // COB + Sludge
   var cob = loadCob(v.name);
-  if (cob && cob.amount) {
-    y += 2;
-    sectionTitle('Cash on Board');
-    row('Amount (USD)', cob.amount);
+  var sludge = loadSludge(v.name);
+  if ((cob && cob.amount) || (sludge && (sludge.cap || sludge.actual))) {
+    yL += 2; secTitle('Cash on Board & Sludge', colLx, colL);
+    if (cob && cob.amount) dataRow('Cash on Board', 'USD ' + cob.amount, colLx, colL);
+    if (sludge && sludge.cap)    dataRow('Sludge Capacity', sludge.cap + ' m\u00B3', colLx, colL);
+    if (sludge && sludge.actual) {
+      var pct = sludge.cap > 0 ? Math.round((sludge.actual/sludge.cap)*100) : 0;
+      dataRow('Sludge Actual', sludge.actual + ' m\u00B3' + (pct ? '  (' + pct + '% full)' : ''), colLx, colL);
+    }
   }
 
-  // ── Certificates ─────────────────────────────────────────────────
-  y += 2;
-  sectionTitle('Certificate & Service Expiry Dates');
+  // Sertifikalar
+  yL += 2; secTitle('Certificate & Service Expiry Dates', colLx, colL);
   var certData = loadCerts(v.name);
   CERT_FIELDS.forEach(function(f) {
-    var val = certData[f.key];
-    if (!val) return;
+    var val = certData[f.key]; if (!val) return;
     var days = certDaysLeft(val);
-    var status = certStatus(val);
-    var displayDate = toDateInputVal(val).split('-').reverse().join('/');
-    var suffix = days !== null ? (status === 'overdue' ? '  [OVERDUE ' + Math.abs(days) + 'd]' : '  [' + days + 'd]') : '';
-    row(f.label, displayDate + suffix);
+    var st = certStatus(val);
+    var dateStr = toDateInputVal(val).split('-').reverse().join('/');
+    var suffix = days !== null ? (st==='overdue' ? ' [OVERDUE ' + Math.abs(days) + 'd]' : ' [' + days + 'd]') : '';
+    // Color code: overdue=red, warn=amber, ok=dark
+    var oldY = yL;
+    dataRow(f.label, dateStr + suffix, colLx, colL);
+    if (st === 'overdue') {
+      doc.setTextColor(220,38,38);
+      doc.setFontSize(7); doc.setFont('helvetica','bold');
+      doc.text(dateStr + suffix, colLx + colL * 0.42, oldY);
+    } else if (st === 'warn') {
+      doc.setTextColor(180,80,0);
+      doc.setFontSize(7); doc.setFont('helvetica','bold');
+      doc.text(dateStr + suffix, colLx + colL * 0.42, oldY);
+    }
   });
 
-  // ── Notes ────────────────────────────────────────────────────────
-  var vn = canonicalize(v.name);
-  var n = notes[vn] || {};
-  var noteCategories = [
-    { key: 'operational', label: 'Operational Notes' },
-    { key: 'procurement', label: 'Procurement Notes' },
-    { key: 'personnel',   label: 'Personnel Notes'   },
-    { key: 'other',       label: 'Other Notes'       }
+  // ── SAĞ SÜTUN: Notlar ─────────────────────────────────────────
+  // Dikey ayırıcı çizgi
+  doc.setDrawColor(220,228,245); doc.setLineWidth(0.3);
+  doc.line(colRx - 3, bodyTop, colRx - 3, PH - 14);
+
+  var yR = bodyTop;
+  function secTitleR(label, color) {
+    color = color || [37,99,235];
+    doc.setFillColor(color[0],color[1],color[2]);
+    doc.rect(colRx, yR, colR, 7, 'F');
+    doc.setFontSize(8); doc.setFont('helvetica','bold');
+    doc.setTextColor(255,255,255);
+    doc.text(label.toUpperCase(), colRx + 3, yR + 5);
+    yR += 9;
+  }
+
+  // Notes başlık
+  doc.setFillColor(15,32,69);
+  doc.rect(colRx, yR, colR, 8, 'F');
+  doc.setFontSize(9); doc.setFont('helvetica','bold');
+  doc.setTextColor(255,255,255);
+  doc.text('SUPERINTENDENT NOTES', colRx + 3, yR + 5.5);
+  yR += 10;
+
+  var vn2 = canonicalize(v.name);
+  var n = notes[vn2] || {};
+  var cats = [
+    { key:'operational', label:'Operational', color:[37,99,235]  },
+    { key:'procurement', label:'Procurement', color:[13,148,136] },
+    { key:'personnel',   label:'Crew',         color:[124,58,237]},
+    { key:'other',       label:'Other',         color:[100,116,139]}
   ];
-  var hasNotes = noteCategories.some(function(cat) {
-    var items = n[cat.key] && n[cat.key].items;
-    return items && items.some(function(it) { return it.text && it.text.trim(); });
+
+  var hasAnyNote = cats.some(function(c) {
+    var items = n[c.key] && n[c.key].items;
+    return items && items.some(function(it){ return it.text && it.text.trim(); });
   });
-  if (hasNotes) {
-    y += 2;
-    sectionTitle('Superintendent Notes');
-    noteCategories.forEach(function(cat) {
+
+  if (!hasAnyNote) {
+    doc.setFontSize(8); doc.setFont('helvetica','normal');
+    doc.setTextColor(148,163,184);
+    doc.text('No notes recorded for this vessel.', colRx + 3, yR + 6);
+  } else {
+    cats.forEach(function(cat) {
       var items = n[cat.key] && n[cat.key].items;
       if (!items) return;
-      var valid = items.filter(function(it) { return it.text && it.text.trim(); });
+      var valid = items.filter(function(it){ return it.text && it.text.trim(); });
       if (!valid.length) return;
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(75, 85, 99);
-      doc.text(tr(cat.label), margin + 2, y);
-      y += 4.5;
+
+      // Kategori başlık satırı
+      doc.setFillColor(cat.color[0], cat.color[1], cat.color[2]);
+      doc.setFillColor(cat.color[0]*0.12 + 243, cat.color[1]*0.12 + 243, cat.color[2]*0.12 + 243);
+      doc.rect(colRx, yR, colR, 6, 'F');
+      doc.setDrawColor(cat.color[0], cat.color[1], cat.color[2]);
+      doc.setLineWidth(0.5);
+      doc.line(colRx, yR, colRx, yR + 6);
+      doc.setLineWidth(0.2);
+      doc.setFontSize(7.5); doc.setFont('helvetica','bold');
+      doc.setTextColor(cat.color[0], cat.color[1], cat.color[2]);
+      doc.text(cat.label.toUpperCase(), colRx + 4, yR + 4.2);
+      yR += 7;
+
       valid.forEach(function(it, idx) {
-        var bullet = (idx + 1) + '. ' + tr(it.text.trim());
-        var lines = doc.splitTextToSize(bullet, cW - 6);
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(30, 41, 59);
-        doc.text(lines, margin + 4, y);
-        y += lines.length * 4.5;
-        if (y > 270) { doc.addPage(); y = 20; }
+        var prio = it.priority || '';
+        var prioTag = prio === 'critical' ? ' [CRITICAL]' : prio === 'watch' ? ' [WATCH]' : '';
+        var cleanText = tr((it.text||'').replace(/<[^>]*>/g,'').trim());
+        var bullet = (idx + 1) + '.  ' + cleanText + prioTag;
+        var lines = doc.splitTextToSize(bullet, colR - 6);
+
+        // Priority color
+        if (prio === 'critical') {
+          doc.setFillColor(255,245,245);
+          doc.rect(colRx, yR - 1, colR, lines.length * 3.8 + 2, 'F');
+        } else if (prio === 'watch') {
+          doc.setFillColor(255,252,240);
+          doc.rect(colRx, yR - 1, colR, lines.length * 3.8 + 2, 'F');
+        }
+
+        doc.setFontSize(7.5); doc.setFont('helvetica','normal');
+        doc.setTextColor(prio==='critical' ? 180 : prio==='watch' ? 120 : 30,
+                         prio==='critical' ? 30  : prio==='watch' ? 60  : 41,
+                         prio==='critical' ? 30  : prio==='watch' ? 0   : 59);
+        doc.text(lines, colRx + 3, yR);
+        yR += lines.length * 3.8 + 1.5;
+
+        if (yR > PH - 16) { /* sayfa yeterli degil, kesilecek */ }
       });
-      y += 2;
+      yR += 3;
     });
   }
 
-  // ── Footer ───────────────────────────────────────────────────────
-  var totalPages = doc.internal.getNumberOfPages();
-  for (var i = 1; i <= totalPages; i++) {
-    doc.setPage(i);
-    doc.setFillColor(245, 247, 250);
-    doc.rect(0, 287, pageW, 10, 'F');
-    doc.setDrawColor(220, 228, 245);
-    doc.setLineWidth(0.25);
-    doc.line(margin, 287, margin + cW, 287);
-    doc.setFontSize(7.5);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(148, 163, 184);
-    doc.text('YASA Shipping  |  Confidential — Internal Use Only', margin, 293);
-    doc.text('Page ' + i + ' / ' + totalPages, margin + cW, 293, { align: 'right' });
-  }
+  // ── Alt footer ────────────────────────────────────────────────
+  doc.setFillColor(245,247,250);
+  doc.rect(0, PH - 9, PW, 9, 'F');
+  doc.setDrawColor(220,228,245); doc.setLineWidth(0.25);
+  doc.line(0, PH - 9, PW, PH - 9);
+  doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(148,163,184);
+  doc.text('YASA Shipping  |  Superintendent Dashboard  |  Confidential — Internal Use Only', M, PH - 4);
+  doc.text(now.toLocaleString('en-GB'), PW - M, PH - 4, { align:'right' });
 
-  var fname = tr(v.name).replace(/[^A-Za-z0-9]/g, '_') + '_Report_' + now.toISOString().slice(0,10) + '.pdf';
-  doc.save(fname);
-  showToast('PDF exported: ' + fname, 'success');
+  // ── Preview modal (blob URL) ──────────────────────────────────
+  var blobUrl = doc.output('bloburl');
+  var fname = tr(v.name).replace(/[^A-Za-z0-9]/g,'_') + '_Report_' + now.toISOString().slice(0,10) + '.pdf';
+
+  // Overlay oluştur
+  var overlay = document.createElement('div');
+  overlay.id = 'pdfPreviewOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.75);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
+
+  overlay.innerHTML =
+    '<div style="width:100%;max-width:1100px;height:100%;max-height:88vh;display:flex;flex-direction:column;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.4);">'
+  + '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:linear-gradient(135deg,#0f2045,#1e3a8a);flex-shrink:0;">'
+  +   '<div style="display:flex;align-items:center;gap:12px;">'
+  +     '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
+  +     '<span style="font-family:Barlow Condensed,sans-serif;font-size:16px;font-weight:800;color:#fff;letter-spacing:.05em;">PDF Preview — ' + vname + '</span>'
+  +   '</div>'
+  +   '<div style="display:flex;gap:10px;">'
+  +     '<button id="pdfSaveBtn" style="display:inline-flex;align-items:center;gap:7px;padding:8px 20px;background:#059669;color:#fff;border:none;border-radius:8px;font-family:Barlow Condensed,sans-serif;font-size:13px;font-weight:700;letter-spacing:.05em;cursor:pointer;transition:background .15s;">'
+  +       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>'
+  +       'Download PDF'
+  +     '</button>'
+  +     '<button id="pdfCloseBtn" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,255,255,.4);border-radius:8px;font-family:Barlow Condensed,sans-serif;font-size:13px;font-weight:700;cursor:pointer;">✕ Close</button>'
+  +   '</div>'
+  + '</div>'
+  + '<iframe id="pdfPreviewFrame" src="' + blobUrl + '" style="flex:1;border:none;width:100%;"></iframe>'
+  + '</div>';
+
+  document.body.appendChild(overlay);
+
+  document.getElementById('pdfSaveBtn').onclick = function() {
+    doc.save(fname);
+    showToast('PDF downloaded: ' + fname, 'success');
+  };
+  document.getElementById('pdfCloseBtn').onclick = function() {
+    overlay.remove();
+    URL.revokeObjectURL(blobUrl);
+  };
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) { overlay.remove(); URL.revokeObjectURL(blobUrl); }
+  });
 }
+
 
 function mnExportPDF(id) {
   var m = _mnMeetings.filter(function(x) { return x.id === id; })[0];
@@ -9188,13 +9781,8 @@ function gasRenderList() {
     return true;
   });
 
-  // Sort: numbered records by num ascending, unnumbered (new) by date descending
-  filtered.sort((a,b) => {
-    if (a.num && b.num) return a.num - b.num;
-    if (a.num && !b.num) return -1;
-    if (!a.num && b.num) return 1;
-    return new Date(b.updatedAt) - new Date(a.updatedAt);
-  });
+  // Sort: en son değiştirilen en üstte (updatedAt descending)
+  filtered.sort((a,b) => new Date(b.updatedAt||0) - new Date(a.updatedAt||0));
 
   if (!filtered.length) {
     cont.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><div class="empty-text">Cihaz bulunamadı</div></div>`;
@@ -9205,7 +9793,29 @@ function gasRenderList() {
     const isEgemar = d.location === 'EGEMAR CALİBRATION';
     const locClass = isEgemar ? 'loc-egemar' : 'loc-vessel';
     const locLabel = isEgemar ? '⚙ Egemar' : '⚓ ' + d.location;
-    const date     = d.updatedAt ? new Date(d.updatedAt).toLocaleDateString('tr-TR') : '';
+    // Son değişim zamanını göster
+  let date = '';
+  let dateTag = '';
+  if (d.updatedAt) {
+    const now = new Date();
+    const upd = new Date(d.updatedAt);
+    const diffMs = now - upd;
+    const diffDays = Math.floor(diffMs / 86400000);
+    date = upd.toLocaleDateString('tr-TR');
+    if (diffDays === 0) {
+      const diffHrs = Math.floor(diffMs / 3600000);
+      if (diffHrs === 0) {
+        const diffMins = Math.floor(diffMs / 60000);
+        dateTag = `<span style="font-size:9px;font-weight:700;background:#059669;color:#fff;border-radius:8px;padding:1px 7px;margin-left:4px;letter-spacing:.03em;">${diffMins < 1 ? 'şimdi' : diffMins + 'dk önce'}</span>`;
+      } else {
+        dateTag = `<span style="font-size:9px;font-weight:700;background:#059669;color:#fff;border-radius:8px;padding:1px 7px;margin-left:4px;letter-spacing:.03em;">${diffHrs}sa önce</span>`;
+      }
+    } else if (diffDays === 1) {
+      dateTag = `<span style="font-size:9px;font-weight:700;background:#0d9488;color:#fff;border-radius:8px;padding:1px 7px;margin-left:4px;">dün</span>`;
+    } else if (diffDays <= 7) {
+      dateTag = `<span style="font-size:9px;font-weight:700;background:rgba(37,99,235,.15);color:#2563eb;border-radius:8px;padding:1px 7px;margin-left:4px;">${diffDays}g önce</span>`;
+    }
+  }
     const hist     = d.history || [];
     const numBadge = d.num
       ? `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:20px;background:rgba(37,99,235,.12);color:var(--accent);border:1px solid rgba(37,99,235,.25);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:0 5px;flex-shrink:0;">#${d.num}</span>`
@@ -9226,7 +9836,7 @@ function gasRenderList() {
         <span class="device-barcode">${escHtml(d.barcode)}</span>
         <span class="device-model">${escHtml(modelName)}</span>
         <span class="device-location ${locClass}">${locLabel}</span>
-        <span class="device-date">${date}</span>
+        <span class="device-date">${date}${dateTag}</span>
         <button class="dr-move-btn" onclick="event.stopPropagation();gasOpenModal('${escAttr(d.barcode)}')" title="Taşı">📍</button>
         <button class="dr-del-btn" onclick="event.stopPropagation();gasDeleteDevice('${d.id}')" title="Sil">🗑</button>
         <span class="dr-hist-count">${hist.length > 0 ? '▾' + hist.length : ''}</span>
