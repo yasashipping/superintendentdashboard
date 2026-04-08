@@ -6471,6 +6471,14 @@ function _applySnapshot(cloudData) {
   if (merged.cob) {
     Object.keys(merged.cob).forEach(v => localStorage.setItem(cobKey(v), JSON.stringify(merged.cob[v])));
   }
+  // Sludge
+  if (merged.sludge) {
+    Object.keys(merged.sludge).forEach(v => localStorage.setItem(sludgeKey(v), JSON.stringify(merged.sludge[v])));
+  }
+  // Garbage
+  if (merged.garbage) {
+    Object.keys(merged.garbage).forEach(v => localStorage.setItem(garbageKey(v), JSON.stringify(merged.garbage[v])));
+  }
 
   // Todo Tombstones
   if (merged.todoTombstones) {
