@@ -3005,6 +3005,7 @@ body.dark .mn-critical-banner { background:#2d1515; border-color:#7f1d1d; }
     <span class="tab-label">📝 Meeting Notes</span>
     <span class="tab-badge" id="meetingCountBadge" style="display:none">0</span>
   </div>
+  <div class="tab" onclick="switchTab('imsbc', this)" data-short="⚓"><span class="tab-label">⚓ IMSBC</span></div>
   <div class="tab" onclick="switchTab('stock', this)" data-short="📦"><span class="tab-label">📦 Stock</span></div>
   <div class="tab" onclick="peRequestAccess(this)" data-short="💰"><span class="tab-label">💰 Port Expenses</span></div>
   <div class="tab tab-wip" onclick="switchTab('lsa-ffe', this)" data-short="🛟"><span class="tab-label">🛟 LSA &amp; FFE</span></div>
@@ -4013,6 +4014,7 @@ function switchTab(id, el) {
   if (id === 'orders') ordInit();
   if (id === 'inspections') inspInit();
   if (id === 'employment') empInit();
+  if (id === 'imsbc') imsbcInit();
   if (id === 'stock')  stockInit();
   if (id === 'port-expenses') peInit();
   // Re-sync sticky toolbar top after tab switch
@@ -11988,6 +11990,304 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 </script>
+
+<!-- ════════════════════════ IMSBC KARGO KODLARI ════════════════════════ -->
+<style>
+#page-imsbc { padding: 20px 24px 80px; max-width: 1400px; }
+
+.imsbc-toolbar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;
+}
+.imsbc-search-wrap {
+  position: relative; flex: 1; min-width: 200px; max-width: 400px;
+}
+.imsbc-search-wrap svg {
+  position: absolute; left: 9px; top: 50%; transform: translateY(-50%);
+  color: var(--text3); pointer-events: none;
+}
+#imsbcSearch {
+  width: 100%; padding: 8px 10px 8px 32px;
+  border: 1px solid var(--border2); border-radius: 8px;
+  background: var(--navy2); color: var(--text);
+  font-family: 'Barlow Condensed', sans-serif; font-size: 13px; outline: none;
+  box-sizing: border-box;
+}
+.imsbc-filter-sel {
+  padding: 8px 12px; border: 1px solid var(--border2); border-radius: 8px;
+  background: var(--navy2); color: var(--text);
+  font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600;
+  outline: none; cursor: pointer;
+}
+.imsbc-count {
+  font-family: 'Barlow Condensed', sans-serif; font-size: 12px;
+  color: var(--text3); margin-left: auto; white-space: nowrap;
+}
+
+/* Group badges */
+.imsbc-group {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 52px; padding: 2px 8px; border-radius: 5px;
+  font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 800;
+  letter-spacing: .06em; white-space: nowrap;
+}
+.imsbc-group-A   { background: rgba(220,38,38,.12);  color: #dc2626; border: 1px solid rgba(220,38,38,.35); }
+.imsbc-group-B   { background: rgba(245,158,11,.12); color: #b45309; border: 1px solid rgba(245,158,11,.35); }
+.imsbc-group-C   { background: rgba(34,197,94,.12);  color: #15803d; border: 1px solid rgba(34,197,94,.35); }
+.imsbc-group-AB  { background: rgba(220,38,38,.08);  color: #991b1b; border: 1px solid rgba(220,38,38,.25); }
+.imsbc-group-BC  { background: rgba(245,158,11,.08); color: #92400e; border: 1px solid rgba(245,158,11,.25); }
+
+/* Table */
+#imsbcWrap { overflow: auto; max-height: calc(100vh - 260px); border-radius: 10px; border: 1px solid var(--border); background: var(--navy2); }
+#imsbcTbl { width: 100%; border-collapse: collapse; font-family: 'Barlow Condensed', sans-serif; min-width: 700px; }
+#imsbcTbl thead { position: sticky; top: 0; z-index: 5; }
+#imsbcTbl thead tr { background: var(--navy3); border-bottom: 2px solid var(--border); }
+#imsbcTbl th {
+  padding: 9px 12px; text-align: left;
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .07em; color: var(--text3); white-space: nowrap;
+  background: var(--navy3);
+  user-select: none;
+}
+#imsbcTbl th:hover { color: var(--accent); }
+#imsbcTbl td { padding: 7px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+#imsbcTbl tr:last-child td { border-bottom: none; }
+#imsbcTbl tr:hover td { background: var(--navy3); }
+.imsbc-id   { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text3); text-align: right; width: 42px; }
+.imsbc-en   { font-size: 13px; font-weight: 700; color: var(--text); }
+.imsbc-tr   { font-size: 12px; color: var(--text2); }
+.imsbc-ref  { font-size: 11px; color: var(--text3); font-style: italic; }
+.imsbc-empty { padding: 60px 20px; text-align: center; }
+.imsbc-empty-icon { font-size: 38px; margin-bottom: 10px; }
+.imsbc-empty-text { font-size: 15px; color: var(--text3); }
+
+/* Group info card */
+.imsbc-legend {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.imsbc-legend-item {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'Barlow Condensed', sans-serif; font-size: 11px; color: var(--text2);
+}
+
+body.dark #imsbcSearch { background: #1e1e1e; }
+body.dark .imsbc-filter-sel { background: #1e1e1e; }
+</style>
+
+<div id="page-imsbc" class="page">
+<div style="max-width:1400px;padding:20px 24px 80px;">
+
+  <!-- Header -->
+  <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--text);letter-spacing:.02em;margin-bottom:4px;">
+    ⚓ IMSBC Kargo Kodları
+  </div>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:16px;">
+    International Maritime Solid Bulk Cargoes Code — 388 madde
+  </div>
+
+  <!-- Legend -->
+  <div class="imsbc-legend">
+    <div class="imsbc-legend-item">
+      <span class="imsbc-group imsbc-group-A">A</span>
+      <span>Sıvılaşma riski olan yükler</span>
+    </div>
+    <div class="imsbc-legend-item">
+      <span class="imsbc-group imsbc-group-B">B</span>
+      <span>Kimyasal tehlike içeren yükler</span>
+    </div>
+    <div class="imsbc-legend-item">
+      <span class="imsbc-group imsbc-group-C">C</span>
+      <span>A veya B grubuna girmeyen yükler</span>
+    </div>
+    <div class="imsbc-legend-item">
+      <span class="imsbc-group imsbc-group-AB">A&B</span>
+      <span>Her iki özelliği taşıyan yükler</span>
+    </div>
+    <div class="imsbc-legend-item">
+      <span class="imsbc-group imsbc-group-BC">B/C</span>
+      <span>Koşula bağlı sınıflandırma</span>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="imsbc-toolbar">
+    <div class="imsbc-search-wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input type="text" id="imsbcSearch"
+        placeholder="Kargo adı, Türkçe karşılığı, referans..."
+        oninput="imsbcRender()">
+    </div>
+    <select id="imsbcGroupSel" class="imsbc-filter-sel" onchange="imsbcRender()">
+      <option value="">Tüm Gruplar</option>
+      <option value="A">Grup A</option>
+      <option value="B">Grup B</option>
+      <option value="C">Grup C</option>
+      <option value="A and B">Grup A &amp; B</option>
+      <option value="B or C">Grup B/C</option>
+    </select>
+    <select id="imsbcSortSel" class="imsbc-filter-sel" onchange="imsbcRender()">
+      <option value="id">Sıra No</option>
+      <option value="en">İngilizce (A→Z)</option>
+      <option value="tr">Türkçe (A→Z)</option>
+      <option value="group">Grup</option>
+    </select>
+    <div class="imsbc-count" id="imsbcCount"></div>
+  </div>
+
+  <!-- Table — sticky header -->
+  <div id="imsbcWrap">
+    <table id="imsbcTbl">
+      <thead>
+        <tr>
+          <th class="imsbc-id" style="cursor:pointer;" onclick="imsbcSortClick('id')" title="Sırala">
+            # <span id="imsbcSortIcon_id">↕</span>
+          </th>
+          <th style="cursor:pointer;" onclick="imsbcSortClick('en')" title="Sırala">
+            İngilizce Adı (IMSBC) <span id="imsbcSortIcon_en"></span>
+          </th>
+          <th style="cursor:pointer;" onclick="imsbcSortClick('tr')" title="Sırala">
+            Türkçe Karşılığı <span id="imsbcSortIcon_tr"></span>
+          </th>
+          <th style="cursor:pointer;" onclick="imsbcSortClick('group')" title="Sırala">
+            Grup <span id="imsbcSortIcon_group"></span>
+          </th>
+          <th>Referans / Açıklama</th>
+        </tr>
+      </thead>
+      <tbody id="imsbcTbody">
+        <tr><td colspan="5" class="imsbc-empty">
+          <div class="imsbc-empty-icon">⚓</div>
+          <div class="imsbc-empty-text">Yükleniyor...</div>
+        </td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+</div>
+<!-- ═════════════════════ END IMSBC ═════════════════════ -->
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+//  IMSBC MODULE
+// ══════════════════════════════════════════════════════════════════
+var _IMSBC_DATA = [{"id":1,"en":"ALFALFA","tr":"Kaba Yonca","group":"C","ref":""},{"id":2,"en":"ALUMINA","tr":"Alüminyum Oksit","group":"C","ref":""},{"id":3,"en":"ALUMINA, CALCINED","tr":"Alüminyum Oksit, Kalsine","group":"C","ref":""},{"id":4,"en":"ALUMINA HYDRATE","tr":"Alüminyum Hidroksit","group":"A and B","ref":""},{"id":5,"en":"ALUMINA SILICA","tr":"Alüminyum Silika","group":"C","ref":""},{"id":6,"en":"ALUMINA SILICA, Pellets","tr":"Alüminyum Silika, Peletler","group":"C","ref":""},{"id":7,"en":"ALUMINIUM DROSS","tr":"Alüminyum Cürufu","group":"B","ref":"see ALUMINIUM SMELTING BY-PRODUCTS or ALUMINIUM REMELTING BY-PRODUCTS UN 3170"},{"id":8,"en":"ALUMINIUM FERROSILICON POWDER UN 1395","tr":"Alüminyum Ferrosilikon Tozu UN 1395","group":"B","ref":""},{"id":9,"en":"ALUMINIUM FLUORIDE","tr":"Alüminyum Florür","group":"A","ref":""},{"id":10,"en":"ALUMINIUM HYDROXIDE","tr":"Alüminyum Hidroksit","group":"A and B","ref":"see ALUMINA HYDRATE"},{"id":11,"en":"ALUMINIUM NITRATE UN 1438","tr":"Alüminyum Nitrat UN 1438","group":"B","ref":""},{"id":12,"en":"ALUMINIUM REMELTING BY-PRODUCTS UN 3170","tr":"Alüminyum Yeniden Eritme Yan Ürünler UN 3170","group":"B","ref":""},{"id":13,"en":"ALUMINIUM SALT SLAGS","tr":"Alüminyum Tuzu Cürufları","group":"B","ref":"see ALUMINIUM SMELTING BY-PRODUCTS or ALUMINIUM REMELTING BY-PRODUCTS UN 3170"},{"id":14,"en":"ALUMINIUM SILICON POWDER, UNCOATED UN 1398","tr":"Alüminyum Silisyum Tozu, Kaplanmamış UN 1398","group":"B","ref":""},{"id":15,"en":"ALUMINIUM SKIMMINGS","tr":"Alüminyum Sıyırmaları (Halmoz Alma)","group":"B","ref":"see ALUMINIUM SMELTING BY-PRODUCTS or ALUMINIUM REMELTING BY-PRODUCTS UN 3170"},{"id":16,"en":"ALUMINIUM SMELTING BY-PRODUCTS UN 3170","tr":"Alüminyum İzabe Yan Ürünler UN 3170","group":"B","ref":""},{"id":17,"en":"ALUMINIUM SMELTING/REMELTING BY- PRODUCTS, Processed","tr":"Alüminyum Eritme / İyileştirme / İzabe Yan Ürünler, İşlenmiş","group":"A and B","ref":""},{"id":18,"en":"AMMONIUM NITRATE UN 1942","tr":"Amonyum Nitrat UN 1942","group":"B","ref":""},{"id":19,"en":"AMMONIUM NITRATE BASED FERTILIZER UN 2067","tr":"Amonyum Nitrat Esaslı Gübre UN 2067","group":"B","ref":""},{"id":20,"en":"AMMONIUM NITRATE BASED FERTILIZER UN 2071","tr":"Amonyum Nitrat Esaslı Gübre UN 2071","group":"B","ref":""},{"id":21,"en":"AMMONIUM NITRATE BASED FERTILIZER (non-hazardous)","tr":"Amonyum Nitrat Esaslı Gübre (Tehlikesiz)","group":"C","ref":""},{"id":22,"en":"AMMONIUM SULPHATE","tr":"Amonyum Sülfat","group":"C","ref":""},{"id":23,"en":"AMORPHOUS SODIUM SILICATE LUMPS","tr":"Amorf (Biçimsiz) Sodyum Silikat Topakları","group":"B","ref":""},{"id":24,"en":"ANTIMONY ORE AND RESIDUE","tr":"Antimon Cevheri ve Kalıntısı","group":"C","ref":""},{"id":25,"en":"ANTIMONY ORE RESIDUE","tr":"Antimon Cevheri Kalıntısı","group":"C","ref":"see ANTIMONY ORE AND RESIDUE"},{"id":26,"en":"BAKERY MATERIALS","tr":"Fırınlama malzemeleri","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":27,"en":"BARIUM NITRATE UN 1446","tr":"Baryum Nitrat UN 1446","group":"B","ref":""},{"id":28,"en":"BARLEY MALT PELLETS","tr":"Arpa Maltı Peletleri","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":29,"en":"BARYTES","tr":"Barit","group":"C","ref":""},{"id":30,"en":"BAUXITE","tr":"Boksit","group":"C","ref":""},{"id":31,"en":"BAUXITE FINES","tr":"Boksit Madeni (Saf)","group":"A","ref":""},{"id":32,"en":"BEACH IRON","tr":"Pik Demir","group":"C","ref":"see IRON SMELTING BY- PRODUCTS"},{"id":33,"en":"BEET, Expelled","tr":"Pancar","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":34,"en":"BEET, Extracted","tr":"Pancar","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":35,"en":"BIOSLUDGE","tr":"Biyoslaç","group":"C","ref":""},{"id":36,"en":"BLENDE (ZINC SULPHIDE)","tr":"Karışım (Çinko Sülfit)","group":"A","ref":"see ZINC CONCENTRATE"},{"id":37,"en":"BORAX (PENTAHYDRATE CRUDE)","tr":"Boraks (Pentahidrat, Dökme)","group":"C","ref":""},{"id":38,"en":"BORAX, ANHYDROUS, Crude","tr":"Boraks, Susuz, Dökme","group":"C","ref":""},{"id":39,"en":"BORAX, ANHYDROUS, Refined","tr":"Boraks, Susuz, Rafine","group":"C","ref":""},{"id":40,"en":"BORIC ACID","tr":"Borik Asit","group":"B","ref":""},{"id":41,"en":"BOTTOM ASH","tr":"Dip Külü","group":"A and B","ref":"see CLINKER ASH"},{"id":42,"en":"BRAN PELLETS","tr":"Kepek Peletleri","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":43,"en":"BREWER'S GRAIN PELLETS","tr":"Bira Posası Peletleri","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":44,"en":"BROWN COAL BRIQUETTES","tr":"Kahverengi Kömür Briketleri","group":"B","ref":""},{"id":45,"en":"BRUCITE","tr":"Brusit","group":"C","ref":""},{"id":46,"en":"CALCINED CLAY","tr":"Kalsine Edilmiş Kil","group":"C","ref":"see ALUMINA, CALCINED"},{"id":47,"en":"CALCINED PYRITES","tr":"Kalsine Edilmiş Piritler","group":"A and B","ref":"see PYRITES, CALCINED"},{"id":48,"en":"CALCIUM FLUORIDE","tr":"Kalsiyum Florür","group":"A and B","ref":"see FLUORSPAR"},{"id":49,"en":"CALCIUM FLUORIDE, CALCIUM SULPHATE, CALCIUM CARBONATE MIXTURE","tr":"Kalsiyum Florür, Kalsiyum Sülfat, Kalsiyum Karbonat Karışımı","group":"A","ref":""},{"id":50,"en":"CALCIUM NITRATE UN 1454","tr":"Kalsiyum Nitrat UN 1454","group":"B","ref":""},{"id":51,"en":"CALCIUM NITRATE FERTILIZER","tr":"Kalsiyum Nitrat Gübresi","group":"C","ref":""},{"id":52,"en":"CALCIUM OXIDE","tr":"Kalsiyum Oksit","group":"B","ref":"see LIME (UNSLAKED)"},{"id":53,"en":"CANOLA PELLETS","tr":"Kanola Peletleri","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":54,"en":"CARBORUNDUM","tr":"Karborundum (Zımpara)","group":"C","ref":"Merchant name Sic. Silicon carbide"},{"id":55,"en":"CASTOR BEANS UN 2969","tr":"Hintyağı Tohumu UN 2969","group":"B","ref":""},{"id":56,"en":"CASTOR FLAKE UN 2969","tr":"Hintyağı Pulcuğu UN 2969","group":"B","ref":""},{"id":57,"en":"CASTOR MEAL UN 2969","tr":"Hintyağı Küspesi UN 2969","group":"B","ref":""},{"id":58,"en":"CASTOR POMACE UN 2969","tr":"Hintyağı Posası UN 2969","group":"B","ref":""},{"id":59,"en":"CEMENT","tr":"Çimento","group":"C","ref":""},{"id":60,"en":"CEMENT CLINKERS","tr":"Çimento Klinkerleri","group":"C","ref":""},{"id":61,"en":"CEMENT COPPER","tr":"Ham Bakır","group":"A","ref":"see Mineral Concentrates schedule"},{"id":62,"en":"CHALCOPYRITE","tr":"Kalkopirit","group":"A","ref":"see COPPER CONCENTRATE"},{"id":63,"en":"CHAMOTTE","tr":"Şamot","group":"C","ref":""},{"id":64,"en":"CHARCOAL","tr":"Odun Kömürü","group":"B","ref":""},{"id":65,"en":"CHEMICAL GYPSUM","tr":"Kimyasal Alçıtaşı","group":"A","ref":""},{"id":66,"en":"CHLORITE","tr":"Klorit","group":"C","ref":""},{"id":67,"en":"CHOPPED RUBBER AND PLASTIC INSULATION","tr":"Doğranmış Kauçuk ve Plastik Yalıtımı","group":"C","ref":""},{"id":68,"en":"CHILE SALTPETRE","tr":"Şili Güherçilesi (Sodyum Nitrat)","group":"B","ref":"see SODIUM NITRATE"},{"id":69,"en":"CHILEAN NATURAL NITRATE","tr":"Şili Doğal Nitrat","group":"B","ref":"see SODIUM NITRATE"},{"id":70,"en":"CHILEAN NATURAL POTASSIC NITRATE","tr":"Şili Doğal Potasyum İçeren Nitrat","group":"B","ref":"see SODIUM NITRATE AND POTASSIUM NITRATE MIXTURE"},{"id":71,"en":"CHROME ORE","tr":"Krom Cevheri","group":"C","ref":"see CHROMITE ORE"},{"id":72,"en":"CHROME PELLETS","tr":"Krom Peletler","group":"C","ref":""},{"id":73,"en":"CHROMITE ORE","tr":"Kromit Cevheri","group":"C","ref":""},{"id":74,"en":"CHROMIUM ORE","tr":"Kromiyum Cevheri","group":"C","ref":"see CHROMITE ORE"},{"id":75,"en":"CITRUS PULP PELLETS","tr":"Turunçgil Posası Peletleri","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":76,"en":"CLAY","tr":"Kil","group":"C","ref":""},{"id":77,"en":"CLINKER ASH","tr":"Klinker Külü","group":"A and B","ref":""},{"id":78,"en":"COAL","tr":"Kömür","group":"B (and A)","ref":""},{"id":79,"en":"COAL SLURRY","tr":"Kömür Bulamaç (Halde)","group":"A","ref":""},{"id":80,"en":"COAL TAR PITCH","tr":"Kömür Katranı","group":"B","ref":""},{"id":81,"en":"COARSE CHOPPED TYRES","tr":"İrikıyım Lastikler","group":"C","ref":""},{"id":82,"en":"COARSE IRON AND STEEL SLAG AND ITS MIXTURE","tr":"Kaba Demir ve Çelik Cüruf ve Karışımları","group":"C","ref":""},{"id":83,"en":"COCONUT","tr":"Hindistan Cevizi","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":84,"en":"COKE","tr":"Kok","group":"C","ref":""},{"id":85,"en":"COKE BREEZE","tr":"Kok Mıcırı, Tozu","group":"A","ref":""},{"id":86,"en":"COLEMANITE","tr":"Kolemanit","group":"C","ref":""},{"id":87,"en":"COPPER CONCENTRATE","tr":"Bakır Konsantresi","group":"A","ref":"see Mineral Concentrates schedule"},{"id":88,"en":"COPPER GRANULES","tr":"Bakır Granülleri","group":"C","ref":""},{"id":89,"en":"COPPER MATTE","tr":"Bakır Matı","group":"C","ref":""},{"id":90,"en":"COPPER NICKEL","tr":"Bakır Nikel","group":"A","ref":"see NICKEL CONCENTRATE"},{"id":91,"en":"COPPER ORE CONCENTRATE","tr":"Bakır Cevheri Konsantresi","group":"A","ref":"see COPPER CONCENTRATE"},{"id":92,"en":"COPPER PRECIPITATE","tr":"Bakır Çökeltisi","group":"A","ref":"see CEMENT COPPER"},{"id":93,"en":"COPPER SLAG","tr":"Bakır Cürufu","group":"A","ref":""},{"id":94,"en":"COPRA (dry) UN 1363","tr":"Kurutulmuş Hindistancevizi (Kuru) UN 1363","group":"B","ref":""},{"id":95,"en":"COPRA, Expelled","tr":"Kurutulmuş Hindistancevizi","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":96,"en":"COPRA, Extracted","tr":"Kurutulmuş Hindistancevizi","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":97,"en":"CORN GLUTEN","tr":"Mısır Glüteni","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":98,"en":"COTTON SEED","tr":"Pamuk Tohumu","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":99,"en":"CRUSHED CARBON ANODES","tr":"Ezilmiş Karbon Anotları","group":"C","ref":""},{"id":100,"en":"CRYOLITE","tr":"Kriyolit","group":"C","ref":""},{"id":101,"en":"DEADBURNED MAGNESITE","tr":"Tam Yanmış Manyezi","group":"C","ref":"see MAGNESIA (DEADBURNED)"},{"id":102,"en":"DIAMMONIUM PHOSPHATE","tr":"Diamonyum Fosfat","group":"C","ref":""},{"id":103,"en":"DIRECT REDUCED IRON (A) Briquettes, hot-moulded","tr":"Doğrudan İndirgenmiş Demir (A) Briketler, Sıcak Kalıplanmış","group":"B","ref":""},{"id":104,"en":"DIRECT REDUCED IRON (B) Lumps, pellets, cold-moulded briquettes","tr":"Doğrudan İndirgenmiş Demir (B) Topaklar, Peletler, Soğuk Kalıplanmış Briketler","group":"B","ref":""},{"id":105,"en":"DIRECT REDUCED IRON (C) By-product fines","tr":"Doğrudan İndirgenmiş Demir (C) Saf Yan Ürünler","group":"B","ref":""},{"id":106,"en":"DISTILLERS DRIED GRAINS WITH SOLUBLES","tr":"Çözünürle Kurutulmuş Tahıl Damıtıcıları","group":"C","ref":""},{"id":107,"en":"DOLOMITE","tr":"Dolomit","group":"C","ref":""},{"id":108,"en":"DOLOMITIC QUICKLIME","tr":"Dolomitik Kireç","group":"B","ref":"see LIME (UNSLAKED)"},{"id":109,"en":"D.R.I.","tr":"Doğrudan İndirgenmiş Demir","group":"B","ref":"see DIRECT REDUCED IRON (A) or (B) or (C)"},{"id":110,"en":"EXPELLERS","tr":"Tohum Kovucular","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":111,"en":"FELSPAR LUMP","tr":"Feldispat Topakları","group":"C","ref":""},{"id":112,"en":"FERROCHROME","tr":"Ferrokrom","group":"C","ref":""},{"id":113,"en":"FERROCHROME, Exothermic","tr":"Ferrokrom, Ekzotermik","group":"C","ref":""},{"id":114,"en":"FERROMANGANESE","tr":"Ferromanganez","group":"C","ref":""},{"id":115,"en":"FERROMANGANESE, Exothermic","tr":"Ferromanganez, Ekzotermik","group":"C","ref":"see FERROMANGANESE"},{"id":116,"en":"FERRONICKEL","tr":"Ferronikel","group":"C","ref":""},{"id":117,"en":"FERRONICKEL SLAG (granulated)","tr":"Ferronikel Cürufu (Granüle)","group":"C","ref":""},{"id":118,"en":"FERROPHOSPHORUS","tr":"Fosforlu Demir Alaşımı","group":"B","ref":""},{"id":119,"en":"FERROPHOSPHORUS BRIQUETTES","tr":"Fosforlu Demir Alaşımı, Briketler","group":"B","ref":"see FERROPHOSPHORUS"},{"id":120,"en":"FERROSILICON UN 1408","tr":"Ferrosilisyum UN 1408","group":"B","ref":""},{"id":121,"en":"FERROSILICON","tr":"Ferrosilisyum","group":"B","ref":""},{"id":122,"en":"FERROUS METAL BORINGS UN 2793","tr":"Demir Metal Hurdaları UN 2793","group":"B","ref":""},{"id":123,"en":"FERROUS METAL CUTTINGS UN 2793","tr":"Demir Metal Kırpıntıları UN 2793","group":"B","ref":""},{"id":124,"en":"FERROUS METAL SHAVINGS UN 2793","tr":"Demir Metal Talaşları UN 2793","group":"B","ref":""},{"id":125,"en":"FERROUS METAL TURNINGS UN 2793","tr":"Demir Metal Tornaları UN 2793","group":"B","ref":""},{"id":126,"en":"FERROUS SULPHATE HEPTAHYDRATE","tr":"Demir Sülfat Heptahidrat","group":"C","ref":""},{"id":127,"en":"FERTILIZERS WITHOUT NITRATES","tr":"Nitratsız Gübreler","group":"C","ref":""},{"id":128,"en":"FISH (IN BULK)","tr":"Balık (Dökme)","group":"A","ref":""},{"id":129,"en":"FISHMEAL, STABILIZED UN 2216","tr":"Balık Unu, Stabilize UN 2216","group":"B","ref":""},{"id":130,"en":"FISHSCRAP, STABILIZED UN 2216","tr":"Balık Kırıntısı, Stabilize UN 2216","group":"B","ref":""},{"id":131,"en":"FLAT IRON","tr":"Yassı Demir","group":"C","ref":"see IRON SMELTING BY- PRODUCTS"},{"id":132,"en":"FLINT FLAT GLASS CULLET","tr":"Yassı Kristal Cam Kırığı","group":"C","ref":"see GLASS CULLET"},{"id":133,"en":"FLUE DUST, CONTAINING LEAD AND ZINC","tr":"Kurşun ve Çinko İçeren Baca Tozu","group":"A and B","ref":""},{"id":134,"en":"FLUORSPAR","tr":"Florit","group":"A and B","ref":""},{"id":135,"en":"FLY ASH, Dry","tr":"Kurum, Kuru","group":"C","ref":""},{"id":136,"en":"FLY ASH, Wet","tr":"Kurum, Islak","group":"A","ref":""},{"id":137,"en":"FOAM GLASS GRAVEL","tr":"Cam Yünü Çakılı","group":"C","ref":""},{"id":138,"en":"FOUNDRY SAND","tr":"Dökümhane Kumu","group":"C","ref":"See SAND"},{"id":139,"en":"GALENA (lead sulphide)","tr":"Galenit (Sülfit içeren)","group":"A","ref":"see LEAD CONCENTRATE"},{"id":140,"en":"GARBAGE TANKAGE","tr":"Tankage (Kurutulmuş, öğütülmüş hayvan yemi) Çöp","group":"B","ref":"see TANKAGE"},{"id":141,"en":"GLASS CULLET","tr":"Kırık Cam Hurdası","group":"C","ref":""},{"id":142,"en":"GLUTEN PELLETS","tr":"Gluten Peletleri","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":143,"en":"GRAIN SCREENING PELLETS","tr":"Tahıl Tarama Peletleri","group":"C","ref":""},{"id":144,"en":"GRANULAR FERROUS SULPHATE","tr":"Granül Demir Sülfat","group":"C","ref":""},{"id":145,"en":"GRANULATED IRON","tr":"Granüle Demir","group":"C","ref":"see IRON SMELTING BY- PRODUCTS"},{"id":146,"en":"GRANULATED NICKEL MATTE (LESS THAN 2% MOISTURE CONTENT)","tr":"Granüle Nikel Mat (%2'den az nem içeriği)","group":"B","ref":""},{"id":147,"en":"GRANULATED SLAG","tr":"Granüle Cüruf","group":"C","ref":""},{"id":148,"en":"GRANULATED TYRE RUBBER","tr":"Granüle Lastik Kauçuğu","group":"C","ref":""},{"id":149,"en":"GROUND NUTS, Meal","tr":"Yerfıstığı","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":150,"en":"GYPSUM","tr":"Alçı","group":"C","ref":""},{"id":151,"en":"GYPSUM GRANULATED","tr":"Alçı (Granüle)","group":"C","ref":""},{"id":152,"en":"HOMINY CHOP","tr":"Kaba Mısır Unu","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":153,"en":"ILMENITE CLAY","tr":"İlmenit Kili","group":"A","ref":""},{"id":154,"en":"ILMENITE (rock)","tr":"İlmenit (Kaya)","group":"C","ref":""},{"id":155,"en":"ILMENITE SAND","tr":"İlmenit Kumu","group":"A","ref":""},{"id":156,"en":"ILMENITE (upgraded)","tr":"İlmenit (Yükseltilmiş)","group":"A","ref":""},{"id":157,"en":"IRON AND STEEL SLAG AND ITS MIXTURE","tr":"Demir ve Çelik Cüruf ve Karışımı","group":"A","ref":""},{"id":158,"en":"IRON CONCENTRATE","tr":"Demir Konsantresi","group":"A","ref":"see Mineral Concentrates schedule"},{"id":159,"en":"IRON CONCENTRATE (pellet feed)","tr":"Demir Konsantresi (Pelet besleme)","group":"A","ref":"see Mineral Concentrates schedule"},{"id":160,"en":"IRON CONCENTRATE (sinter feed)","tr":"Demir Konsantresi (Sinter besleme)","group":"A","ref":"see Mineral Concentrates schedule"},{"id":161,"en":"IRON DISULPHIDE","tr":"Demir Disülfür","group":"C","ref":"see PYRITE"},{"id":162,"en":"IRON ORE","tr":"Demir Cevheri","group":"C","ref":""},{"id":163,"en":"IRON ORE (concentrate, pellet feed, sinter feed)","tr":"Demir Cevheri (Konsantre, pelet besleme, sinter besleme)","group":"A","ref":"see IRON CONCENTRATE (pellet feed or sinter feed)"},{"id":164,"en":"IRON ORE FINES","tr":"Demir Cevheri Madeni","group":"A","ref":""},{"id":165,"en":"IRON ORE PELLETS","tr":"Demir Cevheri Peletleri","group":"C","ref":""},{"id":166,"en":"IRON OXIDE, SPENT UN 1376","tr":"Demir Oksit, UN 1376","group":"B","ref":""},{"id":167,"en":"IRON OXIDE TECHNICAL","tr":"Demir Oksit, Teknik","group":"A","ref":""},{"id":168,"en":"IRON PAN EDGES","tr":"Demir Tava Kenarlıkları","group":"C","ref":"see IRON SMELTING BY- PRODUCTS"},{"id":169,"en":"IRON SILICATE GRANULATED","tr":"Demir Silikat Granüle","group":"A","ref":"See COPPER SLAG"},{"id":170,"en":"IRON SINTER","tr":"Demir Sinter","group":"C","ref":""},{"id":171,"en":"IRON SKULLS","tr":"Demir Skul","group":"C","ref":"see IRON SMELTING BY- PRODUCTS"},{"id":172,"en":"IRON SMELTING BY-PRODUCTS","tr":"Demir Eritme Yan Ürünleri","group":"C","ref":""},{"id":173,"en":"IRON SPONGE, SPENT UN 1376","tr":"Demir Sünger, UN 1376","group":"B","ref":""},{"id":174,"en":"IRON SWARF","tr":"Demir Talaş","group":"B","ref":"see FERROUS METAL BORINGS, SHAVINGS, TURNINGS OR CUTTINGS UN 2793"},{"id":175,"en":"IRONSTONE","tr":"Demir Taşı","group":"C","ref":""},{"id":176,"en":"K1-K3 Bears","tr":"K1-K3 Ürünler","group":"C","ref":"see IRON SMELTING BY- PRODUCTS"},{"id":177,"en":"LABRADORITE","tr":"Labradorit (Bir feldispat türü)","group":"C","ref":""},{"id":178,"en":"LEAD AND ZINC CALCINES (mixed)","tr":"Kurşun ve Çinko Kalsinler (Karışık)","group":"A","ref":"see Mineral Concentrates schedule"},{"id":179,"en":"LEAD AND ZINC MIDDLINGS","tr":"Kurşun ve Çinko Orta Kalite Ürün","group":"A","ref":"see Mineral Concentrates schedule"},{"id":180,"en":"LEAD CONCENTRATE","tr":"Kurşun Konsantresi","group":"A","ref":"see Mineral Concentrates schedule"},{"id":181,"en":"LEAD NITRATE UN 1469","tr":"Kurşun Nitrat UN 1469","group":"B","ref":""},{"id":182,"en":"LEAD ORE","tr":"Kurşun Cevheri","group":"C","ref":""},{"id":183,"en":"LEAD ORE CONCENTRATE","tr":"Kurşun Cevheri Konsantresi","group":"A","ref":"see LEAD CONCENTRATE"},{"id":184,"en":"LEAD ORE RESIDUE","tr":"Kurşun Cevheri Kalıntısı","group":"A","ref":"see Mineral Concentrates schedule"},{"id":185,"en":"LEAD SILVER CONCENTRATE","tr":"Kurşun Gümüş Konsantresi","group":"A","ref":"see Mineral Concentrates schedule"},{"id":186,"en":"LEAD SILVER ORE","tr":"Kurşun Gümüş Cevheri","group":"A","ref":"see LEAD SILVER CONCENTRATE"},{"id":187,"en":"LEAD SULPHIDE","tr":"Kurşun Sülfit","group":"A","ref":"see LEAD CONCENTRATE"},{"id":188,"en":"LEAD SULPHIDE (galena)","tr":"Kurşun Sülfit (Galena)","group":"A","ref":"see LEAD CONCENTRATE"},{"id":189,"en":"LIGNITE","tr":"Linyit","group":"B","ref":"see BROWN COAL BRIQUETTES"},{"id":190,"en":"LIME (UNSLAKED)","tr":"Kireç (Sönmemiş)","group":"B","ref":""},{"id":191,"en":"LIMESTONE","tr":"Kireç Taşı","group":"C","ref":""},{"id":192,"en":"LINTED COTTON SEED","tr":"Ayıklanmış Pamuk Tohumu","group":"B","ref":""},{"id":193,"en":"LINSEED, Expelled","tr":"Keten Tohumu","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":194,"en":"LINSEED, Extracted","tr":"Keten Tohumu","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":195,"en":"LOGS","tr":"Tomruk, Kütük","group":"B","ref":"see Wood Products – General schedule"},{"id":196,"en":"MAGNESIA (DEADBURNED)","tr":"Manyezi (Tam yanmış)","group":"C","ref":""},{"id":197,"en":"MAGNESIA (UNSLAKED)","tr":"Manyezi (Sönmemiş)","group":"B","ref":""},{"id":198,"en":"MAGNESIA, Clinker","tr":"Manyezi, Klinker","group":"C","ref":"see MAGNESIA (DEADBURNED)"},{"id":199,"en":"MAGNESIA, Electro-fused","tr":"Manyezi, Elektro-kaynaşık","group":"C","ref":"see MAGNESIA (DEADBURNED)"},{"id":200,"en":"MAGNESIA Lightburned","tr":"Manyezi (Tam yanmamış)","group":"B","ref":"see MAGNESIA (UNSLAKED)"},{"id":201,"en":"MAGNESIA Calcined","tr":"Manyezi Kalsine","group":"B","ref":"see MAGNESIA (UNSLAKED)"},{"id":202,"en":"MAGNESIA Caustic calcined","tr":"Manyezi Kostik Kalsine","group":"B","ref":"see MAGNESIA (UNSLAKED)"},{"id":203,"en":"MAGNESIA Clinker","tr":"Manyezi Klinker","group":"C","ref":"see MAGNESIA (DEADBURNED)"},{"id":204,"en":"MAGNESITE, Natural","tr":"Manyezi, Doğal","group":"C","ref":""},{"id":205,"en":"MAGNESIUM CARBONATE","tr":"Magnezyum Karbonat","group":"C","ref":"see MAGNESITE, natural"},{"id":206,"en":"MAGNESIUM NITRATE UN 1474","tr":"Magnezyum Nitrat UN 1474","group":"B","ref":""},{"id":207,"en":"MAGNESIUM SULPHATE FERTILIZERS","tr":"Magnezyum Sülfat Gübreler","group":"C","ref":""},{"id":208,"en":"MAIZE, Expelled","tr":"Mısır","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":209,"en":"MAIZE, Extracted","tr":"Mısır","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":210,"en":"MANGANESE COMPONENT FERROALLOY SLAG","tr":"Manganez Bileşeni Ferro Alaşım Cüruf","group":"C","ref":""},{"id":211,"en":"MANGANESE CONCENTRATE","tr":"Manganez Konsantresi","group":"A","ref":"see Mineral Concentrates schedule"},{"id":212,"en":"MANGANESE ORE","tr":"Manganez Cevheri","group":"C","ref":""},{"id":213,"en":"MANGANESE ORE FINES","tr":"Manganez Cevheri Madeni","group":"A","ref":""},{"id":214,"en":"M.A.P.","tr":"Mono Ammonyum Fosfat","group":"C","ref":"see MONOAMMONIUM PHOSPHATE"},{"id":215,"en":"MARBLE CHIPS","tr":"Mermer Mıcırı","group":"C","ref":""},{"id":216,"en":"MATTE CONTAINING COPPER AND LEAD","tr":"Bakır ve Kurşun İçeren Kükürtlü Külçe","group":"B","ref":""},{"id":217,"en":"MEAL, Oily","tr":"Küspe, Yağlı","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":218,"en":"METAL SULPHIDE CONCENTRATES","tr":"Metal Sülfür Konsantreleri","group":"A and B","ref":""},{"id":219,"en":"METAL SULPHIDE CONCENTRATES, CORROSIVE UN 1759","tr":"Metal Sülfür Konsantreleri, Aşındırıcı UN 1759","group":"A and B","ref":""},{"id":220,"en":"METAL SULPHIDE CONCENTRATES, SELF-HEATING UN 3190","tr":"Metal Sülfür Konsantreleri, Kendi Kendine Yanan UN 3190","group":"A and B","ref":""},{"id":221,"en":"MILL FEED PELLETS","tr":"Değirmen Yem Peletleri","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":222,"en":"MILORGANITE","tr":"Milorganite","group":"C","ref":"see BIOSLUDGE"},{"id":223,"en":"MINERAL CONCENTRATES","tr":"Mineral Konsantreleri","group":"A","ref":""},{"id":224,"en":"MONOAMMONIUM PHOSPHATE","tr":"Monoamonyum Fosfat","group":"C","ref":""},{"id":225,"en":"MONOAMMONIUM  PHOSPHATE  (M.A.P.), MINERAL ENRICHED COATING","tr":"Monoammonyum Fosfat (M.A.P.), Mineral Zenginleştirilmiş Kaplama","group":"B","ref":""},{"id":226,"en":"MONOCALCIUMPHOSPHATE (MCP)","tr":"Monokalsiyumfosfat (MCP)","group":"A and B","ref":""},{"id":227,"en":"MURIATE OF POTASH","tr":"Tuz Ruhu ile Birleştirilmiş Potas (Kalya Taşı)","group":"C","ref":"see POTASSIUM CHLORIDE"},{"id":228,"en":"NEFELINE SYENITE (mineral)","tr":"Nefelin Syenit (Mineral)","group":"A","ref":"see Mineral Concentrates schedule"},{"id":229,"en":"NICKEL CONCENTRATE","tr":"Nikel Konsantresi","group":"A","ref":"see Mineral Concentrates schedule"},{"id":230,"en":"NICKEL ORE","tr":"Nikel Cevheri","group":"A","ref":""},{"id":231,"en":"NICKEL ORE CONCENTRATE","tr":"Nikel Cevheri Konsantresi","group":"A","ref":"see NICKEL CONCENTRATE"},{"id":232,"en":"NIGER SEED, Expelled","tr":"Nijer Tohumu","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":233,"en":"NIGER SEED, Extracted","tr":"Nijer Tohumu","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":234,"en":"OIL CAKE","tr":"Küspe","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":235,"en":"OLIVINE GRANULAR AND GRAVEL AGGREGATE PRODUCTS","tr":"Olivin Granüler ve Çakıl Ürünler","group":"C","ref":""},{"id":236,"en":"OLIVINE SAND","tr":"Olivin Kumu","group":"A","ref":""},{"id":237,"en":"PALM KERNEL, Expelled","tr":"Palm Çekirdeği","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":238,"en":"PALM KERNEL, Extracted","tr":"Palm Çekirdeği","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":239,"en":"PEANUTS, Expelled","tr":"Fıstık","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":240,"en":"PEANUTS, Extracted","tr":"Fıstık","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":241,"en":"PEANUTS (in shell)","tr":"Fıstık (Kabuklu)","group":"C","ref":""},{"id":242,"en":"PEAT MOSS","tr":"Turba Yosun","group":"A and B","ref":""},{"id":243,"en":"PEBBLES (sea)","tr":"Çakıl Taşları (Deniz)","group":"C","ref":""},{"id":244,"en":"PELLETS (concentrates)","tr":"Peletler (Konsantre)","group":"C","ref":""},{"id":245,"en":"PELLETS, cereal","tr":"Peletler, Hububat","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":246,"en":"PENCIL PITCH","tr":"Kurşun Kalem Zifti","group":"B","ref":"see PITCH PRILL"},{"id":247,"en":"PENTAHYDRATE CRUDE","tr":"Pentahidrat, Ham","group":"A","ref":"see Mineral Concentrates schedule"},{"id":248,"en":"PERLITE ROCK","tr":"Perlit (İncitaşı) Kayaç","group":"C","ref":""},{"id":249,"en":"PETROLEUM COKE (calcined)","tr":"Petrol Koku (Kalsine)","group":"B","ref":""},{"id":250,"en":"PETROLEUM COKE (uncalcined)","tr":"Petrol Koku (Kalsine edilmemiş)","group":"B","ref":""},{"id":251,"en":"PHOSPHATE ROCK (calcined)","tr":"Fosfatlı Kayaç (Kalsine)","group":"C","ref":""},{"id":252,"en":"PHOSPHATE ROCK (uncalcined)","tr":"Fosfatlı Kayaç (Kalsine edilmemiş)","group":"C","ref":""},{"id":253,"en":"PHOSPHATE (defluorinated)","tr":"Fosfat (Florlanmamış)","group":"C","ref":""},{"id":254,"en":"PIG IRON","tr":"Pik Demir","group":"C","ref":""},{"id":255,"en":"PIG IRON BY-PRODUCT","tr":"Pik Demir Yan Ürünü","group":"C","ref":"see IRON SMELTING BY- PRODUCTS"},{"id":256,"en":"PITCH PRILL","tr":"Maden Cevheri Zifti","group":"B","ref":""},{"id":257,"en":"PLATE IRON","tr":"Demir Sac Levha","group":"C","ref":"see IRON SMELTING BY- PRODUCTS"},{"id":258,"en":"POLLARD PELLETS","tr":"Budanmış Peletler","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":259,"en":"POOL IRON","tr":"Toplanmış Demir","group":"C","ref":"see IRON SMELTING BY- PRODUCTS"},{"id":260,"en":"POTASH","tr":"Potas","group":"C","ref":""},{"id":261,"en":"POTASH MURIATE","tr":"Potas Muriyat","group":"C","ref":"see POTASSIUM CHLORIDE"},{"id":262,"en":"POTASSIUM CHLORIDE","tr":"Potasyum Klorür","group":"C","ref":""},{"id":263,"en":"POTASSIUM FELSPAR SAND","tr":"Potasyum Feldispat Kum","group":"C","ref":"see SAND"},{"id":264,"en":"POTASSIUM NITRATE UN 1486","tr":"Potasyum Nitrat UN 1486","group":"B","ref":""},{"id":265,"en":"POTASSIUM NITRATE/SODIUM NITRATE (mixture)","tr":"Potasyum Nitrat / Sodyum Nitrat (Karışım)","group":"B","ref":"see SODIUM NITRATE AND POTASSIUM NITRATE MIXTURE UN 1499"},{"id":266,"en":"POTASSIUM SULPHATE","tr":"Potasyum Sülfat","group":"C","ref":""},{"id":267,"en":"PRILLED COAL TAR","tr":"Pelet Haline Getirilmiş Kömür Katranı","group":"B","ref":"see PITCH PRILL"},{"id":268,"en":"PULP WOOD","tr":"Odun (Ağaç) Hamuru","group":"B","ref":"see Wood Products – General schedule"},{"id":269,"en":"PUMICE","tr":"Ponza","group":"C","ref":""},{"id":270,"en":"PYRITE (containing copper and iron)","tr":"Pirit (Bakır ve Demir içeren)","group":"C","ref":""},{"id":271,"en":"PYRITES, CALCINED","tr":"Piritler (Kalsine)","group":"A and B","ref":""},{"id":272,"en":"PYRITES","tr":"Piritler","group":"A","ref":"see Mineral Concentrates schedule"},{"id":273,"en":"PYRITES (cupreous, fine, flotation or sulphur)","tr":"Piritler (Bakırımsı, İnce, Flotasyon veya Kükürt)","group":"A","ref":"see PYRITES"},{"id":274,"en":"PYRITIC ASH","tr":"Piritik Kül","group":"A and B","ref":"see PYRITES, CALCINED"},{"id":275,"en":"PYRITIC ASHES (iron)","tr":"Piritik Küller (Demir)","group":"A","ref":"see Mineral Concentrates schedule"},{"id":276,"en":"PYRITIC CINDERS","tr":"Piritik Cüruflar","group":"A","ref":"see Mineral Concentrates schedule"},{"id":277,"en":"PYROPHYLLITE","tr":"Pirofilit","group":"C","ref":""},{"id":278,"en":"QUARTZ","tr":"Kuvars","group":"C","ref":""},{"id":279,"en":"QUARTZ SAND","tr":"Kuvars Kumu","group":"C","ref":"see SAND"},{"id":280,"en":"QUARTZITE","tr":"Kuvarsit","group":"C","ref":""},{"id":281,"en":"QUICKLIME","tr":"Sönmemiş, Taş Kireç","group":"B","ref":"see LIME (UNSLAKED)"},{"id":282,"en":"RADIOACTIVE MATERIAL, LOW SPECIFIC ACTIVITY (LSA-I) UN 2912","tr":"Radyoaktif Malzeme, Düşük Özgün Aktivite (LSA-I) UN 2912","group":"B","ref":""},{"id":283,"en":"RADIOACTIVE MATERIAL, SURFACE CONTAMINATED OBJECTS (SCO-I) UN 2913","tr":"Radyoaktif Malzeme, Yüzeyi Bulaşmış Nesneler (SCO-I) UN 2913","group":"B","ref":""},{"id":284,"en":"RAPE SEED, Expelled","tr":"Kolza Tohumu","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":285,"en":"RAPE SEED, Extracted","tr":"Kolza Tohumu","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":286,"en":"RASORITE (ANHYDROUS)","tr":"Kernit (Susuz)","group":"C","ref":""},{"id":287,"en":"RICE BRAN","tr":"Pirinç Kepeği","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":288,"en":"RICE BROKEN","tr":"Pirinç, Kırık","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":289,"en":"ROUGH AMMONIA TANKAGE","tr":"Kaba Amonyak Tankage (Kurutulmuş, öğütülmüş hayvan yemi)","group":"B","ref":"see TANKAGE"},{"id":290,"en":"ROUNDWOOD","tr":"Tomruk","group":"B","ref":"see Wood Products – General schedule"},{"id":291,"en":"RUTILE SAND","tr":"Rutil Kum","group":"C","ref":""},{"id":292,"en":"SAFFLOWER SEED, Expelled","tr":"Aspir Tohumu","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":293,"en":"SAFFLOWER SEED, Extracted","tr":"Aspir Tohumu","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":294,"en":"SALT","tr":"Tuz","group":"C","ref":""},{"id":295,"en":"SALT CAKE","tr":"Ham Sodyum Sülfat","group":"C","ref":""},{"id":296,"en":"SALT ROCK","tr":"Kayatuzu","group":"C","ref":""},{"id":297,"en":"SALTPETRE","tr":"Güherçile (Sodyum Nitrat)","group":"B","ref":"see POTASSIUM NITRATE"},{"id":298,"en":"SAND","tr":"Kum","group":"C","ref":""},{"id":299,"en":"SAND, HEAVY MINERAL","tr":"Kum, Ağır Mineral","group":"A","ref":""},{"id":300,"en":"SAND, Ilmenite","tr":"Kum, İlmenit","group":"C","ref":"see ILMENITE SAND"},{"id":301,"en":"SAND, MINERAL CONCENTRATE, RADIOACTIVE  MATERIAL, LOW  SPECIFIC ACTIVITY (LSA-I) UN 2912","tr":"Kum, Mineral Karışımlı, Radyoaktif Malzeme, Düşük Özgün Aktivite (LSA-I) UN 2912","group":"A and B","ref":""},{"id":302,"en":"SAND, Zircon","tr":"Kum, Zirkon","group":"C","ref":"see ZIRCON SAND"},{"id":303,"en":"SAWDUST","tr":"Talaş","group":"B","ref":""},{"id":304,"en":"SAW LOGS","tr":"Kütük Talaşı","group":"B","ref":"see Wood Products – General schedule"},{"id":305,"en":"SCALE GENERATED FROM THE IRON AND STEEL MAKING PROCESS","tr":"Demir ve Çelik Yapım İşleminden Üretilen Tufal","group":"A","ref":""},{"id":306,"en":"SCRAP METAL","tr":"Hurda Metal","group":"C","ref":""},{"id":307,"en":"SEED CAKE, containing vegetable oil UN 1386 (a) mechanically expelled seeds, containing more than 10% of oil or more than 20% of oil and moisture combined","tr":"(a) %10'dan fazla yağ veya %20'den fazla yağ ve nem içeren tohumlardan mekanik olarak çıkartılmış bitkisel yağ içeren tohum küspesi UN 1386","group":"B","ref":""},{"id":308,"en":"SEED CAKE, containing vegetable oil UN 1386 (b) solvent extraction and expelled seeds, containing not more than 10% of oil and when the amount of moisture is higher than 10%, not more than 20% of oil and moisture combined","tr":"(b) %10'dan fazla yağ içeren, nem miktarı %10'dan fazla olan veya %20'den fazla kombine yağ ve nem içeren tohumlardan mekanik olarak veya çözücü çıkartma yöntemiyle çıkartılmış bitkisel yağ içeren tohum küspesi UN 1386","group":"B","ref":""},{"id":309,"en":"SEED CAKE UN 2217","tr":"Tohum Küspesi UN 2217","group":"B","ref":""},{"id":310,"en":"SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES","tr":"Tohum Küspeleri ve işlenmiş yağlı sebzelerin diğer kalıntıları","group":"B","ref":""},{"id":311,"en":"SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES","tr":"Tohum Küspeleri ve işlenmiş yağlı sebzelerin diğer kalıntıları","group":"C","ref":""},{"id":312,"en":"SEED EXPELLERS, Oily","tr":"Tohum Ekspeller, Yağlı","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":313,"en":"SEPARATION OF IRON","tr":"Demirin Sepere Edilmesi","group":"C","ref":"see IRON SMELTING BY- PRODUCTS"},{"id":314,"en":"SILICA SAND","tr":"Silika Kumu","group":"C","ref":"see SAND"},{"id":315,"en":"SILICOMANGANESE (carbo-thermic)","tr":"Silikomanganez (Karbonlu termik)","group":"C","ref":""},{"id":316,"en":"SILICOMANGANESE (low carbon)","tr":"Silikomanganez (Düşük karbon)","group":"B","ref":""},{"id":317,"en":"SILICON DROSS","tr":"Silisyum Artığı","group":"C","ref":"see SILICON SLAG"},{"id":318,"en":"SILICON SLAG","tr":"Silisyum Cürufu","group":"C","ref":""},{"id":319,"en":"SILVER LEAD CONCENTRATE","tr":"Gümüş Kurşun Konsantresi","group":"A","ref":"see Mineral Concentrates schedule"},{"id":320,"en":"SILVER LEAD ORE CONCENTRATE","tr":"Gümüş Kurşun Cevheri Konsantresi","group":"A","ref":"see SILVER LEAD CONCENTRATE"},{"id":321,"en":"SINTER","tr":"Sinter","group":"A","ref":"see ZINC AND LEAD CALCINES (mixed)"},{"id":322,"en":"SLAG, Granulated","tr":"Cüruf, Granüle","group":"C","ref":"see GRANULATED SLAG"},{"id":323,"en":"SLIG (iron ore)","tr":"Slig (Demir cevheri)","group":"A","ref":"see Mineral Concentrates schedule"},{"id":324,"en":"SODA ASH","tr":"Soda Külü","group":"C","ref":""},{"id":325,"en":"SODA FELDSPAR SAND","tr":"Soda Feldispat Kum","group":"C","ref":"see SAND"},{"id":326,"en":"SODIUM NITRATE UN 1498","tr":"Sodyum Nitrat UN 1498","group":"B","ref":""},{"id":327,"en":"SODIUM NITRATE AND POTASSIUM NITRATE MIXTURE UN 1499","tr":"Sodyum Nitrat ve Potasyum Nitrat Karışımı UN 1499","group":"B","ref":""},{"id":328,"en":"SOLIDIFIED FUELS RECYCLED FROM PAPER AND PLASTICS","tr":"Kağıt ve plastikten geri dönüştürülen katılaştırılmış yakıtlar","group":"B","ref":""},{"id":329,"en":"SOYABEAN, Expelled","tr":"Soya Fasülyesi","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":330,"en":"SOYABEAN, Extracted","tr":"Soya Fsülyesi","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":331,"en":"SPENT CATHODES","tr":"Zayıf Katotlar","group":"B","ref":"see ALUMINIUM SMELTING BY-PRODUCTS or ALUMINIUM REMELTING BY-PRODUCTS UN 3170"},{"id":332,"en":"SPENT POTLINER","tr":"Spent Potlining Alüminyum Eritme Atığı","group":"B","ref":"see ALUMINIUM SMELTING BY-PRODUCTS or ALUMINIUM REMELTING BY-PRODUCTS UN 3170"},{"id":333,"en":"SPODUMENE","tr":"Spodumen (Lityum alüminyum silikat)","group":"C","ref":"see SAND"},{"id":334,"en":"SPODUMENE (UPGRADED)","tr":"Spodumen (Yükseltilmiş)","group":"A","ref":""},{"id":335,"en":"STAINLESS STEEL GRINDING DUST","tr":"Paslanmaz Çelik Taşlama Tozu","group":"C","ref":""},{"id":336,"en":"STEEL BEARS","tr":"Çelik Yükler","group":"C","ref":"see IRON SMELTING BY- PRODUCTS"},{"id":337,"en":"STEEL SWARF","tr":"Çelik Metal Talaş","group":"B","ref":"see FERROUS METAL BORINGS, SHAVINGS, TURNINGS OR CUTTINGS UN 2793"},{"id":338,"en":"STIBNITE","tr":"Stibnit","group":"C","ref":"see ANTIMONY ORE AND RESIDUE"},{"id":339,"en":"STONE CHIPPINGS","tr":"Taş Kırıntıları","group":"C","ref":""},{"id":340,"en":"STRUSSA PELLETS","tr":"Strussa Peletleri","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":341,"en":"SUGAR","tr":"Şeker","group":"C","ref":""},{"id":342,"en":"SUGARCANE BIOMASS PELLETS","tr":"Şeker Kamışı Biyokütle Peletleri","group":"B","ref":""},{"id":343,"en":"SULPHATE OF POTASH AND MAGNESIUM","tr":"Potas ve Magnezyum Sülfat","group":"C","ref":""},{"id":344,"en":"SULPHIDE CONCENTRATES","tr":"Sülfür Konsantreleri","group":"B","ref":"see METAL SULPHIDE CONCENTRATES"},{"id":345,"en":"SULPHUR UN 1350 (crushed lump and coarse grained)","tr":"Kükürt UN 1350 (Ezilmiş topak ve iri taneli)","group":"B","ref":""},{"id":346,"en":"SULPHUR (formed, solid)","tr":"Kükürt (Biçimlendirilmiş, katı)","group":"C","ref":""},{"id":347,"en":"SUNFLOWER SEED, Expelled","tr":"Ayçiçeği Tohumu","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":348,"en":"SUNFLOWER SEED, Extracted","tr":"Ayçiçeği Tohumu","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":349,"en":"SUPERPHOSPHATE","tr":"Süperfosfat","group":"C","ref":""},{"id":350,"en":"SUPERPHOSPHATE (triple, granular)","tr":"Süperfosfat (Triple, Granüle)","group":"C","ref":""},{"id":351,"en":"SWARF","tr":"Metal Talaş","group":"B","ref":"see FERROUS METAL BORINGS, SHAVINGS, TURNINGS OR CUTTINGS UN 2793"},{"id":352,"en":"SYNTHETIC CALCIUM FLUORIDE","tr":"Sentetik Kalsiyum Florür","group":"A","ref":""},{"id":353,"en":"SYNTHETIC SILICON DIOXIDE","tr":"Sentetik Silikon Dioksit","group":"A","ref":""},{"id":354,"en":"TACONITE PELLETS","tr":"Kumlu Demir Cevheri Peletleri","group":"C","ref":""},{"id":355,"en":"TALC","tr":"Talk Pudrası","group":"C","ref":""},{"id":356,"en":"TANKAGE","tr":"Tankage Yem (Kurutulmuş, öğütülmüş hayvan yemi)","group":"B","ref":""},{"id":357,"en":"TANKAGE FERTILIZER","tr":"Tankage (Kurutulmuş, öğütülmüş hayvan yemi) Gübre","group":"B","ref":"see TANKAGE"},{"id":358,"en":"TAPIOCA","tr":"Tapyoka","group":"C","ref":""},{"id":359,"en":"TIMBER","tr":"Kereste","group":"B","ref":"see Wood Products – General schedule"},{"id":360,"en":"TITANOMAGNETITE SAND","tr":"Titanomagnetit Kumu","group":"A","ref":""},{"id":361,"en":"TOASTED MEALS","tr":"Kızarmış Kaba Un","group":"B or C","ref":"see SEED CAKE or SEED CAKES AND OTHER RESIDUES OF PROCESSED OILY VEGETABLES"},{"id":362,"en":"TRIPLE SUPERPHOSPHATE","tr":"Tripl Süperfosfat","group":"C","ref":"see SUPERPHOSPHATE (triple, granular)"},{"id":363,"en":"UREA","tr":"Üre","group":"C","ref":""},{"id":364,"en":"VANADIUM ORE","tr":"Vanadyum Cevheri","group":"B","ref":""},{"id":365,"en":"VERMICULITE","tr":"Vermikülit","group":"C","ref":""},{"id":366,"en":"WHITE QUARTZ","tr":"Beyaz Kuvars","group":"C","ref":""},{"id":367,"en":"WOODCHIPS","tr":"Odun Talaşı","group":"B","ref":""},{"id":368,"en":"WOOD PELLETS CONTAINING ADDITIVES AND/OR BINDERS","tr":"Katkı maddeleri ve/veya bağlayıcı içeren ahşap peletler","group":"B","ref":""},{"id":369,"en":"WOOD PELLETS NOT CONTAINING ANY ADDITIVES AND/OR BINDERS","tr":"Herhangi bir katkı maddesi ve/veya bağlayıcı içermeyen ahşap peletler","group":"B","ref":""},{"id":370,"en":"WOOD PRODUCTS-GENERAL","tr":"Ahşap Ürünler-Genel","group":"B","ref":""},{"id":371,"en":"WOOD TORREFIED","tr":"Kurutulmuş Ahşap","group":"B","ref":""},{"id":372,"en":"ZINC AND LEAD CALCINES (mixed)","tr":"Çinko ve Kurşun Kalsinler (Karışık)","group":"A","ref":"see Mineral Concentrates schedule"},{"id":373,"en":"ZINC AND LEAD MIDDLINGS","tr":"Çinko ve Kurşun Orta Kalite Ürün","group":"A","ref":"see Mineral Concentrates schedule"},{"id":374,"en":"ZINC ASHES UN 1435","tr":"Çinko Külleri UN 1435","group":"B","ref":""},{"id":375,"en":"ZINC CONCENTRATE","tr":"Çinko Konsantresi","group":"A","ref":"see Mineral Concentrates schedule"},{"id":376,"en":"ZINC, dross, residue or skimmings","tr":"Çinko, Cüruf, Tortu veya Köpük (Halmoz alma)","group":"B","ref":"see ZINC ASHES UN 1435"},{"id":377,"en":"ZINC ORE, burnt","tr":"Çinko Cevheri, Yanmış","group":"A","ref":"see ZINC CONCENTRATE"},{"id":378,"en":"ZINC ORE, calamine","tr":"Çinko Cevheri, Kalamin","group":"A","ref":"see ZINC CONCENTRATE"},{"id":379,"en":"ZINC ORE, concentrates","tr":"Çinko Cevheri, Konsantre","group":"A","ref":"see ZINC CONCENTRATE"},{"id":380,"en":"ZINC ORE, crude","tr":"Çinko Cevheri, Ham","group":"A","ref":"see ZINC CONCENTRATE"},{"id":381,"en":"ZINC OXIDE ENRICHED FLUE DUST","tr":"Çinko Oksit Zenginleştirilmiş Baca Tozu","group":"A and B","ref":""},{"id":382,"en":"ZINC SINTER","tr":"Çinko Sinteri","group":"A","ref":"see Mineral Concentrates schedule"},{"id":383,"en":"ZINC SLAG","tr":"Çinko Cürufu","group":"A","ref":""},{"id":384,"en":"ZINC SLUDGE","tr":"Çinko Slacı","group":"A","ref":"see Mineral Concentrates schedule"},{"id":385,"en":"ZINC SULPHIDE","tr":"Çinko Sülfit","group":"A","ref":"see ZINC CONCENTRATE"},{"id":386,"en":"ZINC SULPHIDE (blende)","tr":"Çinko Sülfit (Blende)","group":"A","ref":"see ZINC CONCENTRATE"},{"id":387,"en":"ZIRCON KYANITE CONCENTRATE","tr":"Zirkon Kyanit Konsantresi","group":"A","ref":""},{"id":388,"en":"ZIRCONSAND","tr":"Zirkon Kumu","group":"C","ref":""}];
+var _imsbcReady = false;
+var _imsbcSortKey = 'id';
+var _imsbcSortAsc = true;
+
+function imsbcInit() {
+  if (!_imsbcReady) {
+    _imsbcReady = true;
+    imsbcRender();
+  }
+}
+
+function imsbcSortClick(key) {
+  if (_imsbcSortKey === key) {
+    _imsbcSortAsc = !_imsbcSortAsc;
+  } else {
+    _imsbcSortKey = key;
+    _imsbcSortAsc = true;
+  }
+  // Dropdown'ı da senkronize et
+  var sel = document.getElementById('imsbcSortSel');
+  if (sel) sel.value = key;
+  imsbcRender();
+}
+
+function imsbcGroupClass(g) {
+  if (g === 'A')         return 'imsbc-group-A';
+  if (g === 'B')         return 'imsbc-group-B';
+  if (g === 'C')         return 'imsbc-group-C';
+  if (g === 'A and B' || g === 'B (and A)') return 'imsbc-group-AB';
+  if (g === 'B or C')    return 'imsbc-group-BC';
+  return 'imsbc-group-C';
+}
+
+function imsbcGroupLabel(g) {
+  if (g === 'A and B') return 'A &amp; B';
+  if (g === 'B (and A)') return 'A &amp; B';
+  if (g === 'B or C')  return 'B / C';
+  return escHtml(g);
+}
+
+function imsbcRender() {
+  var q   = ((document.getElementById('imsbcSearch') || {}).value || '').toLowerCase().trim();
+  var gf  = (document.getElementById('imsbcGroupSel') || {}).value || '';
+  // Dropdown'dan sort key oku (başlık tıklamasıyla da değişebilir)
+  var sortSel = document.getElementById('imsbcSortSel');
+  if (sortSel && sortSel.value !== _imsbcSortKey) {
+    _imsbcSortKey = sortSel.value;
+    _imsbcSortAsc = true;
+  }
+
+  var list = _IMSBC_DATA.filter(function(r) {
+    if (gf) {
+      if (gf === 'A' && r.group !== 'A' && r.group !== 'A and B' && r.group !== 'B (and A)') return false;
+      else if (gf !== 'A' && r.group !== gf) return false;
+    }
+    if (q) {
+      var hay = (r.en + ' ' + r.tr + ' ' + r.ref).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  // Sort
+  var sk = _imsbcSortKey, asc = _imsbcSortAsc;
+  list.sort(function(a, b) {
+    var av = sk === 'id' ? a.id : (a[sk] || '').toLowerCase();
+    var bv = sk === 'id' ? b.id : (b[sk] || '').toLowerCase();
+    if (av < bv) return asc ? -1 : 1;
+    if (av > bv) return asc ? 1 : -1;
+    return 0;
+  });
+
+  // Sort icon güncelle
+  ['id','en','tr','group'].forEach(function(k) {
+    var el = document.getElementById('imsbcSortIcon_' + k);
+    if (!el) return;
+    if (k !== sk) { el.textContent = ''; return; }
+    el.textContent = asc ? ' ↑' : ' ↓';
+    el.style.color = 'var(--accent)';
+  });
+
+  var countEl = document.getElementById('imsbcCount');
+  if (countEl) countEl.textContent = list.length + ' / ' + _IMSBC_DATA.length + ' madde';
+
+  var tbody = document.getElementById('imsbcTbody');
+  if (!tbody) return;
+
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="imsbc-empty">'
+      + '<div class="imsbc-empty-icon">🔍</div>'
+      + '<div class="imsbc-empty-text">Arama kriterlerine uyan yük bulunamadı.</div>'
+      + '</td></tr>';
+    return;
+  }
+
+  var hl = q ? function(txt) {
+    if (!q || !txt) return escHtml(txt || '');
+    var re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi');
+    return escHtml(txt).replace(re, '<mark style="background:#fef08a;color:#1e293b;border-radius:2px;padding:0 1px;">$1</mark>');
+  } : function(txt) { return escHtml(txt || ''); };
+
+  tbody.innerHTML = list.map(function(r) {
+    var gc  = imsbcGroupClass(r.group);
+    var gl  = imsbcGroupLabel(r.group);
+    return '<tr>'
+      + '<td class="imsbc-id" style="color:var(--text3);">' + r.id + '</td>'
+      + '<td class="imsbc-en">' + hl(r.en) + '</td>'
+      + '<td class="imsbc-tr">' + hl(r.tr) + '</td>'
+      + '<td><span class="imsbc-group ' + gc + '">' + gl + '</span></td>'
+      + '<td class="imsbc-ref">' + hl(r.ref) + '</td>'
+      + '</tr>';
+  }).join('');
+}
+</script>
+
 
 <!-- ════════════════════════ ORDER FOLLOW ════════════════════════ -->
 <div id="page-orders" class="page">
