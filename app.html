@@ -3705,7 +3705,7 @@ function saveAssignments(a, changedVessel) {
   a._ts._lastModified = now;
   if (changedVessel) a._ts[canonicalize(changedVessel)] = now;
   localStorage.setItem('yasa_assignments', JSON.stringify(a));
-  cloudSave().catch(e => console.warn('Cloud save (assignments) failed:', e));
+  cloudSave('core').catch(e => console.warn('Cloud save (assignments) failed:', e));
 }
 
 // ─── INIT ──────────────────────────────────────────────────────────────────
@@ -3828,7 +3828,7 @@ function saveCertsLocal(vessel, data) {
     if (data[f.key] && !data._ts[f.key]) data._ts[f.key] = now;
   });
   localStorage.setItem(certKey(vessel), JSON.stringify(data));
-  cloudSave().catch(e => console.warn('Cloud save (certs) failed:', e));
+  cloudSave('vessel', canonicalize(vessel)).catch(e => console.warn('Cloud save (certs) failed:', e));
 }
 
 // Parse YYYY-MM-DD (native date input) or DD/MM/YYYY (legacy) → timestamp (0 if empty/invalid)
@@ -3979,8 +3979,9 @@ function saveState() {
   }));
   localStorage.setItem('yasa_supt_notes', JSON.stringify(notes));
   localStorage.setItem('yasa_note_tombstones', JSON.stringify(noteTombstones));
-  // Push to SharePoint (async, non-blocking)
-  cloudSave().catch(e => console.warn('Cloud save failed:', e));
+  // Push to cloud — notes + core (async, non-blocking)
+  if (activeVessel) cloudSave('vessel', canonicalize(activeVessel.name)).catch(e => console.warn('Cloud save (notes) failed:', e));
+  cloudSave('core').catch(e => console.warn('Cloud save (core) failed:', e));
 }
 
 // ─── TABS ───────────────────────────────────────────────────────────────────
@@ -4144,7 +4145,7 @@ function parseOriginalFormat(data, fileName) {
   showReportBar();
   showToast(`${vessels.length} vessels loaded! (Original format)`, 'success');
   // Immediate cloud sync after Excel upload
-  cloudSave().catch(e => console.warn('Cloud save (excel) failed:', e));
+  cloudSave('core').catch(e => console.warn('Cloud save (excel) failed:', e));
 }
 
 function extractVesselBlock(data, nameRow, nameCol) {
@@ -5072,26 +5073,26 @@ function cargoLoad(vessel) { try { return JSON.parse(localStorage.getItem(cargoK
 function cargoSave(vessel, arr) {
   arr = arr.slice(0, 5); // max 5 kayıt
   localStorage.setItem(cargoKey(vessel), JSON.stringify(arr));
-  cloudSave().catch(function(){});
+  cloudSave('vessel', canonicalize(vessel)).catch(function(){});
 }
 function sludgeKey(vessel)    { return 'yasa_sludge_' + canonicalize(vessel); }
 function loadSludge(vessel)   { try { return JSON.parse(localStorage.getItem(sludgeKey(vessel)) || 'null') || {}; } catch(e) { return {}; } }
 function saveSludgeLocal(vessel, data) {
   data._ts = new Date().toISOString();
   localStorage.setItem(sludgeKey(vessel), JSON.stringify(data));
-  cloudSave().catch(e => console.warn('Cloud save (sludge) failed:', e));
+  cloudSave('vessel', canonicalize(vessel)).catch(e => console.warn('Cloud save (sludge) failed:', e));
 }
 function garbageKey(vessel)    { return 'yasa_garbage_' + canonicalize(vessel); }
 function loadGarbage(vessel)   { try { return JSON.parse(localStorage.getItem(garbageKey(vessel)) || 'null') || {}; } catch(e) { return {}; } }
 function saveGarbageLocal(vessel, data) {
   data._ts = new Date().toISOString();
   localStorage.setItem(garbageKey(vessel), JSON.stringify(data));
-  cloudSave().catch(e => console.warn('Cloud save (garbage) failed:', e));
+  cloudSave('vessel', canonicalize(vessel)).catch(e => console.warn('Cloud save (garbage) failed:', e));
 }
 function saveCobLocal(vessel, amount) {
   const data = { amount: String(amount || ''), _ts: new Date().toISOString() };
   localStorage.setItem(cobKey(vessel), JSON.stringify(data));
-  cloudSave().catch(e => console.warn('Cloud save (cob) failed:', e));
+  cloudSave('vessel', canonicalize(vessel)).catch(e => console.warn('Cloud save (cob) failed:', e));
 }
 window.saveSludgeFromModal = function(vesselName) {
   const existing = loadSludge(vesselName);
@@ -5337,7 +5338,7 @@ function nlCommit(cat) {
   }
   // Persist
   saveState();
-  cloudSave().catch(function(){});
+  if (activeVessel) cloudSave('vessel', canonicalize(activeVessel.name)).catch(function(){});
   // Yeni blank satıra focus
   setTimeout(function() {
     var newTa = document.getElementById('modal_note_' + cat + '_new');
@@ -5970,7 +5971,9 @@ function lsaKey(vessel)    { return 'lsa_v2_' + vessel; }
 function lsaLoad(vessel)   { try { return JSON.parse(localStorage.getItem(lsaKey(vessel))||'null'); } catch(e) { return null; } }
 function lsaSave(vessel,d) {
   localStorage.setItem(lsaKey(vessel), JSON.stringify(d));
-  cloudSave().catch(e => console.warn('Cloud save (lsa) failed:', e));
+  // LSA save — need vessel context; use lsaVesselSel if available
+  var _lsaVn = document.getElementById('lsaVesselSel') ? canonicalize(document.getElementById('lsaVesselSel').value||'') : null;
+  if (_lsaVn) cloudSave('vessel', _lsaVn).catch(e => console.warn('Cloud save (lsa) failed:', e));
 }
 
 // ── Date helpers ─────────────────────────────────────────────
@@ -6156,17 +6159,17 @@ window.lsaHandleFile = function(e) {
 // ══════════════════════════════════════════════════════════════════
 //  CLOUD SYNC — Supabase (PostgreSQL + REST API)
 //  ▸ Tek tablo: dashboard_data (id TEXT PK, payload JSONB)
-//  ▸ RLS: anonim okuma/yazma aktif (iç ağ kullanımı)
-//  ▸ Kural: Cloud her zaman truth kaynağı.
-//    Load → cloud çek, local ile merge et, geri yaz.
-//    Save → debounce 800ms, sonra upsert.
-//    Poll → 30s'de bir değişiklik kontrolü.
+//  ▸ Modüler mimari: her modül kendi satırına yazar
+//    yasa_core, yasa_notes, yasa_certs, yasa_lsa, yasa_vessel_data
+//    yasa_meetings, yasa_gas, yasa_expenses, yasa_orders
+//    yasa_emission, yasa_inspections, yasa_employment
+//  ▸ Her modül bağımsız → IO ~12x azalır
 // ══════════════════════════════════════════════════════════════════
 
 // ── ❗ BURAYA KENDİ SUPABASE BİLGİLERİNİ GİR ─────────────────
 var SUPABASE_URL      = 'https://vzfxqqtcsaveilrcixyc.supabase.co'; // Project URL
 var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6ZnhxcXRjc2F2ZWlscmNpeHljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NTM2NjMsImV4cCI6MjA4OTIyOTY2M30.hTF_O44A0a2YZ2WK8s5tAxdQnktl1XTG8g8LD7oDZu0'; // anon/public key
-var SUPABASE_ROW_ID   = 'yasa_main';                              // Tablodaki tek satırın ID'si
+// Modüler mimari — her modül kendi ROW ID'sini kullanır (yasa_core, yasa_notes, vb.)
 // ─────────────────────────────────────────────────────────────
 
 var _cloudReady        = false;
@@ -6174,8 +6177,28 @@ var _currentUser       = null;
 var _saveTimer         = null;
 var _isSaving          = false;
 var _pendingSave       = false;
-var _lastCloudStr      = null;
 var _lastSnapshotBytes = 0;
+
+// ── Per-vessel + global tracking ─────────────────────────────
+// Her gemi kendi satırına yazılır → eş zamanlı yazma çakışmaz
+var GLOBAL_MODULES = ['core','meetings','gas','expenses','orders'];
+var GLOBAL_ROW = {
+  core:     'yasa_global_core',
+  meetings: 'yasa_global_meetings',
+  gas:      'yasa_global_gas',
+  expenses: 'yasa_global_expenses',
+  orders:   'yasa_global_orders'
+};
+
+function vesselRowId(vn) { return 'yasa_v_' + vn; } // vn = canonicalize(vesselName)
+function vnToName(vn) {
+  return VESSELS_ALL.find(function(v){ return canonicalize(v) === vn; }) || vn;
+}
+
+var _lastRowStr   = {}; // rowId → last written JSON string
+var _dirtyVessels = new Set(); // vessel vn keys pending save
+var _dirtyGlobals = new Set(); // global module names pending save
+var _lastWriteTs  = {}; // rowId → epoch ms
 
 var SUPABASE_MAX_BYTES = 500 * 1024 * 1024; // 500 MB
 
@@ -6227,8 +6250,8 @@ function _sbHeaders(extra) {
 }
 
 // ── Fetch cloud data ──────────────────────────────────────────
-async function _fetchCloud() {
-  var url = SUPABASE_URL + '/rest/v1/dashboard_data?id=eq.' + encodeURIComponent(SUPABASE_ROW_ID) + '&select=payload';
+async function _fetchCloud(rowId) {
+  var url = SUPABASE_URL + '/rest/v1/dashboard_data?id=eq.' + encodeURIComponent(rowId) + '&select=payload';
   var res = await fetch(url, { headers: _sbHeaders() });
   if (!res.ok) throw new Error('Supabase fetch failed: ' + res.status);
   var rows = await res.json();
@@ -6239,13 +6262,13 @@ async function _fetchCloud() {
 }
 
 // ── Write (upsert) data to Supabase ──────────────────────────
-async function _writeCloud(data) {
+async function _writeCloud(rowId, data) {
   var url = SUPABASE_URL + '/rest/v1/dashboard_data';
   var res = await fetch(url, {
     method: 'POST',
     headers: _sbHeaders({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
     body: JSON.stringify({
-      id:         SUPABASE_ROW_ID,
+      id:         rowId,
       payload:    data,
       updated_at: new Date().toISOString(),
       updated_by: _currentUser || 'unknown'
@@ -6265,80 +6288,283 @@ async function _writeCloud(data) {
 function cloudSave() {
   if (!_cloudReady) return Promise.resolve();
   if (_saveTimer) clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(function() { _saveTimer = null; _doCloudSave(); }, 500);
+  _saveTimer = setTimeout(function() { _saveTimer = null; _doCloudSave(); }, 4000); // 4s debounce — reduce Disk IO
+  return Promise.resolve();
+}
+
+// ── Per-vessel build ───────────────────────────────────────────────────────
+function _buildVesselData(vn) {
+  var vesselName = vnToName(vn);
+  var empKey     = (vesselName||'').trim().toUpperCase();
+  return {
+    notes:           notes[vn] || null,
+    certs:           (function(){ var r=localStorage.getItem(certKey(vesselName)); return r?JSON.parse(r):null; })(),
+    sludge:          (function(){ var r=localStorage.getItem(sludgeKey(vesselName)); return r?JSON.parse(r):null; })(),
+    garbage:         (function(){ var r=localStorage.getItem(garbageKey(vesselName)); return r?JSON.parse(r):null; })(),
+    cob:             (function(){ var r=localStorage.getItem(cobKey(vesselName)); return r?JSON.parse(r):null; })(),
+    cargo:           cargoLoad(vesselName),
+    photo:           (function(){ var r=localStorage.getItem(vesselPhotoKey(vesselName)); if(!r)return null; try{return r.startsWith('{')?JSON.parse(r):{url:r,ts:'2000-01-01T00:00:00Z'};}catch(e){return null;} })(),
+    todos:           (function(){ var r=localStorage.getItem('yasa_todos_'+vn); return r?JSON.parse(r):null; })(),
+    todoTombstones:  todoTombLoad(vn),
+    antbi:           antbiLoad(vn),
+    antbiLists:      (function(){ var r=localStorage.getItem(antbiListsKey(vn)); return r?JSON.parse(r):null; })(),
+    antbiTombstones: antbiTombstoneLoad(vn),
+    lsa:             (function(){ var r=localStorage.getItem('lsa_v2_'+vesselName); return r?JSON.parse(r):null; })(),
+    inspections:     (function(){
+      var ITYPES=['company','psc','class','flag','rightship'], vdata={}, hasData=false;
+      var mig=!!localStorage.getItem(inspMigKey(vn));
+      ITYPES.forEach(function(type){
+        var arr=inspLoad(type,vn); if(arr.length){vdata[type]=arr;hasData=true;}
+        var tomb=inspTombLoad(type,vn); if(Object.keys(tomb).length){vdata['_tomb_'+type]=tomb;hasData=true;}
+      });
+      if(mig)vdata._mig=1;
+      return (hasData||mig)?vdata:null;
+    })(),
+    emission:        (function(){
+      var em={}, EM_SYNC_YEARS=[2025,2026,2027,2028,2029,2030];
+      EM_SYNC_YEARS.forEach(function(y){
+        var dr=null,vr=null;
+        try{dr=JSON.parse(localStorage.getItem(emKey(vesselName,y))||'null');}catch(e){}
+        try{vr=JSON.parse(localStorage.getItem(voyKey(vesselName,y))||'null');}catch(e){}
+        if(dr||vr)em[vn+'_'+y]={data:dr,voyages:vr};
+      });
+      return Object.keys(em).length?em:null;
+    })(),
+    employment:      (_empData&&_empData[empKey]&&_empData[empKey].length)?_empData[empKey]:null
+  };
+}
+
+// ── Per-vessel apply ─────────────────────────────────────────────────────────
+function _applyVesselData(vn, data) {
+  if (!data) return;
+  var vesselName = vnToName(vn);
+  var empKey     = (vesselName||'').trim().toUpperCase();
+  if (data.notes)           notes[vn] = migrateNote(data.notes);
+  if (data.certs)           localStorage.setItem(certKey(vesselName), JSON.stringify(data.certs));
+  if (data.sludge)          localStorage.setItem(sludgeKey(vesselName), JSON.stringify(data.sludge));
+  if (data.garbage)         localStorage.setItem(garbageKey(vesselName), JSON.stringify(data.garbage));
+  if (data.cob)             localStorage.setItem(cobKey(vesselName), JSON.stringify(data.cob));
+  if (data.cargo)           localStorage.setItem(cargoKey(vn), JSON.stringify(data.cargo));
+  if (data.photo&&data.photo.url) localStorage.setItem('yasa_photo_url_'+vn, JSON.stringify(data.photo));
+  if (data.todoTombstones&&Object.keys(data.todoTombstones).length)
+                            localStorage.setItem(todoTombKey(vn), JSON.stringify(data.todoTombstones));
+  if (data.todos)           localStorage.setItem('yasa_todos_'+vn, JSON.stringify(data.todos));
+  if (data.antbiTombstones&&Object.keys(data.antbiTombstones).length)
+                            localStorage.setItem(antbiTombstoneKey(vn), JSON.stringify(data.antbiTombstones));
+  if (data.antbi)           localStorage.setItem(antbiKey(vn), JSON.stringify(data.antbi));
+  if (data.antbiLists)      localStorage.setItem(antbiListsKey(vn), JSON.stringify(data.antbiLists));
+  if (data.lsa)             localStorage.setItem('lsa_v2_'+vesselName, JSON.stringify(data.lsa));
+  if (data.inspections) {
+    var ITYPES=['company','psc','class','flag','rightship'];
+    ITYPES.forEach(function(type){
+      if(data.inspections['_tomb_'+type]) localStorage.setItem(inspTombKey(type,vn),JSON.stringify(data.inspections['_tomb_'+type]));
+      if(data.inspections[type]) localStorage.setItem(inspKey(type,vn),JSON.stringify(data.inspections[type]));
+    });
+    if(data.inspections._mig) localStorage.setItem(inspMigKey(vn),'1');
+  }
+  if (data.emission) {
+    Object.keys(data.emission).forEach(function(key){
+      var em=data.emission[key]; if(!em)return;
+      if(em.data)    localStorage.setItem('em_data_'+key,JSON.stringify(em.data));
+      if(em.voyages) localStorage.setItem('em_voy_'+key,JSON.stringify(em.voyages));
+    });
+  }
+  if (data.employment) {
+    if(!_empData) _empData={};
+    _empData[empKey]=data.employment;
+    try{localStorage.setItem('yasa_employment_'+empKey,JSON.stringify(data.employment));}catch(e){}
+  }
+}
+
+// ── Global build / apply ─────────────────────────────────────────────────────
+function _buildGlobalData(mod) {
+  switch(mod) {
+    case 'core':
+      return {
+        vessels:       allVessels, reportFileName:reportFileName, reportDate:reportDate,
+        assignments:   JSON.parse(localStorage.getItem('yasa_assignments')||'{}'),
+        noteTombstones:noteTombstones
+      };
+    case 'meetings':
+      return { meetings:JSON.parse(localStorage.getItem('yasa_meetings')||'[]'), meetingTombstones:meetingTombstones };
+    case 'gas':
+      return {
+        gas:JSON.parse(localStorage.getItem('yasa_gas_detectors')||'null'),
+        gasOverrides:{ total:localStorage.getItem('yasa_gas_total_override'), egemar:localStorage.getItem('yasa_gas_egemar_override') }
+      };
+    case 'expenses':
+      return { records:(typeof peRecords==='function'?peRecords():[]), opts:(typeof peOpts==='function'?peOpts():{}), seeded:!!_peLs('yasa_pe_v1') };
+    case 'orders':
+      return (typeof ordLoad==='function'?ordLoad():[]);
+    default: return null;
+  }
+}
+
+function _applyGlobalData(mod, data) {
+  if (!data) return;
+  switch(mod) {
+    case 'core':
+      if(data.vessels&&data.vessels.length>0){
+        allVessels=data.vessels; reportFileName=data.reportFileName||''; reportDate=data.reportDate||'';
+        localStorage.setItem('yasa_dashboard_state',JSON.stringify({vessels:allVessels,reportFileName:reportFileName,reportDate:reportDate}));
+      }
+      if(data.assignments) localStorage.setItem('yasa_assignments',JSON.stringify(data.assignments));
+      if(data.noteTombstones){noteTombstones=data.noteTombstones;localStorage.setItem('yasa_note_tombstones',JSON.stringify(noteTombstones));}
+      break;
+    case 'meetings':
+      if(data.meetingTombstones){meetingTombstones=data.meetingTombstones;localStorage.setItem('yasa_meeting_tombstones',JSON.stringify(meetingTombstones));}
+      if(data.meetings) localStorage.setItem('yasa_meetings',JSON.stringify(data.meetings));
+      break;
+    case 'gas':
+      if(data.gas) localStorage.setItem('yasa_gas_detectors',JSON.stringify(data.gas));
+      if(data.gasOverrides){
+        if(data.gasOverrides.total) localStorage.setItem('yasa_gas_total_override',data.gasOverrides.total); else localStorage.removeItem('yasa_gas_total_override');
+        if(data.gasOverrides.egemar) localStorage.setItem('yasa_gas_egemar_override',data.gasOverrides.egemar); else localStorage.removeItem('yasa_gas_egemar_override');
+      }
+      break;
+    case 'expenses':
+      if(data.records) _peSt('yasa_pe',data.records);
+      if(data.opts)    _peSt('yasa_pe_opts',data.opts);
+      if(data.seeded)  _peSt('yasa_pe_v1',1);
+      break;
+    case 'orders':
+      if(Array.isArray(data)) localStorage.setItem('yasa_orders',JSON.stringify(data));
+      break;
+  }
+}
+
+// ── Merge helpers ────────────────────────────────────────────────────────────
+function _mergeVesselData(vn, cloud, local) {
+  if (!cloud) return local;
+  if (!local) return cloud;
+  // last-write-wins per-field (her alanda _ts varsa onu kullan)
+  var merged = Object.assign({}, cloud);
+  Object.keys(local).forEach(function(key) {
+    var lv = local[key], cv = cloud[key];
+    if (!lv) return; // local null → cloud'u koru
+    if (!cv) { merged[key] = lv; return; }
+    // _ts alanı olan objeler için timestamp karşılaştır
+    if (lv && typeof lv === 'object' && lv._ts && cv._ts) {
+      merged[key] = lv._ts > cv._ts ? lv : cv;
+    } else {
+      merged[key] = lv; // local üstün (son yazan)
+    }
+  });
+  return merged;
+}
+
+function _mergeGlobalData(mod, cloud, local) {
+  if (!cloud) return local;
+  if (!local) return cloud;
+  if (mod === 'core') return Object.assign({}, cloud, local);
+  if (mod === 'meetings') {
+    var mt = Object.assign({}, cloud.meetingTombstones||{}, local.meetingTombstones||{});
+    var ms = (local.meetings||[]).concat((cloud.meetings||[]).filter(function(cm){
+      return !mt[cm.id] && !(local.meetings||[]).find(function(lm){return lm.id===cm.id;});
+    }));
+    return { meetings:ms, meetingTombstones:mt };
+  }
+  return Object.assign({}, cloud, local);
+}
+
+// ── cloudSave(type, key) ────────────────────────────────────────────────────
+// type: 'vessel' + key=vn  |  'core'|'meetings'|'gas'|'expenses'|'orders'
+function cloudSave(type, key) {
+  if (!_cloudReady) return Promise.resolve();
+  if (type === 'vessel' && key) {
+    _dirtyVessels.add(key);
+  } else if (type && GLOBAL_ROW[type]) {
+    _dirtyGlobals.add(type);
+  } else {
+    // Tümünü dirty say (saveAllNotes, manuel sync vb.)
+    VESSELS_ALL.forEach(function(v){ _dirtyVessels.add(canonicalize(v)); });
+    GLOBAL_MODULES.forEach(function(m){ _dirtyGlobals.add(m); });
+  }
+  if (_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(function() { _saveTimer = null; _doCloudSave(); }, 4000);
   return Promise.resolve();
 }
 
 async function _doCloudSave() {
-  if (_isSaving) {
-    // Kayıt bitince tekrar dene — son değer kaybolmasın
-    _pendingSave = true;
-    return;
-  }
+  if (_isSaving) { _pendingSave = true; return; }
   _isSaving = true;
   _setStatus('🔄');
+  var savedCount = 0;
+  var totalBytes = 0;
+
+  // Snapshot: hangi vessel/global'lar dirty
+  var vessels = Array.from(_dirtyVessels); _dirtyVessels.clear();
+  var globals  = Array.from(_dirtyGlobals); _dirtyGlobals.clear();
+
   try {
-    // ── FETCH → MERGE → WRITE ─────────────────────────────────────
-    // Her kayıt öncesi cloud'dan güncel veriyi çek ve merge et.
-    // Bu sayede iki kullanıcı aynı anda değişiklik yapsa bile
-    // birbirlerinin verisini silmez.
-    var cloudData = await _fetchCloud();
-    var local = _buildSnapshot();
-    var toWrite;
-    if (cloudData) {
-      toWrite = _mergeSnapshots(cloudData, local);
-      // Merge'i local'e de uygula (diğer kullanıcının değişiklikleri gelsin)
-      _applySnapshotSilent(toWrite);
-    } else {
-      toWrite = local;
+    // ── Per-vessel saves ─────────────────────────────────────────────
+    for (var i = 0; i < vessels.length; i++) {
+      var vn    = vessels[i];
+      var rowId = vesselRowId(vn);
+      var local = _buildVesselData(vn);
+      var newStr = _deepSortStringify(local);
+      if (newStr === _lastRowStr[rowId]) continue; // değişmemiş
+      var skipFetch = (_lastWriteTs[rowId] && (Date.now()-_lastWriteTs[rowId]) < 60000);
+      var toWrite = local;
+      if (!skipFetch) {
+        try {
+          var cd = await _fetchCloud(rowId);
+          if (cd) { toWrite = _mergeVesselData(vn, cd, local); _applyVesselData(vn, toWrite); }
+        } catch(e) { /* fetch fail → local ile devam */ }
+      }
+      var finalStr = _deepSortStringify(toWrite);
+      if (finalStr === _lastRowStr[rowId]) continue;
+      totalBytes += new Blob([finalStr]).size;
+      await _writeCloud(rowId, toWrite);
+      _lastRowStr[rowId] = finalStr;
+      _lastWriteTs[rowId] = Date.now();
+      savedCount++;
     }
-    var snapshotJson = JSON.stringify(toWrite);
-    _updateStorageLabel(new Blob([snapshotJson]).size);
-    await _writeCloud(toWrite);
-    _lastCloudStr = _deepSortStringify(toWrite);
-    _setStatus('☁️', 'Last saved: ' + _nowStr());
+    // ── Global saves ─────────────────────────────────────────────────
+    for (var j = 0; j < globals.length; j++) {
+      var mod    = globals[j];
+      var gRowId = GLOBAL_ROW[mod];
+      var gLocal = _buildGlobalData(mod);
+      var gNewStr = _deepSortStringify(gLocal);
+      if (gNewStr === _lastRowStr[gRowId]) continue;
+      var gSkip = (_lastWriteTs[gRowId] && (Date.now()-_lastWriteTs[gRowId]) < 60000);
+      var gWrite = gLocal;
+      if (!gSkip) {
+        try {
+          var gcd = await _fetchCloud(gRowId);
+          if (gcd) { gWrite = _mergeGlobalData(mod, gcd, gLocal); _applyGlobalData(mod, gWrite); }
+        } catch(e) { /* fetch fail */ }
+      }
+      var gFinal = _deepSortStringify(gWrite);
+      if (gFinal === _lastRowStr[gRowId]) continue;
+      totalBytes += new Blob([gFinal]).size;
+      await _writeCloud(gRowId, gWrite);
+      _lastRowStr[gRowId] = gFinal;
+      _lastWriteTs[gRowId] = Date.now();
+      savedCount++;
+    }
+
+    if (savedCount > 0) {
+      _updateStorageLabel(totalBytes);
+      _setStatus('☁️', 'Saved ' + savedCount + ' row(s) — ' + _nowStr());
+    } else {
+      _setStatus('☁️', 'No changes — ' + _nowStr());
+    }
   } catch(e) {
     console.warn('cloudSave failed:', e);
-    var msg = e.message || '';
-    if (msg.indexOf('401') !== -1 || msg.indexOf('403') !== -1) {
-      _setStatus('⚠️', 'Auth error');
-    } else if (msg.indexOf('429') !== -1) {
-      _setStatus('⚠️', 'Rate limit');
-    } else {
-      _setStatus('⚠️', 'Error');
-      showToast('Cloud save failed — data stored locally', 'error');
-    }
+    var msg = e.message||'';
+    if (msg.indexOf('401')!==-1||msg.indexOf('403')!==-1) _setStatus('⚠️','Auth error');
+    else if (msg.indexOf('429')!==-1) _setStatus('⚠️','Rate limit');
+    else { _setStatus('⚠️','Error'); showToast('Cloud save failed — data stored locally','error'); }
   } finally {
     _isSaving = false;
-    // Debounce beklemeden doğrudan tekrar dene (gecikme istemiyoruz)
     if (_pendingSave) { _pendingSave = false; _doCloudSave(); }
   }
 }
 
-// ── Manuel sync butonu ────────────────────────────────────────
-window.manualSync = async function() {
-  if (!_cloudReady) return;
-  _setStatus('🔄', 'Syncing...');
-  try {
-    var cloudData = await _fetchCloud();
-    if (cloudData) {
-      _safeApplySnapshot(cloudData);
-      var merged = _buildSnapshot();
-      await _writeCloud(merged);
-      _lastCloudStr = _deepSortStringify(merged);
-      _setStatus('☁️', 'Last updated: ' + _nowStr());
-      showToast('Synced', 'success');
-    } else {
-      var local = _buildSnapshot();
-      await _writeCloud(local);
-      _lastCloudStr = _deepSortStringify(local);
-      _setStatus('☁️', 'Written to cloud: ' + _nowStr());
-    }
-  } catch(e) {
-    _setStatus('⚠️', 'Error!');
-    console.warn('manualSync failed:', e);
-  }
-};
+// ── Basit per-modül merge ─────────────────────────────────────────────
+// Cloud'daki veri daha yeniyse cloud kazansın, değilse local kazansın
+;
 
 // ── Login modal (name + password) ────────────────────────────
 var _DASHBOARD_PASSWORD = 'yasa1234';
@@ -6452,56 +6678,177 @@ function signOut() {
 async function cloudInit() {
   _cloudReady = false;
   _setStatus('🔄', 'Loading...');
-
-  // Önce kullanıcı adını al
   await _askUserName();
 
   try {
-    var cloudData = await _fetchCloud();
-    if (cloudData) {
-      _safeApplySnapshot(cloudData);
-      var merged = _buildSnapshot();
-      await _writeCloud(merged);
-      _lastCloudStr = _deepSortStringify(merged);
-      _setStatus('☁️', 'Last updated: ' + _nowStr());
-    } else {
-      // Cloud empty — first use, write local if available
-      var local = _buildSnapshot();
-      if (local.vessels && local.vessels.length > 0) {
-        await _writeCloud(local);
-        _lastCloudStr = _deepSortStringify(local);
-      }
-      _setStatus('☁️', 'Ready');
-    }
-    _cloudReady = true;
+    // ── Migration: eski satırları tanı ───────────────────────────
+    // yasa_main (tek blob) veya yasa_core / yasa_notes (12-modül) varsa
+    // per-vessel'a migrate et
+    var migrated = false;
 
-    // 30 saniyede bir değişiklik kontrolü
+    // Önce yasa_global_core kontrol: zaten per-vessel'daysa direkt yükle
+    var coreRow = null;
+    try { coreRow = await _fetchCloud('yasa_global_core'); } catch(e){}
+
+    if (!coreRow) {
+      // Per-vessel yok — eski migrasyona bak
+      var legacyBlob = null;
+      var legacyCoreBlob = null;
+      try { legacyBlob     = await _fetchCloud('yasa_main'); } catch(e){}
+      try { legacyCoreBlob = await _fetchCloud('yasa_core'); } catch(e){}
+
+      var sourceData = null;
+      if (legacyBlob && legacyBlob.vessels) {
+        sourceData = legacyBlob;
+        console.log('[CloudInit] Migrating from yasa_main (single blob)');
+      } else if (legacyCoreBlob && legacyCoreBlob.vessels) {
+        // 12-modül migrasyondan: her modül satırını oku, birleştir
+        console.log('[CloudInit] Migrating from 12-module rows');
+        sourceData = {};
+        var legacyModules = ['core','notes','certs','lsa','vessel_data','meetings','gas','expenses','orders','emission','inspections','employment'];
+        var legacyRows    = {
+          core:'yasa_core',notes:'yasa_notes',certs:'yasa_certs',lsa:'yasa_lsa',
+          vessel_data:'yasa_vessel_data',meetings:'yasa_meetings',gas:'yasa_gas',
+          expenses:'yasa_expenses',orders:'yasa_orders',emission:'yasa_emission',
+          inspections:'yasa_inspections',employment:'yasa_employment'
+        };
+        for (var mi=0; mi<legacyModules.length; mi++) {
+          try {
+            var mdata = await _fetchCloud(legacyRows[legacyModules[mi]]);
+            if (mdata) Object.assign(sourceData, mdata);
+          } catch(me){}
+        }
+      }
+
+      if (sourceData) {
+        // Eski format → localStorage'a uygula
+        _applySnapshotSilent(sourceData);
+        // Şimdi per-vessel satırları yaz
+        for (var i=0; i<VESSELS_ALL.length; i++) {
+          var vn    = canonicalize(VESSELS_ALL[i]);
+          var rowId = vesselRowId(vn);
+          var vdata = _buildVesselData(vn);
+          var hasContent = vdata && Object.values(vdata).some(function(v){ return v!=null && (Array.isArray(v)?v.length:Object.keys(v||{}).length)>0; });
+          if (!hasContent) continue;
+          try {
+            await _writeCloud(rowId, vdata);
+            _lastRowStr[rowId]  = _deepSortStringify(vdata);
+            _lastWriteTs[rowId] = Date.now();
+          } catch(we) { console.warn('[Migration] vessel', vn, we); }
+        }
+        // Global satırları yaz
+        for (var j=0; j<GLOBAL_MODULES.length; j++) {
+          var gmod   = GLOBAL_MODULES[j];
+          var gRowId = GLOBAL_ROW[gmod];
+          var gdata  = _buildGlobalData(gmod);
+          try {
+            await _writeCloud(gRowId, gdata);
+            _lastRowStr[gRowId]  = _deepSortStringify(gdata);
+            _lastWriteTs[gRowId] = Date.now();
+          } catch(ge) { console.warn('[Migration] global', gmod, ge); }
+        }
+        // Eski satırları işaretle
+        try { await _writeCloud('yasa_main', {init:true,migratedAt:new Date().toISOString()}); } catch(e){}
+        try { await _writeCloud('yasa_core', {init:true,migratedAt:new Date().toISOString()}); } catch(e){}
+        console.log('[CloudInit] Migration complete');
+        migrated = true;
+      }
+    }
+
+    if (!migrated) {
+      // ── Normal per-vessel yükleme ─────────────────────────────
+      // Önce global core → vessel listesi gelsin
+      if (coreRow) {
+        _applyGlobalData('core', coreRow);
+        _lastRowStr['yasa_global_core']  = _deepSortStringify(coreRow);
+      }
+      // Tüm gemileri yükle (paralel)
+      var vesselPromises = VESSELS_ALL.map(function(v) {
+        var vn    = canonicalize(v);
+        var rowId = vesselRowId(vn);
+        return _fetchCloud(rowId).then(function(cd) {
+          if (cd) {
+            _applyVesselData(vn, cd);
+            _lastRowStr[rowId] = _deepSortStringify(cd);
+          } else {
+            // Cloud'da yok → local varsa yaz
+            var vdata = _buildVesselData(vn);
+            var hasContent = vdata && Object.values(vdata).some(function(val){
+              return val!=null&&(Array.isArray(val)?val.length>0:typeof val==='object'?Object.keys(val).length>0:!!val);
+            });
+            if (hasContent) {
+              return _writeCloud(rowId, vdata).then(function(){
+                _lastRowStr[rowId]  = _deepSortStringify(vdata);
+                _lastWriteTs[rowId] = Date.now();
+              }).catch(function(){});
+            }
+          }
+        }).catch(function(e){ console.warn('[CloudInit] vessel', vn, e); });
+      });
+      await Promise.all(vesselPromises);
+
+      // Diğer global'leri yükle
+      for (var gj=0; gj<GLOBAL_MODULES.length; gj++) {
+        var gm    = GLOBAL_MODULES[gj];
+        var grId  = GLOBAL_ROW[gm];
+        if (grId === 'yasa_global_core') continue; // zaten yüklendi
+        try {
+          var gd = await _fetchCloud(grId);
+          if (gd) {
+            _applyGlobalData(gm, gd);
+            _lastRowStr[grId] = _deepSortStringify(gd);
+          } else {
+            var lgd = _buildGlobalData(gm);
+            await _writeCloud(grId, lgd);
+            _lastRowStr[grId]  = _deepSortStringify(lgd);
+            _lastWriteTs[grId] = Date.now();
+          }
+        } catch(ge) { console.warn('[CloudInit] global', gm, ge); }
+      }
+    }
+
+    // localStorage'dan notes'u yenile (applyVesselData tüm gemileri güncelledi)
+    localStorage.setItem('yasa_supt_notes', JSON.stringify(notes));
+
+    _cloudReady = true;
+    _setStatus('☁️', (migrated ? 'Migrated — ' : 'Loaded — ') + _nowStr());
+
+    // ── Round-robin poll: her 90s'de bir sonraki gemiyi kontrol et ──
+    var _pollIdx = 0;
+    var _allRows = VESSELS_ALL.map(function(v){ return {type:'vessel', vn:canonicalize(v), rowId:vesselRowId(canonicalize(v))}; })
+                   .concat(GLOBAL_MODULES.map(function(m){ return {type:'global', mod:m, rowId:GLOBAL_ROW[m]}; }));
     setInterval(async function() {
-      // Kayıt devam ediyorsa, bekleyen kayıt varsa, veya kullanıcı aktif yazıyorsa poll yapma
       if (_isSaving || _saveTimer || _pendingSave) return;
       var focused = document.activeElement;
       if (focused && (focused.classList.contains('nl-ta') || focused.classList.contains('nc-text'))) return;
+      var item  = _allRows[_pollIdx % _allRows.length];
+      _pollIdx++;
+      // Son 60s'de biz yazdıysak atla
+      if (_lastWriteTs[item.rowId] && (Date.now()-_lastWriteTs[item.rowId]) < 60000) return;
       try {
-        var cd = await _fetchCloud();
-        if (!cd) return;
-        var cs = _deepSortStringify(cd);
-        if (cs !== _lastCloudStr) {
-          _safeApplySnapshot(cd);
-          var merged = _buildSnapshot();
-          var mergedStr = _deepSortStringify(merged);
-          if (mergedStr !== cs) {
-            await _writeCloud(merged).catch(function() {});
-          }
-          _lastCloudStr = mergedStr;
-          _setStatus('☁️', 'Updated: ' + _nowStr());
+        var pcd = await _fetchCloud(item.rowId);
+        if (!pcd) return;
+        var pcs = _deepSortStringify(pcd);
+        if (pcs === _lastRowStr[item.rowId]) return; // değişmemiş
+        // Başka kullanıcı değiştirmiş → uygula
+        if (item.type === 'vessel') {
+          _applyVesselData(item.vn, pcd);
+          _lastRowStr[item.rowId] = pcs;
+          _setStatus('☁️', 'Updated [' + item.vn + '] — ' + _nowStr());
+          try { renderStats(); renderVessels(); renderAlertPanel(); } catch(e){}
+        } else {
+          _applyGlobalData(item.mod, pcd);
+          _lastRowStr[item.rowId] = pcs;
+          _setStatus('☁️', 'Updated [' + item.mod + '] — ' + _nowStr());
+          if (item.mod === 'meetings') { try { renderAll(); } catch(e){} }
         }
-      } catch(e) { /* silent poll failure */ }
-    }, 30000);
+      } catch(e) { /* silent */ }
+    }, 90000); // 90s × (38+5) = her satır ~64 dakikada bir kontrol
 
   } catch(e) {
     console.warn('cloudInit failed:', e);
     _setStatus('⚠️', 'No connection');
-    _cloudReady = true; // continue with local storage
+    _cloudReady = true;
   }
 }
 
@@ -7533,7 +7880,7 @@ function todoLoad(vn) {
 
 function todoSave(vn, items) {
   localStorage.setItem(todoKey(vn), JSON.stringify(items));
-  cloudSave().catch(function() {});
+  cloudSave('vessel', vn).catch(function() {});
 }
 
 // Returns days until due: negative = overdue, 0 = today
@@ -7696,7 +8043,7 @@ function antbiListsSave(vn, lists) {
   var now = new Date().toISOString();
   lists.forEach(function(lst) { if (!lst.updatedAt) lst.updatedAt = now; });
   localStorage.setItem(antbiListsKey(vn), JSON.stringify(lists));
-  cloudSave().catch(function() {});
+  cloudSave('vessel', vn).catch(function() {});
 }
 function antbiLoad(vn)  { try { return JSON.parse(localStorage.getItem(antbiKey(vn)) || '[]'); } catch(e) { return []; } }
 function antbiSave(vn, items) {
@@ -7704,7 +8051,7 @@ function antbiSave(vn, items) {
   var now = new Date().toISOString();
   items.forEach(function(it) { if (!it.updatedAt) it.updatedAt = now; });
   localStorage.setItem(antbiKey(vn), JSON.stringify(items));
-  cloudSave().catch(function() {});
+  cloudSave('vessel', vn).catch(function() {});
 }
 
 function antbiNextNum(items) {
@@ -8111,7 +8458,7 @@ function antbiSetDate(vn, id, date) {
       if (badge) wrap.insertAdjacentHTML('beforeend', badge);
     }
   }
-  cloudSave().catch(function() {});
+  cloudSave('vessel', vn).catch(function() {});
 }
 
 function antbiDelete(vn, id) {
@@ -8384,7 +8731,7 @@ function mnLoad() {
 function mnSave() {
   localStorage.setItem('yasa_meetings', JSON.stringify(_mnMeetings));
   localStorage.setItem('yasa_meeting_tombstones', JSON.stringify(meetingTombstones));
-  cloudSave().catch(e => console.warn('Meeting notes cloud save failed:', e));
+  cloudSave('meetings').catch(e => console.warn('Meeting notes cloud save failed:', e));
 }
 
 // ── Render meeting list ───────────────────────────────────────────
@@ -8536,7 +8883,7 @@ window.vesselPhotoChanged = function(inp) {
       vesselPhotoApply(activeVessel.name);
 
       // Push to cloud immediately so teammates see it
-      cloudSave().then(function() {
+      cloudSave('vessel', canonicalize(activeVessel.name)).then(function() {
         showToast('Vessel photo saved & synced! Others will see it shortly.', 'success');
       }).catch(function() {
         showToast('Photo saved locally. Will sync on next cloud save.', 'info');
@@ -9217,7 +9564,7 @@ let _voyEditId = null;
 
 function voyKey(v,y){ return 'em_voy_'+canonicalize(v)+'_'+y; }
 function voyLoad(){ if(!emVessel) return []; try{ return JSON.parse(localStorage.getItem(voyKey(emVessel,emYear))||'[]'); }catch(e){ return []; } }
-function voySave(list){ if(!emVessel) return; localStorage.setItem(voyKey(emVessel,emYear),JSON.stringify(list)); cloudSave().catch(()=>{}); }
+function voySave(list){ if(!emVessel) return; localStorage.setItem(voyKey(emVessel,emYear),JSON.stringify(list)); cloudSave('vessel',canonicalize(emVessel)).catch(()=>{}); }
 
 function voyBuildFuelInputs(){
   const wrap=document.getElementById('voyFuelInputs');
@@ -9745,7 +10092,7 @@ let _ordSelectedVessels = [];
 
 function ordKey(){ return 'yasa_orders'; }
 function ordLoad(){ try{ return JSON.parse(localStorage.getItem(ordKey())||'[]'); }catch(e){ return []; } }
-function ordSave(list){ localStorage.setItem(ordKey(),JSON.stringify(list)); cloudSave().catch(()=>{}); }
+function ordSave(list){ localStorage.setItem(ordKey(),JSON.stringify(list)); cloudSave('orders').catch(()=>{}); }
 
 function ordInit(){
   // Populate vessel dropdowns
@@ -10041,7 +10388,7 @@ function emLoadData(v,y) {
 
 function emSaveData(v,y,d) {
   localStorage.setItem(emKey(v,y), JSON.stringify(d));
-  cloudSave().catch(e=>console.warn('em cloud save:',e));
+  cloudSave('vessel', canonicalize(v)).catch(e=>console.warn('em cloud save:',e));
 }
 
 function emGetLimit(y) {
@@ -10877,7 +11224,7 @@ function loadDevices() {
 }
 function saveDevices(list) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  cloudSave().catch(function() {});
+  cloudSave('gas').catch(function() {});
 }
 
 // ── One-time seed migration (merges historical records into localStorage) ──
@@ -11326,7 +11673,7 @@ function gasEditTotal() {
     localStorage.setItem(TOTAL_OVERRIDE_KEY, n);
     showToast('Toplam cihaz sayısı ' + n + ' olarak güncellendi.', 'success');
   }
-    cloudSave().catch(function(){});
+    cloudSave('gas').catch(function(){});
   gasRenderStats();
 }
 
@@ -11350,7 +11697,7 @@ function gasEditEgemar() {
     localStorage.setItem(EGEMAR_OVERRIDE_KEY, n);
     showToast('Egemar cihaz sayısı ' + n + ' olarak güncellendi.', 'success');
   }
-  cloudSave().catch(function(){});
+  cloudSave('gas').catch(function(){});
   gasRenderStats();
 }
 
@@ -12344,7 +12691,7 @@ function inspKey(type, vn)        { return 'yasa_insp_' + type + '_' + vn; }
 function inspMigKey(vn)           { return 'yasa_insp_mig_' + vn; }
 function inspTombKey(type, vn)    { return 'yasa_insp_tomb_' + type + '_' + vn; }
 function inspLoad(type, vn)       { try { return JSON.parse(localStorage.getItem(inspKey(type,vn))||'[]'); } catch(e){ return []; } }
-function inspSave(type, vn, arr)  { localStorage.setItem(inspKey(type,vn), JSON.stringify(arr)); cloudSave().catch(function(){}); }
+function inspSave(type, vn, arr)  { localStorage.setItem(inspKey(type,vn), JSON.stringify(arr)); cloudSave('vessel', vn).catch(function(){}); }
 function inspTombLoad(type, vn)   { try { return JSON.parse(localStorage.getItem(inspTombKey(type,vn))||'{}'); } catch(e){ return {}; } }
 function inspTombAdd(type, vn, id){ var t=inspTombLoad(type,vn); t[id]=Date.now(); localStorage.setItem(inspTombKey(type,vn), JSON.stringify(t)); }
 
@@ -12435,7 +12782,7 @@ function _inspRunTextCleanup() {
     });
   });
   localStorage.setItem('yasa_insp_clean_v1', '1');
-  if (changed) cloudSave().catch(function(){});
+  if (changed) { VESSELS_ALL.forEach(function(v){ cloudSave('vessel',canonicalize(v)).catch(function(){}); }); }
 }
 
 // ── One-time cleanup (called from inspInit above) ────────────
@@ -13604,6 +13951,10 @@ function inspExportPDF(vn, inspId) {
 }
 </script>
 
+</script>
+
+</script>
+
 <script>
 // ══════════════════════════════════════════════════════════════════
 //  EMPLOYMENT MODULE  —  Voyage History per vessel
@@ -14060,7 +14411,7 @@ function empConfirmImport() {
   empBuildFilters();
   empRender();
   showToast('\u2705 ' + records.length + ' voyages imported for ' + targetVessel);
-  cloudSave().catch(function(){});
+  cloudSave('vessel', canonicalize(targetVessel)).catch(function(){});
 }
 
 // ── Add / Edit Voyage Modal ────────────────────────────────────────
@@ -14181,7 +14532,7 @@ function empSaveVoyModal(idx) {
   }
 
   try { localStorage.setItem('yasa_employment_' + _empVessel, JSON.stringify(_empData[_empVessel])); } catch(e) {}
-  cloudSave().catch(function(){});
+  cloudSave('vessel', canonicalize(_empVessel)).catch(function(){});
 
   var modal = document.getElementById('empVoyModal');
   if(modal) modal.remove();
@@ -14197,7 +14548,7 @@ function empDeleteRow(idx) {
   if(!confirm('Delete voyage "' + (r.voyNo||'?') + '"?')) return;
   _empData[_empVessel].splice(idx, 1);
   try { localStorage.setItem('yasa_employment_' + _empVessel, JSON.stringify(_empData[_empVessel])); } catch(e) {}
-  cloudSave().catch(function(){});
+  cloudSave('vessel', canonicalize(_empVessel)).catch(function(){});
   empBuildFilters();
   empRender();
   showToast('🗑 Voyage deleted');
@@ -14475,7 +14826,7 @@ function peSave() {
     addedAt: new Date().toISOString()
   });
   _peSt('yasa_pe', recs);
-  cloudSave().catch(function(){});
+  cloudSave('expenses').catch(function(){});
 
   // Update option lists
   var opts = peOpts();
@@ -14577,7 +14928,7 @@ function peSaveEdit() {
     updatedAt: new Date().toISOString()
   };
   _peSt('yasa_pe', recs);
-  cloudSave().catch(function(){});
+  cloudSave('expenses').catch(function(){});
   
   // Update option lists
   var opts = peOpts();
@@ -14604,7 +14955,7 @@ function peDeleteRecord() {
   var vsl = recs[idx].vessel;
   recs.splice(idx, 1);
   _peSt('yasa_pe', recs);
-  cloudSave().catch(function(){});
+  cloudSave('expenses').catch(function(){});
   
   peCloseEdit();
   _peFillDropdowns();
@@ -14636,7 +14987,7 @@ function peCleanupInvalid() {
   
   var cleaned = recs.filter(function(r){ return !invalidIds.includes(r.id); });
   _peSt('yasa_pe', cleaned);
-  cloudSave().catch(function(){});
+  cloudSave('expenses').catch(function(){});
   
   _peFillDropdowns();
   peRender();
