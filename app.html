@@ -6232,6 +6232,7 @@ var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 var _cloudReady        = false;
 var _currentUser       = null;
+var _changedRowTs      = {}; // Kayıt edilen satırların timestamp'i → changes index için
 var _saveTimer         = null;
 var _isSaving          = false;
 var _pendingSave       = false;
@@ -6311,7 +6312,7 @@ function _sbHeaders(extra) {
 // ── Retry yardımcısı: 503/504 hatalarında exponential backoff ──
 async function _withRetry(fn, maxRetries, silent) {
   maxRetries = maxRetries == null ? 3 : maxRetries;
-  var delay = 3000; // 3s → 6s → 12s
+  var delay = 1500; // 1.5s → 3s → 6s
   for (var attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
@@ -6320,7 +6321,14 @@ async function _withRetry(fn, maxRetries, silent) {
       var isRetryable = msg.indexOf('503') !== -1 || msg.indexOf('504') !== -1
                      || msg.indexOf('502') !== -1
                      || msg.indexOf('PGRST002') !== -1 || msg.indexOf('schema cache') !== -1
-                     || msg.indexOf('Failed to fetch') !== -1 || msg.indexOf('upstream') !== -1;
+                     || msg.indexOf('Failed to fetch') !== -1 || msg.indexOf('upstream') !== -1
+                     || (e instanceof TypeError); // CORS / network error
+      // CORS / project paused detection
+      var isCors = (e instanceof TypeError && msg.indexOf('fetch') !== -1 && msg.indexOf('Failed') !== -1);
+      if (isCors && attempt === 0) {
+        _setStatus('⚠️', 'Supabase erişilemiyor');
+        showToast('⚠️ Supabase projeniz duraklatılmış olabilir. supabase.com → Dashboard → "Restore project" butonuna tıklayın.', 'error');
+      }
       if (!isRetryable || attempt === maxRetries) throw e;
       if (!silent) _setStatus('🔄', 'Supabase yeniden deneniyor... (' + (attempt+1) + '/' + maxRetries + ')');
       await new Promise(function(r){ setTimeout(r, delay); });
@@ -6660,6 +6668,7 @@ async function _doCloudSave() {
       await _writeCloud(rowId, toWrite);
       _lastRowStr[rowId] = finalStr;
       _lastWriteTs[rowId] = Date.now();
+      _changedRowTs[rowId] = new Date().toISOString();
       savedCount++;
     }
     // ── Global saves ─────────────────────────────────────────────────
@@ -6683,6 +6692,7 @@ async function _doCloudSave() {
       await _writeCloud(gRowId, gWrite);
       _lastRowStr[gRowId] = gFinal;
       _lastWriteTs[gRowId] = Date.now();
+      _changedRowTs[gRowId] = new Date().toISOString();
       savedCount++;
     }
 
@@ -6712,7 +6722,7 @@ window.manualSync = async function() {
   if (!_cloudReady) return;
   _setStatus('🔄', 'Bağlanıyor...');
   await _wakeUpSupabase();
-  await new Promise(function(r){ setTimeout(r, 500); });
+  await new Promise(function(r){ setTimeout(r, 300); });
   _setStatus('🔄', 'Syncing...');
   try {
     var cloudData = await _fetchCloud();
@@ -6941,11 +6951,11 @@ async function cloudInit() {
       // ── Önce Supabase'i uyandır (cold start) ─────────────────
       _setStatus('🔄', 'Supabase bağlanıyor...');
       await _wakeUpSupabase();
-      await new Promise(function(r){ setTimeout(r, 800); });
+      await new Promise(function(r){ setTimeout(r, 500); });
 
-      // ── Gemileri 6'lı gruplar halinde sırayla yükle ────────────
+      // ── Gemileri 8'li gruplar halinde sırayla yükle ────────────
       // Promise.all(38 vessel) yerine gruplu → thundering herd önlenir
-      var BATCH = 6;
+      var BATCH = 8;
       var loaded = 0;
       for (var bi = 0; bi < VESSELS_ALL.length; bi += BATCH) {
         var batch = VESSELS_ALL.slice(bi, bi + BATCH);
@@ -6975,7 +6985,7 @@ async function cloudInit() {
         await Promise.all(batchPromises);
         // Gruplar arası kısa bekleme — Supabase'e nefes ver
         if (bi + BATCH < VESSELS_ALL.length) {
-          await new Promise(function(r){ setTimeout(r, 300); });
+          await new Promise(function(r){ setTimeout(r, 150); });
         }
       }
 
@@ -7005,37 +7015,62 @@ async function cloudInit() {
     _cloudReady = true;
     _setStatus('☁️', (migrated ? 'Migrated — ' : 'Loaded — ') + _nowStr());
 
-    // ── Round-robin poll: her 90s'de bir sonraki gemiyi kontrol et ──
-    var _pollIdx = 0;
-    var _allRows = VESSELS_ALL.map(function(v){ return {type:'vessel', vn:canonicalize(v), rowId:vesselRowId(canonicalize(v))}; })
-                   .concat(GLOBAL_MODULES.map(function(m){ return {type:'global', mod:m, rowId:GLOBAL_ROW[m]}; }));
+    // ── Akıllı polling: sadece 2KB index satırı izle ─────────────
+    // Eski: 38 row × 150KB × her 90s = ~5.7MB/poll → günde GB'lar
+    // Yeni: 1 satır × 2KB × her 3dk = ~10KB/poll → günde MB'lar
+    var _lastIndexStr = _lastRowStr['yasa_changes_index'] || '';
+
     setInterval(async function() {
       if (_isSaving || _saveTimer || _pendingSave) return;
       var focused = document.activeElement;
       if (focused && (focused.classList.contains('nl-ta') || focused.classList.contains('nc-text'))) return;
-      var item  = _allRows[_pollIdx % _allRows.length];
-      _pollIdx++;
-      // Son 60s'de biz yazdıysak atla
-      if (_lastWriteTs[item.rowId] && (Date.now()-_lastWriteTs[item.rowId]) < 60000) return;
+
       try {
-        var pcd = await _fetchCloud(item.rowId);
-        if (!pcd) return;
-        var pcs = _deepSortStringify(pcd);
-        if (pcs === _lastRowStr[item.rowId]) return; // değişmemiş
-        // Başka kullanıcı değiştirmiş → uygula
-        if (item.type === 'vessel') {
-          _applyVesselData(item.vn, pcd);
-          _lastRowStr[item.rowId] = pcs;
-          _setStatus('☁️', 'Updated [' + item.vn + '] — ' + _nowStr());
-          try { renderStats(); renderVessels(); renderAlertPanel(); } catch(e){}
-        } else {
-          _applyGlobalData(item.mod, pcd);
-          _lastRowStr[item.rowId] = pcs;
-          _setStatus('☁️', 'Updated [' + item.mod + '] — ' + _nowStr());
-          if (item.mod === 'meetings') { try { renderAll(); } catch(e){} }
+        var idx = await _fetchCloud('yasa_changes_index');
+        if (!idx) return;
+        var idxStr = _deepSortStringify(idx);
+        if (idxStr === _lastIndexStr) return; // Hiçbir şey değişmemiş
+
+        var oldIdx = {};
+        try { oldIdx = JSON.parse(_lastIndexStr || '{}'); } catch(e) {}
+        _lastIndexStr = idxStr;
+        _lastRowStr['yasa_changes_index'] = idxStr;
+
+        var changedRows = Object.keys(idx).filter(function(rowId) {
+          return idx[rowId] !== oldIdx[rowId];
+        });
+        if (!changedRows.length) return;
+
+        _setStatus('🔄', changedRows.length + ' değişiklik alınıyor...');
+
+        for (var ci = 0; ci < changedRows.length; ci++) {
+          var rowId = changedRows[ci];
+          if (_lastWriteTs[rowId] && (Date.now() - _lastWriteTs[rowId]) < 30000) continue;
+
+          try {
+            var pcd = await _fetchCloud(rowId);
+            if (!pcd) continue;
+            var pcs = _deepSortStringify(pcd);
+            if (pcs === _lastRowStr[rowId]) continue;
+            _lastRowStr[rowId] = pcs;
+
+            if (rowId.indexOf('yasa_v_') === 0) {
+              var pvn = rowId.replace('yasa_v_', '');
+              _applyVesselData(pvn, pcd);
+              try { renderStats(); renderVessels(); renderAlertPanel(); } catch(e2) {}
+            } else {
+              var pmod = Object.keys(GLOBAL_ROW).find(function(m){ return GLOBAL_ROW[m] === rowId; });
+              if (pmod) {
+                _applyGlobalData(pmod, pcd);
+                if (pmod === 'meetings') { try { renderAll(); } catch(e2) {} }
+              }
+            }
+          } catch(re) { /* bu satır için sessizce geç */ }
         }
-      } catch(e) { /* silent */ }
-    }, 90000); // 90s × (38+5) = her satır ~64 dakikada bir kontrol
+        _setStatus('☁️', 'Güncellendi — ' + _nowStr());
+
+      } catch(e) { /* polling hatası sessiz */ }
+    }, 3000); // 3 saniyede bir — sadece 2KB index sorgusu
 
   } catch(e) {
     console.warn('cloudInit failed:', e);
