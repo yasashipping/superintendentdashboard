@@ -6348,16 +6348,22 @@ async function _wakeUpSupabase() {
 async function _fetchCloud(rowId) {
   return _withRetry(async function() {
     var url = SUPABASE_URL + '/rest/v1/dashboard_data?id=eq.' + encodeURIComponent(rowId) + '&select=payload';
-    var res = await fetch(url, { headers: _sbHeaders() });
-    if (!res.ok) {
-      var errTxt = await res.text().catch(function(){ return ''; });
-      throw new Error('Supabase fetch failed: ' + res.status + ' ' + errTxt.substring(0,100));
+    var fCtrl = new AbortController();
+    var fTid  = setTimeout(function(){ fCtrl.abort(); }, 8000);
+    try {
+      var res = await fetch(url, { headers: _sbHeaders(), signal: fCtrl.signal });
+      if (!res.ok) {
+        var errTxt = await res.text().catch(function(){ return ''; });
+        throw new Error('Supabase fetch failed: ' + res.status + ' ' + errTxt.substring(0,100));
+      }
+      var rows = await res.json();
+      if (!rows || rows.length === 0) return null;
+      var record = rows[0].payload;
+      if (!record || record.init === true) return null;
+      return record;
+    } finally {
+      clearTimeout(fTid);
     }
-    var rows = await res.json();
-    if (!rows || rows.length === 0) return null;
-    var record = rows[0].payload;
-    if (!record || record.init === true) return null;
-    return record;
   });
 }
 
@@ -6365,19 +6371,26 @@ async function _fetchCloud(rowId) {
 async function _writeCloud(rowId, data) {
   return _withRetry(async function() {
     var url = SUPABASE_URL + '/rest/v1/dashboard_data';
-    var res = await fetch(url, {
-      method: 'POST',
-      headers: _sbHeaders({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
-      body: JSON.stringify({
-        id:         rowId,
-        payload:    data,
-        updated_at: new Date().toISOString(),
-        updated_by: _currentUser || 'unknown'
-      })
-    });
-    if (!res.ok) {
-      var err = await res.text().catch(function(){ return ''; });
-      throw new Error('Supabase write failed: ' + res.status + ' ' + err.substring(0, 200));
+    var wCtrl = new AbortController();
+    var wTid  = setTimeout(function(){ wCtrl.abort(); }, 10000);
+    try {
+      var res = await fetch(url, {
+        method: 'POST',
+        headers: _sbHeaders({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+        body: JSON.stringify({
+          id:         rowId,
+          payload:    data,
+          updated_at: new Date().toISOString(),
+          updated_by: _currentUser || 'unknown'
+        }),
+        signal: wCtrl.signal
+      });
+      if (!res.ok) {
+        var err = await res.text().catch(function(){ return ''; });
+        throw new Error('Supabase write failed: ' + res.status + ' ' + err.substring(0, 200));
+      }
+    } finally {
+      clearTimeout(wTid);
     }
   });
 }
@@ -6969,6 +6982,8 @@ async function cloudInit() {
         }).catch(function(e){ console.warn('[CloudInit] vessel', vn, e.message); });
       });
       await Promise.all(vesselPromises);
+      renderStats(); renderVessels(); renderAlertPanel();
+      _setStatus('☁️', 'Gemiler yüklendi — ' + _nowStr());
 
       // Diğer global'leri yükle
       for (var gj=0; gj<GLOBAL_MODULES.length; gj++) {
