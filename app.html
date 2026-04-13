@@ -6311,8 +6311,8 @@ function _sbHeaders(extra) {
 // ── Fetch cloud data ──────────────────────────────────────────
 // ── Retry yardımcısı: 503/504 hatalarında exponential backoff ──
 async function _withRetry(fn, maxRetries, silent) {
-  maxRetries = maxRetries == null ? 3 : maxRetries;
-  var delay = 1500; // 1.5s → 3s → 6s
+  maxRetries = maxRetries == null ? 4 : maxRetries;
+  var delay = 4000; // 4s → 8s → 16s  (504 upstream timeout için yeterli)
   for (var attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
@@ -6945,30 +6945,41 @@ async function cloudInit() {
         _applyGlobalData('core', coreRow);
         _lastRowStr['yasa_global_core']  = _deepSortStringify(coreRow);
       }
-      // ── Tüm gemileri paralel yükle (Pro plan — limit yok) ────────
+      // ── Gemileri 5'li gruplar halinde yükle (504 thundering herd önle) ─
       _setStatus('🔄', 'Yükleniyor...');
-      var vesselPromises = VESSELS_ALL.map(function(vname) {
-        var vn    = canonicalize(vname);
-        var rowId = vesselRowId(vn);
-        return _fetchCloud(rowId).then(function(cd) {
-          if (cd) {
-            _applyVesselData(vn, cd);
-            _lastRowStr[rowId] = _deepSortStringify(cd);
-          } else {
-            var vdata = _buildVesselData(vn);
-            var hasContent = vdata && Object.values(vdata).some(function(val){
-              return val!=null&&(Array.isArray(val)?val.length>0:typeof val==='object'?Object.keys(val).length>0:!!val);
-            });
-            if (hasContent) {
-              return _writeCloud(rowId, vdata).then(function(){
-                _lastRowStr[rowId]  = _deepSortStringify(vdata);
-                _lastWriteTs[rowId] = Date.now();
-              }).catch(function(){});
+      // 2s bekle — Supabase bağlantı havuzunun hazırlanması için
+      await new Promise(function(r){ setTimeout(r, 2000); });
+
+      var BATCH = 5;
+      for (var bi = 0; bi < VESSELS_ALL.length; bi += BATCH) {
+        var batch = VESSELS_ALL.slice(bi, bi + BATCH);
+        _setStatus('🔄', Math.min(bi + BATCH, VESSELS_ALL.length) + '/' + VESSELS_ALL.length + ' yüklendi...');
+        var batchPromises = batch.map(function(vname) {
+          var vn    = canonicalize(vname);
+          var rowId = vesselRowId(vn);
+          return _fetchCloud(rowId).then(function(cd) {
+            if (cd) {
+              _applyVesselData(vn, cd);
+              _lastRowStr[rowId] = _deepSortStringify(cd);
+            } else {
+              var vdata = _buildVesselData(vn);
+              var hasContent = vdata && Object.values(vdata).some(function(val){
+                return val!=null&&(Array.isArray(val)?val.length>0:typeof val==='object'?Object.keys(val).length>0:!!val);
+              });
+              if (hasContent) {
+                return _writeCloud(rowId, vdata).then(function(){
+                  _lastRowStr[rowId]  = _deepSortStringify(vdata);
+                  _lastWriteTs[rowId] = Date.now();
+                }).catch(function(){});
+              }
             }
-          }
-        }).catch(function(e){ console.warn('[CloudInit] vessel', vn, e.message); });
-      });
-      await Promise.all(vesselPromises);
+          }).catch(function(e){ console.warn('[CloudInit] vessel', vn, e.message); });
+        });
+        await Promise.all(batchPromises);
+        if (bi + BATCH < VESSELS_ALL.length) {
+          await new Promise(function(r){ setTimeout(r, 500); });
+        }
+      }
       renderStats(); renderVessels(); renderAlertPanel();
       _setStatus('☁️', 'Gemiler yüklendi — ' + _nowStr());
 
