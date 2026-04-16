@@ -2051,38 +2051,41 @@ body.dark .nc-bold-btn:hover, body.dark .nc-italic-btn:hover { background: rgba(
     max-width: 100%;
     width: 100%;
     max-height: 96vh;
-    height: 96vh;         /* sabit yükseklik — kaydırma sorununu önler */
+    height: 96vh;
+    display: flex;
+    flex-direction: column;
   }
-  .modal-header { padding: 12px 14px 10px; }
-  .modal-vessel-name { font-size: 18px; }
-  .modal-vessel-pos  { font-size: 11px; }
-  .vessel-photo-wrap { width: 60px; height: 38px; }
-  .vessel-pdf-btn    { display: none; }  /* mobile'da gizle */
+  .modal-header { padding: 10px 12px 8px; flex-shrink: 0; }
+  .modal-vessel-name { font-size: 17px; }
+  .modal-vessel-pos  { font-size: 10px; margin-top: 3px; }
+  .vessel-photo-wrap { width: 54px; height: 34px; }
+  .vessel-pdf-btn    { display: none; }
 
-  /* Modal body: tek sütun, scroll içeride */
+  /* Mobile tabs strip */
+  .modal-mobile-tabs { display: flex; flex-shrink: 0; }
+
+  /* modal-body: full flex column, fills remaining height */
   .modal-body {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
     flex: 1;
     min-height: 0;
+    overflow: hidden;
     grid-template-columns: unset;
   }
 
-  /* ── Mobile tab'lar ── */
-  .modal-mobile-tabs { display: flex; }
-
-  /* Details sütunu: scroll aktif */
+  /* Details: scrollable, starts visible, flex:1 to fill */
   .modal-col-details {
     border-right: none;
     border-bottom: none;
+    flex: 1;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    flex: 1;
     min-height: 0;
+    display: block;
   }
 
-  /* Notes sütunu: başlangıçta gizli, tab'a basınca JS açar */
+  /* Notes: hidden until tab click */
   .modal-col-notes {
     display: none;
     flex-direction: column;
@@ -2090,32 +2093,121 @@ body.dark .nc-bold-btn:hover, body.dark .nc-italic-btn:hover { background: rgba(
     min-height: 0;
     overflow: hidden;
   }
-  /* Notes açık olduğunda */
   .modal-col-notes.mobile-visible {
     display: flex !important;
   }
 
-  /* ntab-bar sabit kalır, pane scroll eder */
-  .ntab-bar  { flex-shrink: 0; }
-  .ntab      { padding: 12px 6px 10px; font-size: 11px; gap: 4px; }
-  .ntab-icon { font-size: 14px; }
-  .ntab-label{ font-size: 11px; }
+  /* ntab-bar fixed, pane scrolls */
+  .ntab-bar   { flex-shrink: 0; }
+  .ntab       { padding: 12px 8px 10px; font-size: 11px; gap: 3px; }
+  .ntab-icon  { font-size: 15px; }
+  .ntab-label { font-size: 11px; }
 
   .ntab-pane {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    min-height: 0;
     display: none;
   }
   .ntab-pane.active { display: flex; flex-direction: column; flex: 1; }
 
   .note-block  { overflow: visible; }
-  .nc          { margin: 6px 8px; }
-
+  .nc          { margin: 4px 8px; }
   .ntab-save-row { flex-shrink: 0; }
+  .modal-col   { padding: 10px 12px; }
 
-  .modal-col { padding: 12px; }
+  /* ── NOTES ROWS — mobile two-line layout ── */
+  .nl-row {
+    display: flex;
+    flex-direction: column;
+    padding: 8px 10px 4px;
+    border-bottom: 1px solid var(--border);
+    gap: 4px;
+    min-height: 0;
+  }
+  .nl-row:last-child { border-bottom: none; }
+
+  /* Top line: number + textarea fills full width */
+  .nl-row-top {
+    display: flex !important;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 4px;
+    width: 100%;
+  }
+
+  /* Bottom line: prio + time + bold + delete */
+  .nl-row-meta {
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding-left: 22px; /* align with textarea */
+    flex-wrap: nowrap;
+  }
+
+  .nl-num {
+    font-size: 10px;
+    min-width: 18px;
+    flex-shrink: 0;
+    padding-top: 8px;
+    text-align: center;
+  }
+
+  .nl-ta {
+    flex: 1;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 34px;
+    padding: 5px 6px;
+    box-sizing: border-box;
+  }
+
+  .nl-prio {
+    font-size: 10px;
+    width: 70px;
+    flex-shrink: 0;
+    padding: 4px 2px;
+  }
+
+  .nl-time {
+    font-size: 9px;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+  }
+
+  .nl-bold-btn {
+    font-size: 13px;
+    padding: 3px 5px;
+    min-width: 26px;
+    flex-shrink: 0;
+  }
+
+  .nl-del {
+    font-size: 16px;
+    padding: 2px 4px;
+    min-width: 28px;
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .nl-add-inline {
+    width: 30px;
+    height: 30px;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  /* Category sections */
+  .ncat-section { margin-bottom: 8px; border-radius: 8px; }
 
   /* Notes grid: stack */
   .notes-grid-2col,
@@ -2173,104 +2265,6 @@ body.dark .nc-bold-btn:hover, body.dark .nc-italic-btn:hover { background: rgba(
   /* ROB: daha küçük */
   .rob-item-value { font-size: 11px; }
   .rob-item-label { font-size: 9px; }
-}
-
-/* ─── Mobile notes layout: iki satıra böl ≤768px ──────── */
-@media (max-width: 768px) {
-  /* nl-row: grid'i kaldır, flex column yap */
-  .nl-row {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    padding: 6px 8px 4px;
-    gap: 0;
-  }
-
-  /* Wrapper'ları gerçek flex container yap (desktop'ta display:contents) */
-  .nl-row-top {
-    display: flex;
-    align-items: flex-start;
-    gap: 4px;
-    width: 100%;
-  }
-
-  .nl-row-meta {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 3px 0 2px 26px;
-    flex-wrap: wrap;
-  }
-
-  .nl-num {
-    font-size: 10px;
-    min-width: 20px;
-    padding-top: 6px;
-    flex-shrink: 0;
-  }
-
-  .nl-ta {
-    font-size: 14px;         /* büyüt — parmakla okuma */
-    line-height: 1.5;
-    min-height: 32px;
-    padding: 5px 6px;
-    flex: 1;
-  }
-
-  .nl-prio {
-    font-size: 10px;
-    width: auto;
-    min-width: 60px;
-    padding: 3px 6px;
-    flex-shrink: 0;
-  }
-
-  .nl-time {
-    font-size: 9px;
-    flex: 1;
-    text-align: left;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 110px;
-  }
-
-  .nl-del {
-    font-size: 14px;
-    padding: 2px 6px;
-    margin-left: auto;
-    min-width: 28px;
-    min-height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .nl-bold-btn {
-    font-size: 13px;
-    padding: 2px 6px;
-    min-width: 28px;
-    min-height: 28px;
-  }
-
-  /* nl-add satırı: daha büyük dokunma hedefi */
-  .nl-add-inline {
-    width: 32px;
-    height: 32px;
-    font-size: 20px;
-  }
-
-  /* ncat-section başlıkları: daha belirgin */
-  .ncat-section {
-    margin-bottom: 10px;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-
-  /* Note category tab labels: daha büyük */
-  .ntab { padding: 14px 8px 12px; }
-  .ntab-label { font-size: 12px; }
-  .ntab-icon  { font-size: 16px; }
 }
 
 /* ─── iPhone notch / safe area ─── */
