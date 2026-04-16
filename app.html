@@ -1359,6 +1359,12 @@ body {
    ══════════════════════════════════════════ */
 /* nl-header removed */
 
+/* Desktop: wrapper div'ler grid'i bozmayacak şekilde "şeffaf" */
+.nl-row-top,
+.nl-row-meta {
+  display: contents; /* grid child'lar gibi davranır */
+}
+
 .nl-row {
   display: grid;
   grid-template-columns: 26px 1fr 22px 72px 52px 22px;
@@ -2167,6 +2173,104 @@ body.dark .nc-bold-btn:hover, body.dark .nc-italic-btn:hover { background: rgba(
   /* ROB: daha küçük */
   .rob-item-value { font-size: 11px; }
   .rob-item-label { font-size: 9px; }
+}
+
+/* ─── Mobile notes layout: iki satıra böl ≤768px ──────── */
+@media (max-width: 768px) {
+  /* nl-row: grid'i kaldır, flex column yap */
+  .nl-row {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 6px 8px 4px;
+    gap: 0;
+  }
+
+  /* Wrapper'ları gerçek flex container yap (desktop'ta display:contents) */
+  .nl-row-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+    width: 100%;
+  }
+
+  .nl-row-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 0 2px 26px;
+    flex-wrap: wrap;
+  }
+
+  .nl-num {
+    font-size: 10px;
+    min-width: 20px;
+    padding-top: 6px;
+    flex-shrink: 0;
+  }
+
+  .nl-ta {
+    font-size: 14px;         /* büyüt — parmakla okuma */
+    line-height: 1.5;
+    min-height: 32px;
+    padding: 5px 6px;
+    flex: 1;
+  }
+
+  .nl-prio {
+    font-size: 10px;
+    width: auto;
+    min-width: 60px;
+    padding: 3px 6px;
+    flex-shrink: 0;
+  }
+
+  .nl-time {
+    font-size: 9px;
+    flex: 1;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 110px;
+  }
+
+  .nl-del {
+    font-size: 14px;
+    padding: 2px 6px;
+    margin-left: auto;
+    min-width: 28px;
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nl-bold-btn {
+    font-size: 13px;
+    padding: 2px 6px;
+    min-width: 28px;
+    min-height: 28px;
+  }
+
+  /* nl-add satırı: daha büyük dokunma hedefi */
+  .nl-add-inline {
+    width: 32px;
+    height: 32px;
+    font-size: 20px;
+  }
+
+  /* ncat-section başlıkları: daha belirgin */
+  .ncat-section {
+    margin-bottom: 10px;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  /* Note category tab labels: daha büyük */
+  .ntab { padding: 14px 8px 12px; }
+  .ntab-label { font-size: 12px; }
+  .ntab-icon  { font-size: 16px; }
 }
 
 /* ─── iPhone notch / safe area ─── */
@@ -5304,24 +5408,32 @@ function buildNoteItem(cat, idx, item, placeholder, isBlank) {
     + ' onclick="nlBoldSelection(\''+taId+'\')"'  
     + '>𝐁</button>';
 
-  return '<div class="nl-row' + (isBlank ? ' nl-row-blank' : '') + '" id="' + rowId + '"' + (rowBg ? ' style="background:' + rowBg + ';"' : '') + '>'
-    + '<div class="nl-num" style="color:' + (isBlank ? '#d1d5db' : prioColor) + ';">' + rowNum + '</div>'
-    + '<textarea class="nl-ta" id="' + taId + '"'
+  var taHtml = '<textarea class="nl-ta" id="' + taId + '"'
     + ' placeholder="' + escAttr(placeholder) + '"'
     + ' oninput="autoResizeTA(this);' + (isBlank ? 'nlShowAdd(\'' + cat + '\',this);' : '') + '"'
     + ' onfocus="autoResizeTA(this)"'
     + ' onkeydown="' + (isBlank ? 'if(event.key===\'Tab\'){event.preventDefault();nlCommit(\'' + cat + '\');}else ' : '') + 'if((event.ctrlKey||event.metaKey)&&event.key===\'b\'){event.preventDefault();nlBoldSelection(this.id);}"'
     + ' rows="1">'
     + escHtml(cleanText)
-    + '</textarea>'
-    + (isBlank ? addBtn : (
-        boldBtn
-      + '<select class="nl-prio" id="' + selId + '"'
-      + ' onchange="noteRowPrioChange(this,\'' + cat + '\',' + idx + ')" title="Priority">'
-      + opts + '</select>'
-      + '<span class="nl-time">' + timeDisplay + '</span>'
-      + '<button type="button" class="nl-del" onclick="deleteNoteItem(\'' + cat + '\',' + idx + ')" title="Delete">×</button>'
-      ))
+    + '</textarea>';
+
+  var topRow = '<div class="nl-row-top">'
+    + '<div class="nl-num" style="color:' + (isBlank ? '#d1d5db' : prioColor) + ';">' + rowNum + '</div>'
+    + taHtml
+    + (isBlank ? addBtn : '')
+    + '</div>';
+
+  var metaRow = isBlank ? '' : '<div class="nl-row-meta">'
+    + boldBtn
+    + '<select class="nl-prio" id="' + selId + '"'
+    + ' onchange="noteRowPrioChange(this,\'' + cat + '\',' + idx + ')" title="Priority">'
+    + opts + '</select>'
+    + '<span class="nl-time">' + timeDisplay + '</span>'
+    + '<button type="button" class="nl-del" onclick="deleteNoteItem(\'' + cat + '\',' + idx + ')" title="Delete">×</button>'
+    + '</div>';
+
+  return '<div class="nl-row' + (isBlank ? ' nl-row-blank' : '') + '" id="' + rowId + '"' + (rowBg ? ' style="background:' + rowBg + ';"' : '') + '>'
+    + topRow + metaRow
     + '</div>';
 }
 
