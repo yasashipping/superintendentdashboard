@@ -625,6 +625,13 @@ body {
 .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text2); font-family: 'Barlow Condensed', sans-serif; font-weight: 700; }
 .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: var(--text); }
 
+/* clickable + active stat cards (double as quick filters) */
+.stat-card.clickable { cursor: pointer; transition: box-shadow .15s, transform .12s, border-color .15s; user-select: none; }
+.stat-card.clickable:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(37,99,235,.13); border-color: rgba(37,99,235,.3); }
+.stat-card.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37,99,235,.18), 0 2px 8px rgba(37,99,235,.1); }
+.stat-card.active .stat-label { color: var(--accent); }
+body.dark .stat-card.active { box-shadow: 0 0 0 2px rgba(208,208,208,.22); }
+
 /* FILTER DOT */
 .fdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; }
 .fdot-green { background: var(--green); }
@@ -675,6 +682,43 @@ body {
   border-bottom: 1px solid rgba(37,99,235,0.12);
   border-left: 3px solid var(--accent);
 }
+
+/* ── STATUS COLOR CODING ──────────────────────────────────────────────────
+   Each card's left edge + header tint reflects operational status, so the
+   whole fleet is scannable at a glance. The small badge/dot stay as labels. */
+.vessel-card.st-sailing,
+.vessel-card.st-loading,
+.vessel-card.st-discharging,
+.vessel-card.st-anchored,
+.vessel-card.st-bunkering,
+.vessel-card.st-unknown { border-left: 4px solid var(--border2); }
+.vessel-card.st-sailing     { border-left-color: var(--accent); }
+.vessel-card.st-loading     { border-left-color: var(--green); }
+.vessel-card.st-discharging { border-left-color: var(--orange); }
+.vessel-card.st-anchored    { border-left-color: var(--gold); }
+.vessel-card.st-bunkering   { border-left-color: var(--purple); }
+.vessel-card.st-unknown     { border-left-color: var(--border2); }
+/* header tint (light mode) — the card-top's own left bar is removed since the
+   whole card now carries the status edge */
+.vessel-card.st-sailing     .card-top { background: linear-gradient(135deg,#dbeafe 0%,#eff6ff 100%); border-left:none; }
+.vessel-card.st-loading     .card-top { background: linear-gradient(135deg,#d1fae5 0%,#ecfdf5 100%); border-left:none; border-bottom-color:rgba(5,150,105,.14); }
+.vessel-card.st-discharging .card-top { background: linear-gradient(135deg,#ffedd5 0%,#fff7ed 100%); border-left:none; border-bottom-color:rgba(234,88,12,.14); }
+.vessel-card.st-anchored    .card-top { background: linear-gradient(135deg,#fef3c7 0%,#fffbeb 100%); border-left:none; border-bottom-color:rgba(245,158,11,.16); }
+.vessel-card.st-bunkering   .card-top { background: linear-gradient(135deg,#ede9fe 0%,#f5f3ff 100%); border-left:none; border-bottom-color:rgba(124,58,237,.14); }
+.vessel-card.st-unknown     .card-top { background: linear-gradient(135deg,#f1f5f9 0%,#f8fafc 100%); border-left:none; border-bottom-color:var(--border); }
+/* dark mode keeps the neutral header; status stays visible via the left edge */
+body.dark .vessel-card.st-sailing     .card-top,
+body.dark .vessel-card.st-loading     .card-top,
+body.dark .vessel-card.st-discharging .card-top,
+body.dark .vessel-card.st-anchored    .card-top,
+body.dark .vessel-card.st-bunkering   .card-top,
+body.dark .vessel-card.st-unknown     .card-top { background:#333; }
+body.dark .vessel-card.st-sailing     { border-left-color:#5b7fb0; }
+body.dark .vessel-card.st-loading     { border-left-color:#6aaa7e; }
+body.dark .vessel-card.st-discharging { border-left-color:#b07050; }
+body.dark .vessel-card.st-anchored    { border-left-color:#bfa14a; }
+body.dark .vessel-card.st-bunkering   { border-left-color:#8a7aaa; }
+body.dark .vessel-card.st-unknown     { border-left-color:#404040; }
 
 .card-vessel-name {
   font-family: 'Barlow Condensed', sans-serif;
@@ -4481,28 +4525,19 @@ function renderStats() {
   const loading = allVessels.filter(v => posType(v.position) === 'loading').length;
   const discharging = allVessels.filter(v => posType(v.position) === 'discharging').length;
 
-  statsRow.innerHTML = `
-    <div class="stat-card">
-      <div class="stat-pip stat-pip-default"></div>
-      <div><div class="stat-label">Total Vessels</div><div class="stat-value">${total}</div></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-pip stat-pip-blue"></div>
-      <div><div class="stat-label">Sailing</div><div class="stat-value" style="color:#2563eb">${sailing}</div></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-pip stat-pip-orange"></div>
-      <div><div class="stat-label">Discharging</div><div class="stat-value" style="color:var(--orange)">${discharging}</div></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-pip stat-pip-green"></div>
-      <div><div class="stat-label">Loading</div><div class="stat-value" style="color:var(--green)">${loading}</div></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-pip stat-pip-accent"></div>
-      <div><div class="stat-label">Notes Added</div><div class="stat-value" style="color:var(--accent)">${withNotes}</div></div>
-    </div>
-  `;
+  const cur = currentFilter || 'all';
+  const card = (key, pip, label, value, color) =>
+    `<div class="stat-card clickable ${cur===key?'active':''}" onclick="setFilter('${key}')" title="Filter by ${label}">
+      <div class="stat-pip ${pip}"></div>
+      <div><div class="stat-label">${label}</div><div class="stat-value"${color?` style="color:${color}"`:''}>${value}</div></div>
+    </div>`;
+
+  statsRow.innerHTML =
+    card('all',        'stat-pip-default','Total Vessels', total,        '') +
+    card('sailing',    'stat-pip-blue',   'Sailing',       sailing,      '#2563eb') +
+    card('discharging','stat-pip-orange', 'Discharging',   discharging,  'var(--orange)') +
+    card('loading',    'stat-pip-green',  'Loading',       loading,      'var(--green)') +
+    card('notes',      'stat-pip-accent', 'Notes Added',   withNotes,    'var(--accent)');
 }
 
 function posType(pos) {
@@ -4699,8 +4734,10 @@ function closeUrgentPanel() {
 function setFilter(f) {
   currentFilter = f;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(`filter${f.charAt(0).toUpperCase()+f.slice(1)}`).classList.add('active');
+  const btn = document.getElementById(`filter${f.charAt(0).toUpperCase()+f.slice(1)}`);
+  if (btn) btn.classList.add('active');
   renderVessels();
+  renderStats();
 }
 
 function rebuildDropdowns() {
@@ -4816,7 +4853,8 @@ function buildCard(v) {
       }).join('')}</div>`
     : '';
 
-  return `<div class="vessel-card ${hasNote ? 'has-notes' : ''}" onclick="openModal('${escAttr(v.name)}')">
+  const stClass = 'st-' + posType(v.position);
+  return `<div class="vessel-card ${stClass} ${hasNote ? 'has-notes' : ''}" onclick="openModal('${escAttr(v.name)}')">
     <div class="card-top">
       <div class="card-vessel-name" title="${mvPrefix(v.name)}">${mvPrefix(v.name)}</div>
       <div class="card-badges">
