@@ -3730,7 +3730,9 @@ let VESSELS_ALL = [
   'YASA H.MEHMET','YASA TOKYO','YASA JASMINE','YASA SUN',
   'YASA JUPITER','YASA EAGLE','YASA TULIP','YASA RUBY','YASA PLUTO',
   'YASA UNSAL SUNAR','YASA SPARROW','YASA SAPPHIRE','YASA SATURN','YASA MAGNOLIA',
-  'YASA NEPTUNE','YASA DREAM','YASA MIMOSA','YASA DIAMOND','YASA EMIRHAN'
+  'YASA NEPTUNE','YASA DREAM','YASA MIMOSA','YASA DIAMOND','YASA EMIRHAN',
+  // ── Yeni alınan gemiler ──
+  'YASA TEAM','YASA UNITY','YASA FORTUNE'
 ];
 
 const ALL_MARINE_NAMES = [
@@ -3760,7 +3762,10 @@ const DEFAULT_MARINE = {
   'YASA UNSAL SUNAR':'CANER YENIAY','YASA SPARROW':'CANER YENIAY',
   'YASA SAPPHIRE':'CANER YENIAY','YASA SATURN':'CANER YENIAY','YASA MAGNOLIA':'CANER YENIAY',
   'YASA NEPTUNE':'GÜRKAN BERKER','YASA DREAM':'GÜRKAN BERKER',
-  'YASA MIMOSA':'GÜRKAN BERKER','YASA DIAMOND':'GÜRKAN BERKER','YASA EMIRHAN':'GÜRKAN BERKER'
+  'YASA MIMOSA':'GÜRKAN BERKER','YASA DIAMOND':'GÜRKAN BERKER','YASA EMIRHAN':'GÜRKAN BERKER',
+  // ── Yeni alınan gemiler ──
+  'YASA TEAM':'SERKAN ÖZTÜRK','YASA UNITY':'ESER CAN'
+  // YASA FORTUNE: marine superintendent (denetçi) henüz atanmadı → unassigned
 };
 
 const DEFAULT_OPS = {
@@ -3793,6 +3798,60 @@ function mapGet(obj, vessel) {
     if (canonicalize(k) === key) return val;
   return '';
 }
+
+// ── Vessel registry helpers (canonical-aware) ───────────────────────────────
+// VESSELS_ALL = master fleet list (hardcoded + custom). Main grid = allVessels.
+// These keep the two in sync so manually-added and Excel-imported vessels
+// behave identically (notes, certs, dropdowns, cloud sync per-vessel rows).
+
+// Return the existing fleet-list name that matches `name` canonically, else null.
+function registryNameFor(name) {
+  const c = canonicalize(name);
+  return VESSELS_ALL.find(v => canonicalize(v) === c) || null;
+}
+
+// Register a vessel into the fleet list if not already known (by canonical name).
+// Returns the registry name to use (existing match, or the newly-added name).
+function registerVessel(name) {
+  const clean = (name || '').replace(/^M\/V\s+/i, '').replace(/\s+/g, ' ').trim().toUpperCase();
+  if (!clean) return null;
+  const existing = registryNameFor(clean);
+  if (existing) return existing;            // already in fleet → reuse, no duplicate
+  VESSELS_ALL.push(clean);
+  const custom = loadCustomVessels();
+  if (!custom.some(v => canonicalize(v) === canonicalize(clean))) {
+    custom.push(clean);
+    saveCustomVessels(custom);              // persist so it survives reloads
+  }
+  return clean;
+}
+
+// Merge freshly-parsed Excel vessels into allVessels:
+//  • register any genuinely new vessel into the fleet list
+//  • normalize each name to its registry form so notes/certs land on the right key
+//  • preserve manually-added vessels not present in this upload (as placeholders)
+function applyParsedVessels(parsed) {
+  parsed.forEach(v => {
+    const reg = registerVessel(v.name);
+    if (reg) v.name = reg;                  // canonical-stable key for all modules
+  });
+  const uploadedCanon = new Set(parsed.map(v => canonicalize(v.name)));
+  const customCanon   = new Set(loadCustomVessels().map(canonicalize));
+  const knownCanon    = new Set(VESSELS_ALL.map(canonicalize));
+  const preserved = allVessels.filter(v => {
+    const c = canonicalize(v.name);
+    if (uploadedCanon.has(c)) return false;        // this upload supplies fresh data
+    if (customCanon.has(c))   return true;         // manually-added vessel → always keep
+    // Keep EMPTY placeholders of known fleet vessels (e.g. newly-acquired ships not
+    // yet in the position report) so they stay visible until real data arrives.
+    // Vessels with actual operational data that drop off the report are not kept,
+    // preserving the "grid = latest report" behaviour.
+    const isPlaceholder = !v.position && !v.master && !v.chiefEng && !v.etaEtd1;
+    return knownCanon.has(c) && isPlaceholder;
+  });
+  allVessels = parsed.concat(preserved);
+}
+
 function getMarine(vessel) {
   const saved = loadAssignments().marine || {};
   const key = canonicalize(vessel);
@@ -3842,6 +3901,31 @@ function loadTheme() {
   applyTheme(saved);
 }
 
+// ── One-time grid seed for newly-acquired vessels ───────────────────────────
+// Makes new fleet ships appear on the dashboard immediately (before the next
+// position-report Excel). Guarded by a per-device marker so that once a vessel
+// has been seeded it is never re-added — deleting it later sticks.
+const NEW_FLEET_SEED = ['YASA TEAM','YASA UNITY','YASA FORTUNE'];
+function seedNewFleet() {
+  let seeded = {};
+  try { seeded = JSON.parse(localStorage.getItem('yasa_seeded_vessels') || '{}'); } catch(e) {}
+  let added = false;
+  NEW_FLEET_SEED.forEach(function(name) {
+    const c = canonicalize(name);
+    if (seeded[c]) return;                                   // already seeded once → skip
+    seeded[c] = true;
+    if (!allVessels.some(v => canonicalize(v.name) === c)) {
+      allVessels.push({ name: name, master:'', chiefEng:'', position:'', etaEtd1:'' });
+      added = true;
+    }
+  });
+  localStorage.setItem('yasa_seeded_vessels', JSON.stringify(seeded));
+  if (added) {
+    saveState();                 // persist + push placeholders to cloud core row
+    try { renderAll(); } catch(e) {}
+  }
+}
+
 function init() {
   loadTheme();
   updateDate();
@@ -3851,6 +3935,7 @@ function init() {
     custom.forEach(v => { if (v && !VESSELS_ALL.includes(v)) VESSELS_ALL.push(v); });
   } catch(e) {}
   loadSavedData();          // load from localStorage immediately (offline fallback)
+  seedNewFleet();           // show newly-acquired vessels on the grid right away (one-time)
   // NOTE: rebuildDropdowns() is now always called inside loadSavedData() — no need here
   cloudInit();              // then try to connect to Supabase
   document.addEventListener('keydown', function(e) {
@@ -3993,17 +4078,9 @@ function getCertAlerts(vessel) {
   const alerts = [];
   CERT_FIELDS.forEach(f => {
     if (f.noExpiry) {
-      // gyroRenewal vb: son değiştirilme tarihinden 5 yıl geçmişse kırmızı alert
-      const val = data[f.key];
-      if (!val) return;
-      const ts = parseCertDate(val);
-      if (!ts) return;
-      const FIVE_YEARS_MS = 5 * 365.25 * 24 * 3600 * 1000;
-      const ageMs = Date.now() - ts;
-      if (ageMs > FIVE_YEARS_MS) {
-        const yearsAgo = (ageMs / (365.25 * 24 * 3600 * 1000)).toFixed(1);
-        alerts.push({ label: f.label, days: -Math.round(ageMs / 86400000), status: 'overdue', yearsAgo });
-      }
+      // gyroRenewal1/2: bunlar "değişim tarihi" alanı — son kullanma değil.
+      // Hiçbir koşulda expire/overdue uyarısı verilmez; sadece tarih saklanır/gösterilir.
+      return;
     } else {
       const st = certStatus(data[f.key]);
       if (st === 'warn' || st === 'overdue') {
@@ -4226,7 +4303,7 @@ function parseOperatorFormat(data, headers, fileName) {
     return;
   }
 
-  allVessels = vessels;
+  applyParsedVessels(vessels);
   reportFileName = fileName;
   reportDate = vessels[0].reportDate || new Date().toLocaleDateString('en-GB');
   saveState();
@@ -4265,7 +4342,7 @@ function parseOriginalFormat(data, fileName) {
     return;
   }
 
-  allVessels = vessels;
+  applyParsedVessels(vessels);
   reportFileName = fileName;
   reportDate = new Date().toLocaleDateString('en-GB');
   saveState();
@@ -6024,18 +6101,21 @@ function addCustomVessel() {
   const name = (input.value || '').trim().toUpperCase();
   if (!name) { input.style.borderColor = '#ef4444'; return; }
   input.style.borderColor = '';
-  if (VESSELS_ALL.includes(name)) {
+  if (registryNameFor(name)) {
     showToast('This vessel already exists', 'error'); return;
   }
-  VESSELS_ALL.push(name);
-  const custom = loadCustomVessels();
-  custom.push(name);
-  saveCustomVessels(custom);
+  const reg = registerVessel(name);
+  // Show on the main dashboard immediately as an empty placeholder card,
+  // so the user can open it and add notes/certs right away.
+  if (reg && !allVessels.some(v => canonicalize(v.name) === canonicalize(reg))) {
+    allVessels.push({ name: reg, master:'', chiefEng:'', position:'', etaEtd1:'' });
+    saveState();
+  }
   input.value = '';
   renderSettingsPage();
   renderAll();
   rebuildDropdowns();
-  showToast(name + ' added to fleet', 'success');
+  showToast(reg + ' added to fleet', 'success');
 }
 
 function removeCustomVessel(name) {
@@ -6043,6 +6123,10 @@ function removeCustomVessel(name) {
   if (idx !== -1) VESSELS_ALL.splice(idx, 1);
   const custom = loadCustomVessels().filter(v => v !== name);
   saveCustomVessels(custom);
+  // Remove its placeholder/grid entry too (canonical match)
+  const before = allVessels.length;
+  allVessels = allVessels.filter(v => canonicalize(v.name) !== canonicalize(name));
+  if (allVessels.length !== before) saveState();
   renderSettingsPage();
   renderAll();
   rebuildDropdowns();
@@ -6506,18 +6590,6 @@ async function _writeCloud(rowId, data) {
   });
 }
 
-// ── Save local state to cloud ─────────────────────────────────
-// ── Debounce wrapper (sync, zombie-promise yok) ───────────────
-// Her çağrı timer'ı sıfırlar ve hemen resolved bir Promise döner.
-// Asıl kayıt _doCloudSave() ile yapılır — böylece eski çağrılar
-// asılı await'te beklemez, bellek sızıntısı olmaz.
-function cloudSave() {
-  if (!_cloudReady) return Promise.resolve();
-  if (_saveTimer) clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(function() { _saveTimer = null; _doCloudSave(); }, 500); // 500ms debounce (Pro plan)
-  return Promise.resolve();
-}
-
 // ── Per-vessel build ───────────────────────────────────────────────────────
 function _buildVesselData(vn) {
   var vesselName = vnToName(vn);
@@ -6688,8 +6760,9 @@ function _mergeVesselData(vn, cloud, local) {
       } else if (cTs[k]) {
         useLocal = false;
       } else {
-        // Her ikisinde de timestamp yok: dolu olan kazanır
-        useLocal = !!(lc[k]) || true;
+        // Her ikisinde de timestamp yok: dolu olan kazanır.
+        // Local doluysa local; local boş ama cloud doluysa cloud korunur.
+        useLocal = lc[k] ? true : !cc[k];
       }
       result[k]      = useLocal ? (lc[k] || '') : (cc[k] || '');
       result._ts[k]  = useLocal ? (lTs[k] || '') : (cTs[k] || '');
@@ -7203,7 +7276,7 @@ async function cloudInit() {
 
     // ── Akıllı polling: sadece 2KB index satırı izle ─────────────
     // Eski: 38 row × 150KB × her 90s = ~5.7MB/poll → günde GB'lar
-    // Yeni: 1 satır × 2KB × her 3dk = ~10KB/poll → günde MB'lar
+    // Yeni: 1 satır × 2KB × her 10sn = ~12KB/poll → günde MB'lar
     var _lastIndexStr = _lastRowStr['yasa_changes_index'] || '';
 
     setInterval(async function() {
@@ -7242,7 +7315,24 @@ async function cloudInit() {
 
             if (rowId.indexOf('yasa_v_') === 0) {
               var pvn = rowId.replace('yasa_v_', '');
-              _applyVesselData(pvn, pcd);
+              // VERİ KAYBI KORUMASI (sertifikalar):
+              // Gelen bulut verisini uygulamadan önce, açık modaldaki cert
+              // input'larını kaydet ve sertifikaları YEREL ile alan-bazlı birleştir.
+              // Böylece bu cihazda yeni girilen (timestamp'li) bir cert tarihi,
+              // başka cihazdan gelen eski değerle EZİLMEZ. Diğer alanlar (notlar,
+              // todo, antbi vb.) eskisi gibi buluttan uygulanır — item-bazlı
+              // senkron davranışı değişmez.
+              var pcdSafe = pcd;
+              try {
+                if (activeVessel && canonicalize(activeVessel.name) === pvn) {
+                  _collectCertsFromDOM(vnToName(pvn));
+                }
+                var _localNow = _buildVesselData(pvn);
+                if (_localNow && _localNow.certs) {
+                  pcdSafe = _mergeVesselData(pvn, pcd, { certs: _localNow.certs });
+                }
+              } catch(eMerge) { pcdSafe = pcd; }
+              _applyVesselData(pvn, pcdSafe);
               try { renderStats(); renderVessels(); renderAlertPanel(); } catch(e2) {}
               // If the open modal is for this vessel, refresh its photo
               if (activeVessel && canonicalize(activeVessel.name) === pvn) {
@@ -9522,9 +9612,14 @@ function exportVesselPDF() {
   var certEntries = [];
   CERT_FIELDS.forEach(function(f) {
     var val = certData[f.key]; if (!val) return;
+    var dateStr = toDateInputVal(val).split('-').reverse().join('/');
+    if (f.noExpiry) {
+      // Değişim tarihi alanı — expire eki/rengi yok, sadece tarih
+      certEntries.push({ label: f.label, date: dateStr, suffix: '', st: null });
+      return;
+    }
     var days = certDaysLeft(val);
     var st   = certStatus(val);
-    var dateStr = toDateInputVal(val).split('-').reverse().join('/');
     var suffix  = days !== null ? (st==='overdue' ? ' OVD' : ' [' + days + 'd]') : '';
     certEntries.push({ label: f.label, date: dateStr, suffix: suffix, st: st });
   });
