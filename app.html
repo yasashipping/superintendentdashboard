@@ -3791,7 +3791,7 @@ const ALL_OPS_NAMES = [
 ];
 
 const DEFAULT_MARINE = {
-  'YASA H.MULLA':'ESER CAN','YASA ROSE':'ESER CAN','YASA KYOTO':'ESER CAN',
+  'YASA H.MULLA':'ESER CAN','YASA ROSE':'ESER CAN','YASA KYOTO':'ENDER BEDİR',
   'YASA MOON':'ESER CAN','YASA ILHAN':'ESER CAN',
   'YASA MARS':'DURMUŞ ALİ CERAN','YASA KAPTAN ERBIL':'DURMUŞ ALİ CERAN',
   'YASA LOTUS':'DURMUŞ ALİ CERAN','YASA EMERALD':'DURMUŞ ALİ CERAN','YASA STAR':'DURMUŞ ALİ CERAN',
@@ -3808,8 +3808,7 @@ const DEFAULT_MARINE = {
   'YASA NEPTUNE':'GÜRKAN BERKER','YASA DREAM':'GÜRKAN BERKER',
   'YASA MIMOSA':'GÜRKAN BERKER','YASA DIAMOND':'GÜRKAN BERKER','YASA EMIRHAN':'GÜRKAN BERKER',
   // ── Yeni alınan gemiler ──
-  'YASA TEAM':'SERKAN ÖZTÜRK','YASA UNITY':'ESER CAN'
-  // YASA FORTUNE: marine superintendent (denetçi) henüz atanmadı → unassigned
+  'YASA TEAM':'SERKAN ÖZTÜRK','YASA UNITY':'ESER CAN','YASA FORTUNE':'ONUR ER'
 };
 
 const DEFAULT_OPS = {
@@ -6076,22 +6075,23 @@ function renderSettingsPage() {
 
   const customSet = new Set(loadCustomVessels());
   grid.innerHTML = VESSELS_ALL.map(v => {
-    const curMarine = a.marine[v] || DEFAULT_MARINE[v] || ALL_MARINE_NAMES[0];
-    const curOps    = a.ops[v]    || DEFAULT_OPS[v]    || '';
-    const marineOpts = ALL_MARINE_NAMES.map(n =>
-      `<option value="${n}"${n===curMarine?' selected':''}>${n}</option>`
-    ).join('');
-    const opsOpts = `<option value="">— unassigned —</option>` + ALL_OPS_NAMES.map(n =>
-      `<option value="${n}"${n===curOps?' selected':''}>${n}</option>`
+    const curMarine = (a.marine[v] !== undefined ? a.marine[v] : (DEFAULT_MARINE[v] || ''));
+    const curOps    = (a.ops[v]    !== undefined ? a.ops[v]    : (DEFAULT_OPS[v]    || ''));
+    const marineOpts = `<option value=""${!curMarine?' selected':''}>— unassigned —</option>` +
+      ALL_MARINE_NAMES.map(n =>
+        `<option value="${escAttr(n)}"${n===curMarine?' selected':''}>${escHtml(n)}</option>`
+      ).join('');
+    const opsOpts = `<option value=""${!curOps?' selected':''}>— unassigned —</option>` + ALL_OPS_NAMES.map(n =>
+      `<option value="${escAttr(n)}"${n===curOps?' selected':''}>${escHtml(n)}</option>`
     ).join('');
     const delBtn = customSet.has(v)
-      ? `<button type="button" onclick="removeCustomVessel('${v}')" title="Remove vessel"
+      ? `<button type="button" onclick="removeCustomVessel('${escAttr(v)}')" title="Remove vessel"
            style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:14px;padding:0 2px;line-height:1;">×</button>`
       : '';
     return `<div style="${rowSt}">
-      <span style="${lblSt};display:flex;align-items:center;gap:4px;" title="${v}">${v}${delBtn}</span>
-      <select style="${selSt}" onchange="saveSetting('${v}','marine',this.value)">${marineOpts}</select>
-      <select style="${selSt}" onchange="saveSetting('${v}','ops',this.value)">${opsOpts}</select>
+      <span style="${lblSt};display:flex;align-items:center;gap:4px;" title="${escAttr(v)}">${escHtml(v)}${delBtn}</span>
+      <select style="${selSt}" onchange="saveSetting('${escAttr(v)}','marine',this.value)">${marineOpts}</select>
+      <select style="${selSt}" onchange="saveSetting('${escAttr(v)}','ops',this.value)">${opsOpts}</select>
     </div>`;
   }).join('');
   renderCustomVesselList();
@@ -6101,8 +6101,11 @@ function saveSetting(vessel, type, val) {
   const a = loadAssignments();
   if (!a[type]) a[type] = {};
   if (val) a[type][vessel] = val;
+  else if (type === 'marine') a[type][vessel] = '';   // explicit unassign overrides default
   else delete a[type][vessel];
   saveAssignments(a, vessel);
+  // Değişiklik panoya ve gruplamaya hemen yansısın (Apply beklemeden)
+  try { renderVessels(); renderStats(); renderAlertPanel(); rebuildDropdowns(); } catch(e) {}
 }
 
 function resetMarineDefaults() {
@@ -6744,7 +6747,12 @@ function _applyGlobalData(mod, data) {
         allVessels=data.vessels; reportFileName=data.reportFileName||''; reportDate=data.reportDate||'';
         localStorage.setItem('yasa_dashboard_state',JSON.stringify({vessels:allVessels,reportFileName:reportFileName,reportDate:reportDate}));
       }
-      if(data.assignments) localStorage.setItem('yasa_assignments',JSON.stringify(data.assignments));
+      if(data.assignments){
+        // Gelen atamaları yerel ile timestamp'e göre birleştir — Settings'te az önce
+        // yapılan değişiklik, gelen poll/echo tarafından geri ALINMAZ.
+        var _mergedAssign = _mergeAssignments(data.assignments, loadAssignments());
+        localStorage.setItem('yasa_assignments', JSON.stringify(_mergedAssign));
+      }
       if(data.noteTombstones){noteTombstones=data.noteTombstones;localStorage.setItem('yasa_note_tombstones',JSON.stringify(noteTombstones));}
       break;
     case 'meetings':
@@ -6841,7 +6849,13 @@ function _mergeVesselData(vn, cloud, local) {
 function _mergeGlobalData(mod, cloud, local) {
   if (!cloud) return local;
   if (!local) return cloud;
-  if (mod === 'core') return Object.assign({}, cloud, local);
+  if (mod === 'core') {
+    var m = Object.assign({}, cloud, local);
+    // Atamaları ve not-tombstone'ları KÖRü körüne ezme; düzgün birleştir.
+    m.assignments    = _mergeAssignments(cloud.assignments, local.assignments);
+    m.noteTombstones = Object.assign({}, cloud.noteTombstones||{}, local.noteTombstones||{});
+    return m;
+  }
   if (mod === 'meetings') {
     var mt = Object.assign({}, cloud.meetingTombstones||{}, local.meetingTombstones||{});
     var ms = (local.meetings||[]).concat((cloud.meetings||[]).filter(function(cm){
@@ -6850,6 +6864,31 @@ function _mergeGlobalData(mod, cloud, local) {
     return { meetings:ms, meetingTombstones:mt };
   }
   return Object.assign({}, cloud, local);
+}
+
+// Per-vessel timestamp merge for marine/ops assignments. Each side stamps
+// a._ts[canonicalVessel] when changed; the most recently edited side wins for
+// that vessel (tie → local). Prevents a poll/echo from reverting a fresh edit.
+function _mergeAssignments(cloud, local) {
+  cloud = cloud || {}; local = local || {};
+  var cM=cloud.marine||{}, cO=cloud.ops||{}, cT=cloud._ts||{};
+  var lM=local.marine||{}, lO=local.ops||{}, lT=local._ts||{};
+  var out = { marine:{}, ops:{}, _ts:{} };
+  var vessels = {};
+  [cM,lM,cO,lO].forEach(function(o){ Object.keys(o).forEach(function(k){ vessels[k]=1; }); });
+  Object.keys(vessels).forEach(function(v){
+    var c = canonicalize(v);
+    var lt = lT[c]||'', ct = cT[c]||'';
+    var useLocal = lt >= ct;                       // ISO strings compare chronologically
+    var m = useLocal ? (lM[v]!==undefined ? lM[v] : cM[v]) : (cM[v]!==undefined ? cM[v] : lM[v]);
+    var o = useLocal ? (lO[v]!==undefined ? lO[v] : cO[v]) : (cO[v]!==undefined ? cO[v] : lO[v]);
+    if (m !== undefined) out.marine[v] = m;        // '' kept → explicit unassign survives
+    if (o !== undefined && o !== '') out.ops[v] = o;
+    out._ts[c] = lt >= ct ? (lt||ct) : ct;
+  });
+  var llm=lT._lastModified||'', clm=cT._lastModified||'';
+  out._ts._lastModified = llm >= clm ? (llm||clm) : clm;
+  return out;
 }
 
 // ── cloudSave(type, key) ────────────────────────────────────────────────────
@@ -13431,20 +13470,28 @@ let _inspType   = 'company';
 let _inspYearFilter  = null;
 let _inspInspector   = null;
 const _inspExpanded = new Set();
+let _inspClickBound = false;   // document click listener bound only once
 
 // ── Multi-vessel selector ─────────────────────────────────────
 function inspInit() {
-  _inspBuildVesselList('');
-  _inspRunTextCleanup();
-  inspRender();
-  // Close panel when clicking outside
-  document.addEventListener('click', function(e) {
-    var wrapper = document.getElementById('inspVesselWrapper');
-    if (wrapper && !wrapper.contains(e.target)) {
-      var panel = document.getElementById('inspVesselPanel');
-      if (panel) panel.style.display = 'none';
-    }
-  });
+  // Her adımı ayrı korumaya al: bozuk bir kayıt cleanup'ta patlasa bile
+  // bölüm yine de açılır ve render edilir (açılış sorununu önler).
+  try { _inspBuildVesselList(''); } catch(e){ console.warn('insp: vessel list build failed', e); }
+  try { _inspRunTextCleanup();   } catch(e){ console.warn('insp: text cleanup failed', e); }
+  try { inspRender();            } catch(e){ console.warn('insp: render failed', e); }
+  // Close panel when clicking outside — bind ONCE (eskiden her açılışta
+  // yeni bir document listener ekleniyordu; birikiyor ve panelin davranışını
+  // bozabiliyordu).
+  if (!_inspClickBound) {
+    _inspClickBound = true;
+    document.addEventListener('click', function(e) {
+      var wrapper = document.getElementById('inspVesselWrapper');
+      if (wrapper && !wrapper.contains(e.target)) {
+        var panel = document.getElementById('inspVesselPanel');
+        if (panel) panel.style.display = 'none';
+      }
+    });
+  }
 }
 
 function inspToggleVesselPanel() {
@@ -13562,7 +13609,7 @@ function _cleanFindingText(text) {
 function inspKey(type, vn)        { return 'yasa_insp_' + type + '_' + vn; }
 function inspMigKey(vn)           { return 'yasa_insp_mig_' + vn; }
 function inspTombKey(type, vn)    { return 'yasa_insp_tomb_' + type + '_' + vn; }
-function inspLoad(type, vn)       { try { return JSON.parse(localStorage.getItem(inspKey(type,vn))||'[]'); } catch(e){ return []; } }
+function inspLoad(type, vn)       { try { var a = JSON.parse(localStorage.getItem(inspKey(type,vn))||'[]'); return Array.isArray(a) ? a : []; } catch(e){ return []; } }
 function inspSave(type, vn, arr)  { localStorage.setItem(inspKey(type,vn), JSON.stringify(arr)); cloudSave('vessel', vn).catch(function(){}); }
 function inspTombLoad(type, vn)   { try { return JSON.parse(localStorage.getItem(inspTombKey(type,vn))||'{}'); } catch(e){ return {}; } }
 function inspTombAdd(type, vn, id){ var t=inspTombLoad(type,vn); t[id]=Date.now(); localStorage.setItem(inspTombKey(type,vn), JSON.stringify(t)); }
@@ -13658,17 +13705,6 @@ function _inspRunTextCleanup() {
 }
 
 // ── One-time cleanup (called from inspInit above) ────────────
-
-function inspSetYear(year) {
-  _inspYearFilter = year;
-  inspRender();
-}
-
-function inspSetInspector(name) {
-  _inspInspector = name;
-  _inspYearFilter = null; // reset year when switching inspector
-  inspRender();
-}
 
 function inspOnTypeChange(type) {
   _inspType = type;
