@@ -3956,21 +3956,25 @@ function loadTheme() {
 // position-report Excel). Guarded by a per-device marker so that once a vessel
 // has been seeded it is never re-added — deleting it later sticks.
 const NEW_FLEET_SEED = ['YASA TEAM','YASA UNITY','YASA FORTUNE','YASA PIONEER','YASA DRAKE'];
-function seedNewFleet() {
-  let seeded = {};
-  try { seeded = JSON.parse(localStorage.getItem('yasa_seeded_vessels') || '{}'); } catch(e) {}
-  let added = false;
-  NEW_FLEET_SEED.forEach(function(name) {
-    const c = canonicalize(name);
-    if (seeded[c]) return;                                   // already seeded once → skip
-    seeded[c] = true;
-    if (!allVessels.some(v => canonicalize(v.name) === c)) {
-      allVessels.push({ name: name, master:'', chiefEng:'', position:'', etaEtd1:'' });
-      added = true;
+// Yeni alınan gemiler kalıcı filo üyesidir (arayüzden silinemez). Bu yüzden
+// ana ekranda HER ZAMAN bulunmalarını garanti ederiz — sync bir şekilde silse
+// bile bir sonraki yüklemede geri gelirler (kendi kendini onarır). Not/sertifika
+// verileri ayrı anahtarlarda durduğu için bu işlem hiçbir veriyi silmez.
+function _ensureFleetVessels(arr) {
+  arr = Array.isArray(arr) ? arr : [];
+  NEW_FLEET_SEED.forEach(function(name){
+    var c = canonicalize(name);
+    if (!arr.some(function(v){ return v && canonicalize(v.name) === c; })) {
+      arr.push({ name: name, master:'', chiefEng:'', position:'', etaEtd1:'' });
     }
   });
-  localStorage.setItem('yasa_seeded_vessels', JSON.stringify(seeded));
-  if (added) {
+  return arr;
+}
+
+function seedNewFleet() {
+  var before = allVessels.length;
+  allVessels = _ensureFleetVessels(allVessels);
+  if (allVessels.length !== before) {
     saveState();                 // persist + push placeholders to cloud core row
     try { renderAll(); } catch(e) {}
   }
@@ -6789,7 +6793,7 @@ function _applyGlobalData(mod, data) {
   switch(mod) {
     case 'core':
       if(data.vessels&&data.vessels.length>0){
-        allVessels=data.vessels; reportFileName=data.reportFileName||''; reportDate=data.reportDate||'';
+        allVessels=_ensureFleetVessels(data.vessels); reportFileName=data.reportFileName||''; reportDate=data.reportDate||'';
         localStorage.setItem('yasa_dashboard_state',JSON.stringify({vessels:allVessels,reportFileName:reportFileName,reportDate:reportDate}));
       }
       if(data.assignments){
@@ -6917,6 +6921,8 @@ function _mergeGlobalData(mod, cloud, local) {
     // Atamaları ve not-tombstone'ları KÖRü körüne ezme; düzgün birleştir.
     m.assignments    = _mergeAssignments(cloud.assignments, local.assignments);
     m.noteTombstones = Object.assign({}, cloud.noteTombstones||{}, local.noteTombstones||{});
+    // Yeni alınan kalıcı gemiler bir cihazın eski anlık görüntüsü yüzünden düşmesin.
+    m.vessels        = _ensureFleetVessels(m.vessels);
     return m;
   }
   if (mod === 'meetings') {
