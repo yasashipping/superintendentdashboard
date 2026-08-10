@@ -3776,7 +3776,7 @@ let VESSELS_ALL = [
   'YASA UNSAL SUNAR','YASA SPARROW','YASA SAPPHIRE','YASA SATURN','YASA MAGNOLIA',
   'YASA NEPTUNE','YASA DREAM','YASA MIMOSA','YASA DIAMOND','YASA EMIRHAN',
   // ── Yeni alınan gemiler ──
-  'YASA TEAM','YASA UNITY','YASA FORTUNE'
+  'YASA TEAM','YASA UNITY','YASA FORTUNE','YASA PIONEER','YASA DRAKE'
 ];
 
 const ALL_MARINE_NAMES = [
@@ -3808,7 +3808,8 @@ const DEFAULT_MARINE = {
   'YASA NEPTUNE':'GÜRKAN BERKER','YASA DREAM':'GÜRKAN BERKER',
   'YASA MIMOSA':'GÜRKAN BERKER','YASA DIAMOND':'GÜRKAN BERKER','YASA EMIRHAN':'GÜRKAN BERKER',
   // ── Yeni alınan gemiler ──
-  'YASA TEAM':'SERKAN ÖZTÜRK','YASA UNITY':'ESER CAN','YASA FORTUNE':'ONUR ER'
+  'YASA TEAM':'SERKAN ÖZTÜRK','YASA UNITY':'ESER CAN','YASA FORTUNE':'ONUR ER',
+  'YASA PIONEER':'DURMUŞ ALİ CERAN','YASA DRAKE':'CANER YENIAY'
 };
 
 const DEFAULT_OPS = {
@@ -3913,12 +3914,18 @@ function loadAssignments() {
   try { return JSON.parse(localStorage.getItem('yasa_assignments')||'null')||{marine:{},ops:{},_ts:{}}; }
   catch(e) { return {marine:{},ops:{},_ts:{}}; }
 }
-function saveAssignments(a, changedVessel) {
-  // Stamp each change — per-vessel timestamp for fine-grained conflict resolution
+function saveAssignments(a, changedVessel, type) {
+  // Stamp each change with a per-field timestamp so marine and ops edits to the
+  // same vessel stay independent (one no longer overwrites the other on sync).
   if (!a._ts) a._ts = {};
   const now = new Date().toISOString();
   a._ts._lastModified = now;
-  if (changedVessel) a._ts[canonicalize(changedVessel)] = now;
+  if (changedVessel) {
+    const c = canonicalize(changedVessel);
+    if (type) a._ts[c + '::' + type] = now;
+    else { a._ts[c + '::marine'] = now; a._ts[c + '::ops'] = now; }
+    a._ts[c] = now;                     // legacy per-vessel stamp korunur (geri uyum)
+  }
   localStorage.setItem('yasa_assignments', JSON.stringify(a));
   cloudSave('core').catch(e => console.warn('Cloud save (assignments) failed:', e));
 }
@@ -3948,7 +3955,7 @@ function loadTheme() {
 // Makes new fleet ships appear on the dashboard immediately (before the next
 // position-report Excel). Guarded by a per-device marker so that once a vessel
 // has been seeded it is never re-added — deleting it later sticks.
-const NEW_FLEET_SEED = ['YASA TEAM','YASA UNITY','YASA FORTUNE'];
+const NEW_FLEET_SEED = ['YASA TEAM','YASA UNITY','YASA FORTUNE','YASA PIONEER','YASA DRAKE'];
 function seedNewFleet() {
   let seeded = {};
   try { seeded = JSON.parse(localStorage.getItem('yasa_seeded_vessels') || '{}'); } catch(e) {}
@@ -5213,7 +5220,7 @@ function cargoOpenAdd(vesselName) {
     const qty   = (overlay.querySelector('#cg_qty').value||'').trim();
     if (!load || !disch || !name) { showToast('Load port, discharge port ve cargo adı gereklidir', 'error'); return; }
     const cargoes = cargoLoad(vesselName);
-    cargoes.unshift({ loadPort: load, dischargePort: disch, cargoName: name, quantity: qty ? parseFloat(qty) : '', addedAt: new Date().toISOString() });
+    cargoes.unshift({ id:'cg_'+Date.now()+'_'+Math.random().toString(36).slice(2,5), loadPort: load, dischargePort: disch, cargoName: name, quantity: qty ? parseFloat(qty) : '', addedAt: new Date().toISOString() });
     cargoSave(vesselName, cargoes);
     overlay.remove();
     // Sol paneli yeniden render et
@@ -5235,7 +5242,14 @@ function cargoOpenAdd(vesselName) {
 function cargoDelete(vesselName, idx) {
   if (!confirm('Bu cargo kaydı silinsin mi?')) return;
   const cargoes = cargoLoad(vesselName);
+  const removed = cargoes[idx];
   cargoes.splice(idx, 1);
+  if (removed) {
+    const vn = canonicalize(vesselName);
+    const t = cargoTombLoad(vn);
+    t[cargoItemKey(removed)] = new Date().toISOString();
+    cargoTombSave(vn, t);
+  }
   cargoSave(vesselName, cargoes);
   _cargoRefresh(vesselName);
 }
@@ -5314,11 +5328,35 @@ function loadCob(vessel)      { try { return JSON.parse(localStorage.getItem(cob
 
 // ── Last 5 Cargoes ───────────────────────────────────────────
 function cargoKey(vessel)  { return 'yasa_cargo_' + canonicalize(vessel); }
-function cargoLoad(vessel) { try { return JSON.parse(localStorage.getItem(cargoKey(vessel)) || '[]'); } catch(e){ return []; } }
+function cargoLoad(vessel) { try { var a = JSON.parse(localStorage.getItem(cargoKey(vessel)) || '[]'); return Array.isArray(a) ? a : []; } catch(e){ return []; } }
 function cargoSave(vessel, arr) {
-  arr = arr.slice(0, 5); // max 5 kayıt
+  arr = (Array.isArray(arr)?arr:[]).slice(0, 5); // max 5 kayıt
   localStorage.setItem(cargoKey(vessel), JSON.stringify(arr));
   cloudSave('vessel', canonicalize(vessel)).catch(function(){});
+}
+// Kargo kaybını önlemek için: her kaydın kararlı bir anahtarı olur, birleştirme
+// id'ye göre UNION yapar, silmeler tombstone ile işaretlenir. Böylece hiçbir
+// kargo girişi başka cihazdan gelen bayat/boş veriyle silinmez.
+function cargoItemKey(c) {
+  if (!c) return '';
+  return c.id || [c.loadPort,c.dischargePort,c.cargoName,c.quantity,c.addedAt].join('|');
+}
+function cargoTombLoad(vn) { try { return JSON.parse(localStorage.getItem('yasa_cargo_tomb_'+vn)||'{}')||{}; } catch(e){ return {}; } }
+function cargoTombSave(vn, t) { try { localStorage.setItem('yasa_cargo_tomb_'+vn, JSON.stringify(t||{})); } catch(e){} }
+function _mergeCargo(localArr, cloudArr, tomb) {
+  localArr = Array.isArray(localArr) ? localArr : [];
+  cloudArr = Array.isArray(cloudArr) ? cloudArr : [];
+  tomb = tomb || {};
+  var map = {};
+  localArr.concat(cloudArr).forEach(function(c){
+    if (!c) return;
+    var k = cargoItemKey(c); if (!k) return;
+    if (tomb[k]) return;               // silinmiş → atla
+    if (!map[k]) map[k] = c;           // aynı anahtar = aynı içerik
+  });
+  var arr = Object.keys(map).map(function(k){ return map[k]; });
+  arr.sort(function(a,b){ return new Date(b.addedAt||0) - new Date(a.addedAt||0); }); // yeni→eski
+  return arr.slice(0, 5);
 }
 function sludgeKey(vessel)    { return 'yasa_sludge_' + canonicalize(vessel); }
 function loadSludge(vessel)   { try { return JSON.parse(localStorage.getItem(sludgeKey(vessel)) || 'null') || {}; } catch(e) { return {}; } }
@@ -6100,10 +6138,10 @@ function renderSettingsPage() {
 function saveSetting(vessel, type, val) {
   const a = loadAssignments();
   if (!a[type]) a[type] = {};
-  if (val) a[type][vessel] = val;
-  else if (type === 'marine') a[type][vessel] = '';   // explicit unassign overrides default
-  else delete a[type][vessel];
-  saveAssignments(a, vessel);
+  // Boş seçim = açık şekilde "unassigned". Hem marine hem ops için '' saklanır
+  // (silinmez) ki varsayılana geri dönmesin — seçim kalıcı olsun.
+  a[type][vessel] = val || '';
+  saveAssignments(a, vessel, type);
   // Değişiklik panoya ve gruplamaya hemen yansısın (Apply beklemeden)
   try { renderVessels(); renderStats(); renderAlertPanel(); rebuildDropdowns(); } catch(e) {}
 }
@@ -6642,6 +6680,7 @@ function _buildVesselData(vn) {
     garbage:         (function(){ var r=localStorage.getItem(garbageKey(vesselName)); return r?JSON.parse(r):null; })(),
     cob:             (function(){ var r=localStorage.getItem(cobKey(vesselName)); return r?JSON.parse(r):null; })(),
     cargo:           cargoLoad(vesselName),
+    cargoTombstones: cargoTombLoad(vn),
     photo:           (function(){ var r=localStorage.getItem(vesselPhotoKey(vesselName)); if(!r)return null; try{return r.startsWith('{')?JSON.parse(r):{url:r,ts:'2000-01-01T00:00:00Z'};}catch(e){return null;} })(),
     todos:           (function(){ var r=localStorage.getItem('yasa_todos_'+vn); return r?JSON.parse(r):null; })(),
     todoTombstones:  todoTombLoad(vn),
@@ -6683,7 +6722,13 @@ function _applyVesselData(vn, data) {
   if (data.sludge)          localStorage.setItem(sludgeKey(vesselName), JSON.stringify(data.sludge));
   if (data.garbage)         localStorage.setItem(garbageKey(vesselName), JSON.stringify(data.garbage));
   if (data.cob)             localStorage.setItem(cobKey(vesselName), JSON.stringify(data.cob));
-  if (data.cargo)           localStorage.setItem(cargoKey(vn), JSON.stringify(data.cargo));
+  if (data.cargo || data.cargoTombstones) {
+    // VERİ KAYBI KORUMASI: gelen kargoyu körü körüne yazma; yerel ile birleştir.
+    var _cgTomb   = Object.assign({}, cargoTombLoad(vn), data.cargoTombstones||{});
+    var _cgMerged = _mergeCargo(cargoLoad(vn), data.cargo, _cgTomb);
+    localStorage.setItem(cargoKey(vn), JSON.stringify(_cgMerged));
+    cargoTombSave(vn, _cgTomb);
+  }
   if (data.photo&&data.photo.url) localStorage.setItem('yasa_photo_url_'+vn, JSON.stringify(data.photo));
   if (data.todoTombstones&&Object.keys(data.todoTombstones).length)
                             localStorage.setItem(todoTombKey(vn), JSON.stringify(data.todoTombstones));
@@ -6732,7 +6777,7 @@ function _buildGlobalData(mod) {
         gasOverrides:{ total:localStorage.getItem('yasa_gas_total_override'), egemar:localStorage.getItem('yasa_gas_egemar_override') }
       };
     case 'expenses':
-      return { records:(typeof peRecords==='function'?peRecords():[]), opts:(typeof peOpts==='function'?peOpts():{}), seeded:!!_peLs('yasa_pe_v1') };
+      return { records:(typeof peRecords==='function'?peRecords():[]), opts:(typeof peOpts==='function'?peOpts():{}), seeded:!!_peLs('yasa_pe_v1'), tombstones:(typeof peTombLoad==='function'?peTombLoad():{}) };
     case 'orders':
       return (typeof ordLoad==='function'?ordLoad():[]);
     default: return null;
@@ -6767,9 +6812,15 @@ function _applyGlobalData(mod, data) {
       }
       break;
     case 'expenses':
-      if(data.records) _peSt('yasa_pe',data.records);
-      if(data.opts)    _peSt('yasa_pe_opts',data.opts);
-      if(data.seeded)  _peSt('yasa_pe_v1',1);
+      // VERİ KAYBI KORUMASI: gelen bulut kayıtlarını körü körüne yazma.
+      // Yereldeki kayıtlarla birleştir (union+LWW+tombstone) — hiçbir liman
+      // kaydı/tarihi başka cihazdan gelen poll ile silinmez.
+      var _peLocal  = (typeof _buildGlobalData==='function') ? _buildGlobalData('expenses') : {};
+      var _peMerged = _mergePeData(data, _peLocal);
+      _peSt('yasa_pe', _peMerged.records);
+      _peSt('yasa_pe_opts', _peMerged.opts);
+      if (_peMerged.seeded) _peSt('yasa_pe_v1', 1);
+      peTombSave(_peMerged.tombstones);
       break;
     case 'orders':
       if(Array.isArray(data)) localStorage.setItem('yasa_orders',JSON.stringify(data));
@@ -6820,6 +6871,18 @@ function _mergeVesselData(vn, cloud, local) {
     var lv = local[key], cv = cloud[key];
     if (lv === null || lv === undefined) return; // local null → cloud'u koru
 
+    // Cargo: id'ye göre union + tombstone + son 5 (asla tek taraflı kaybolmaz)
+    if (key === 'cargo') {
+      var cgTomb = Object.assign({}, cloud.cargoTombstones||{}, local.cargoTombstones||{});
+      merged.cargo = _mergeCargo(lv, cv, cgTomb);
+      merged.cargoTombstones = cgTomb;
+      return;
+    }
+    if (key === 'cargoTombstones') {
+      merged.cargoTombstones = Object.assign({}, cloud.cargoTombstones||{}, local.cargoTombstones||{});
+      return;
+    }
+
     if (!cv) { merged[key] = lv; return; }
 
     // Certs: per-field merge
@@ -6863,7 +6926,40 @@ function _mergeGlobalData(mod, cloud, local) {
     }));
     return { meetings:ms, meetingTombstones:mt };
   }
+  if (mod === 'expenses') {
+    return _mergePeData(cloud, local);
+  }
   return Object.assign({}, cloud, local);
+}
+
+// Port Expenses birleştirme: id'ye göre UNION + updatedAt/addedAt'e göre LWW +
+// tombstone. Hiçbir kayıt tek taraflı KAYBOLMAZ; yalnızca açıkça silinenler
+// (tombstone'lu) düşer. Kayıt silindikten sonra tekrar düzenlenmişse korunur.
+function _mergePeData(cloud, local) {
+  cloud = cloud || {}; local = local || {};
+  var tomb = Object.assign({}, cloud.tombstones||{}, local.tombstones||{});
+  var map = {};
+  (cloud.records||[]).concat(local.records||[]).forEach(function(r){
+    if (!r || !r.id) return;
+    var ex = map[r.id];
+    var rTs  = new Date(r.updatedAt  || r.addedAt  || r.savedAt  || 0).getTime();
+    var exTs = ex ? new Date(ex.updatedAt || ex.addedAt || ex.savedAt || 0).getTime() : -1;
+    if (!ex || rTs >= exTs) map[r.id] = r;
+  });
+  var records = Object.keys(map).map(function(k){ return map[k]; }).filter(function(r){
+    var td = tomb[r.id];
+    if (!td) return true;                       // silinmemiş → tut
+    var rTs = new Date(r.updatedAt || r.addedAt || r.savedAt || 0).getTime();
+    return rTs > new Date(td).getTime();        // silindikten sonra düzenlenmiş → tut
+  });
+  var co = cloud.opts||{}, lo = local.opts||{};
+  var uniq = function(a,b){ return Array.from(new Set([].concat(a||[], b||[]))).sort(); };
+  return {
+    records: records,
+    opts: { ports: uniq(co.ports,lo.ports), countries: uniq(co.countries,lo.countries), authorities: uniq(co.authorities,lo.authorities) },
+    seeded: !!(cloud.seeded || local.seeded),
+    tombstones: tomb
+  };
 }
 
 // Per-vessel timestamp merge for marine/ops assignments. Each side stamps
@@ -6871,20 +6967,24 @@ function _mergeGlobalData(mod, cloud, local) {
 // that vessel (tie → local). Prevents a poll/echo from reverting a fresh edit.
 function _mergeAssignments(cloud, local) {
   cloud = cloud || {}; local = local || {};
-  var cM=cloud.marine||{}, cO=cloud.ops||{}, cT=cloud._ts||{};
-  var lM=local.marine||{}, lO=local.ops||{}, lT=local._ts||{};
+  var cT = cloud._ts||{}, lT = local._ts||{};
   var out = { marine:{}, ops:{}, _ts:{} };
-  var vessels = {};
-  [cM,lM,cO,lO].forEach(function(o){ Object.keys(o).forEach(function(k){ vessels[k]=1; }); });
-  Object.keys(vessels).forEach(function(v){
-    var c = canonicalize(v);
-    var lt = lT[c]||'', ct = cT[c]||'';
-    var useLocal = lt >= ct;                       // ISO strings compare chronologically
-    var m = useLocal ? (lM[v]!==undefined ? lM[v] : cM[v]) : (cM[v]!==undefined ? cM[v] : lM[v]);
-    var o = useLocal ? (lO[v]!==undefined ? lO[v] : cO[v]) : (cO[v]!==undefined ? cO[v] : lO[v]);
-    if (m !== undefined) out.marine[v] = m;        // '' kept → explicit unassign survives
-    if (o !== undefined && o !== '') out.ops[v] = o;
-    out._ts[c] = lt >= ct ? (lt||ct) : ct;
+  ['marine','ops'].forEach(function(type){
+    var cX = cloud[type]||{}, lX = local[type]||{};
+    var keys = {};
+    Object.keys(cX).forEach(function(k){ keys[k]=1; });
+    Object.keys(lX).forEach(function(k){ keys[k]=1; });
+    Object.keys(keys).forEach(function(v){
+      var c  = canonicalize(v);
+      var lt = lT[c+'::'+type] || lT[c] || '';   // yeni alan-bazlı ts; yoksa eski per-gemi ts
+      var ct = cT[c+'::'+type] || cT[c] || '';
+      var useLocal = lt >= ct;                     // eşitlikte local kazanır
+      var val = useLocal ? (lX[v]!==undefined ? lX[v] : cX[v])
+                         : (cX[v]!==undefined ? cX[v] : lX[v]);
+      if (val !== undefined) out[type][v] = val;   // '' korunur → açık "unassigned" senkron olur
+      var nt = lt >= ct ? (lt||ct) : ct;
+      if (nt) out._ts[c+'::'+type] = nt;
+    });
   });
   var llm=lT._lastModified||'', clm=cT._lastModified||'';
   out._ts._lastModified = llm >= clm ? (llm||clm) : clm;
@@ -7458,9 +7558,12 @@ function _buildSnapshot() {
     if (raw) { try { cobData[v] = JSON.parse(raw); } catch(e) {} }
   });
   const cargoData = {};
+  const cargoTombData = {};
   VESSELS_ALL.forEach(function(v) {
     var arr = cargoLoad(v);
     if (arr.length) cargoData[canonicalize(v)] = arr;
+    var tb = cargoTombLoad(canonicalize(v));
+    if (tb && Object.keys(tb).length) cargoTombData[canonicalize(v)] = tb;
   });
   const sludgeData = {};
   VESSELS_ALL.forEach(v => {
@@ -7482,6 +7585,7 @@ function _buildSnapshot() {
     certs:          certData,
     cob:            cobData,
     cargo:          cargoData,
+    cargoTombstones: cargoTombData,
     sludge:         sludgeData,
     garbage:        garbageData,
     // photos: base64 data URLs, stored per vessel canonicalized name
@@ -7556,7 +7660,8 @@ function _buildSnapshot() {
       return {
         records: (typeof peRecords === 'function' ? peRecords() : []),
         opts:    (typeof peOpts    === 'function' ? peOpts()    : {}),
-        seeded:  !!_peLs('yasa_pe_v1')  // seed flag — fresh cihazda re-seed önler
+        seeded:  !!_peLs('yasa_pe_v1'),  // seed flag — fresh cihazda re-seed önler
+        tombstones: (typeof peTombLoad === 'function' ? peTombLoad() : {})
       };
     })(),
     // ── Bug 4 Fix: Orders cloud sync ─────────────────────────────
@@ -7836,16 +7941,18 @@ function _mergeSnapshots(cloud, local) {
     merged.cob[v] = new Date(lc._ts || 0) >= new Date(cc._ts || 0) ? lc : cc;
   });
 
-  // Merge cargo: local wins (newest addedAt entry wins per vessel)
+  // Merge cargo: id'ye göre union + tombstone + son 5 (per-row yolu ile aynı).
   const cloudCargo = cloud.cargo || {};
   const localCargo = local.cargo || {};
+  const cloudCargoTomb = cloud.cargoTombstones || {};
+  const localCargoTomb = local.cargoTombstones || {};
   merged.cargo = {};
-  new Set([...Object.keys(cloudCargo), ...Object.keys(localCargo)]).forEach(function(vn) {
-    var cArr = cloudCargo[vn] || [];
-    var lArr = localCargo[vn] || [];
-    var cTime = cArr.length ? new Date(cArr[0].addedAt || 0) : new Date(0);
-    var lTime = lArr.length ? new Date(lArr[0].addedAt || 0) : new Date(0);
-    merged.cargo[vn] = lTime >= cTime ? lArr : cArr;
+  merged.cargoTombstones = {};
+  new Set([...Object.keys(cloudCargo), ...Object.keys(localCargo), ...Object.keys(cloudCargoTomb), ...Object.keys(localCargoTomb)]).forEach(function(vn) {
+    var tomb = Object.assign({}, cloudCargoTomb[vn]||{}, localCargoTomb[vn]||{});
+    var m = _mergeCargo(localCargo[vn]||[], cloudCargo[vn]||[], tomb);
+    if (m.length) merged.cargo[vn] = m;
+    if (Object.keys(tomb).length) merged.cargoTombstones[vn] = tomb;
   });
 
   // Merge photos: LWW by ts — newer upload wins
@@ -7992,26 +8099,9 @@ function _mergeSnapshots(cloud, local) {
   }
 
   // ── Bug 2 Fix: Port Expenses merge (per-record LWW by updatedAt) ──
-  const cloudPe = cloud.portExpenses || { records: [], opts: {} };
-  const localPe = local.portExpenses || { records: [], opts: {} };
-  const peMap = {};
-  [...(cloudPe.records || []), ...(localPe.records || [])].forEach(function(r) {
-    if (!r || !r.id) return;
-    const ex = peMap[r.id];
-    // peSave() → addedAt, peSaveEdit() → updatedAt kullanıyor; ikisine de bak
-    const rTs  = new Date(r.updatedAt  || r.addedAt  || r.savedAt  || 0).getTime();
-    const exTs = ex ? new Date(ex.updatedAt || ex.addedAt || ex.savedAt || 0).getTime() : -1;
-    if (!ex || rTs >= exTs) peMap[r.id] = r;
-  });
-  merged.portExpenses = {
-    records: Object.values(peMap),
-    seeded:  !!(cloudPe.seeded || localPe.seeded),  // ya birinde seed yapıldıysa flag aktif
-    opts: {
-      ports:       [...new Set([...(cloudPe.opts && cloudPe.opts.ports       || []), ...(localPe.opts && localPe.opts.ports       || [])])].sort(),
-      countries:   [...new Set([...(cloudPe.opts && cloudPe.opts.countries   || []), ...(localPe.opts && localPe.opts.countries   || [])])].sort(),
-      authorities: [...new Set([...(cloudPe.opts && cloudPe.opts.authorities || []), ...(localPe.opts && localPe.opts.authorities || [])])].sort()
-    }
-  };
+  // Union+LWW+tombstone (per-row yolu ile aynı mantık — silinenler geri gelmez,
+  // hiçbir kayıt tek taraflı kaybolmaz).
+  merged.portExpenses = _mergePeData(cloud.portExpenses, local.portExpenses);
 
   // ── Bug 4 Fix: Orders merge (per-record LWW by savedAt) ──────────
   const cloudOrd = cloud.orders || [];
@@ -8174,6 +8264,9 @@ function _applySnapshotSilent(merged) {
   if (merged.cargo) {
     Object.keys(merged.cargo).forEach(function(vn) { localStorage.setItem(cargoKey(vn), JSON.stringify(merged.cargo[vn])); });
   }
+  if (merged.cargoTombstones) {
+    Object.keys(merged.cargoTombstones).forEach(function(vn) { cargoTombSave(vn, merged.cargoTombstones[vn]); });
+  }
   // Photos — base64 stored per canonicalized vessel name
   if (merged.photos) {
     Object.keys(merged.photos).forEach(function(vn) {
@@ -8224,6 +8317,7 @@ function _applySnapshotSilent(merged) {
     if (merged.portExpenses.opts)    _peSt('yasa_pe_opts', merged.portExpenses.opts);
     // Seed flag: fresh cihazda _peSeed() tekrar çalışıp silinen kayıtları geri getirmesin
     if (merged.portExpenses.seeded)  _peSt('yasa_pe_v1', 1);
+    if (merged.portExpenses.tombstones) peTombSave(merged.portExpenses.tombstones);
   }
   // ── Bug 4 Fix: Orders restore ─────────────────────────────────
   if (merged.orders) {
@@ -8311,6 +8405,9 @@ function _applySnapshot(cloudData) {
   if (merged.cargo) {
     Object.keys(merged.cargo).forEach(function(vn) { localStorage.setItem(cargoKey(vn), JSON.stringify(merged.cargo[vn])); });
   }
+  if (merged.cargoTombstones) {
+    Object.keys(merged.cargoTombstones).forEach(function(vn) { cargoTombSave(vn, merged.cargoTombstones[vn]); });
+  }
   // Photos — base64 in main table
   if (merged.photos) {
     Object.keys(merged.photos).forEach(function(vn) {
@@ -8391,6 +8488,7 @@ function _applySnapshot(cloudData) {
     if (merged.portExpenses.records) _peSt('yasa_pe', merged.portExpenses.records);
     if (merged.portExpenses.opts)    _peSt('yasa_pe_opts', merged.portExpenses.opts);
     if (merged.portExpenses.seeded)  _peSt('yasa_pe_v1', 1);
+    if (merged.portExpenses.tombstones) peTombSave(merged.portExpenses.tombstones);
     // Sadece PE tab açıksa ve kilit yoksa re-render et
     if (typeof peRender === 'function' && typeof _peUnlocked !== 'undefined' && _peUnlocked) {
       try { peRender(); } catch(e) {}
@@ -15486,6 +15584,12 @@ function _peSt(key, val) {
   try { localStorage.setItem(key, JSON.stringify(val)); return true; } catch(e) { return false; }
 }
 
+// Silme tombstone'ları: bir kaydı silince id'sini işaretleriz ki başka bir
+// cihazdaki kopyası birleştirmede geri gelmesin. Aynı zamanda hiçbir kaydın
+// yanlışlıkla kaybolmaması için birleştirme "union by id" yapar.
+function peTombLoad() { try { return JSON.parse(localStorage.getItem('yasa_pe_tombstones')||'{}') || {}; } catch(e) { return {}; } }
+function peTombSave(t) { try { localStorage.setItem('yasa_pe_tombstones', JSON.stringify(t||{})); } catch(e){} }
+
 function peRecords() {
   var r = _peLs('yasa_pe');
   var recs = r || _PER.slice();
@@ -15880,6 +15984,7 @@ function peDeleteRecord() {
   var vsl = recs[idx].vessel;
   recs.splice(idx, 1);
   _peSt('yasa_pe', recs);
+  var _t = peTombLoad(); _t[id] = new Date().toISOString(); peTombSave(_t);
   cloudSave('expenses').catch(function(){});
   
   peCloseEdit();
