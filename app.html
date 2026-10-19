@@ -4108,7 +4108,18 @@ function parseCertDate(str) {
 // Convert any stored format to YYYY-MM-DD for <input type="date"> value
 function toDateInputVal(str) {
   if (!str) return '';
+  // Metin dışı bir değer (sayı/obje) senkronla gelebilir — çökmek yerine güvenle ele al
+  if (typeof str !== 'string') {
+    if (str instanceof Date && !isNaN(str)) return str.toISOString().slice(0,10);
+    if (typeof str === 'number' && str > 20000 && str < 80000) {       // Excel seri tarih
+      const d = new Date(Math.round((str - 25569) * 86400000));
+      return isNaN(d) ? '' : d.toISOString().slice(0,10);
+    }
+    str = String(str);
+    if (str === '[object Object]') return '';
+  }
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  if (/^\d{4}-\d{2}-\d{2}T/.test(str)) return str.slice(0,10);
   const m = str.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (m) return `${m[3]}-${m[2]}-${m[1]}`;
   return '';
@@ -4943,6 +4954,17 @@ function openModal(vesselName) {
   }, 60);
 }
 
+// Modal bölümlerini izole et: bir bölüm (bozuk veri yüzünden) hata verse bile
+// kart AÇILIR; o bölüm yerine kısa bir uyarı gösterilir, hata konsola yazılır.
+function _safeSection(name, fn) {
+  try { return fn(); }
+  catch(e) {
+    console.error('Modal section failed: ' + name, e);
+    return '<div style="margin:10px 0;padding:10px 12px;border:1px solid rgba(220,38,38,.35);background:rgba(220,38,38,.07);border-radius:8px;font-size:13px;color:#dc2626;">'
+      + '⚠ ' + escHtml(name) + ' section could not be rendered (data issue). Other sections are unaffected.</div>';
+  }
+}
+
 function buildModalBody(v) {
   // ROB
   const robHtml = (v.robLsifo || v.robMdo || v.robFw || v.meSys || v.meCyl || v.dg) ? `
@@ -5084,13 +5106,13 @@ function buildModalBody(v) {
         </div>
         ${cob._ts ? `<div style="font-size:10px;color:var(--text3);margin-top:5px;">Last saved: ${escHtml(new Date(cob._ts).toLocaleString('en-GB'))}</div>` : ''}
       </div>
-      ${buildCertSection(v.name)}
-      ${buildCargoSection(v.name)}
+      ${_safeSection('Certificates', function(){ return buildCertSection(v.name); })}
+      ${_safeSection('Last 5 Cargoes', function(){ return buildCargoSection(v.name); })}
     </div>
 
     <!-- RIGHT COL: NOTES with inner tabs -->
     <div class="modal-col modal-col-notes">
-      ${buildNotesTabs(v, n, vn)}
+      ${_safeSection('Notes', function(){ return buildNotesTabs(v, n, vn); })}
     </div>
   `;
 }
@@ -5141,7 +5163,8 @@ function buildCertSection(vesselName) {
 
 // ─── LAST 5 CARGOES SECTION ──────────────────────────────────────────────────
 function buildCargoSection(vesselName) {
-  const cargoes = cargoLoad(vesselName);
+  // Bozuk öğeleri (null / metin) atla — senkronla gelebilir, modal'ı çökertmesin
+  const cargoes = cargoLoad(vesselName).filter(function(c){ return c && typeof c === 'object'; });
   const evn = escAttr(vesselName);
 
   const rowsHtml = cargoes.length
@@ -5337,7 +5360,7 @@ function loadCob(vessel)      { try { return JSON.parse(localStorage.getItem(cob
 
 // ── Last 5 Cargoes ───────────────────────────────────────────
 function cargoKey(vessel)  { return 'yasa_cargo_' + canonicalize(vessel); }
-function cargoLoad(vessel) { try { var a = JSON.parse(localStorage.getItem(cargoKey(vessel)) || '[]'); return Array.isArray(a) ? a : []; } catch(e){ return []; } }
+function cargoLoad(vessel) { try { var a = JSON.parse(localStorage.getItem(cargoKey(vessel)) || '[]'); return Array.isArray(a) ? a.filter(function(c){ return c && typeof c === 'object'; }) : []; } catch(e){ return []; } }
 function cargoSave(vessel, arr) {
   arr = (Array.isArray(arr)?arr:[]).slice(0, 5); // max 5 kayıt
   localStorage.setItem(cargoKey(vessel), JSON.stringify(arr));
