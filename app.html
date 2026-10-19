@@ -3143,6 +3143,7 @@ body.dark .mn-critical-banner { background:#2d1515; border-color:#7f1d1d; }
     <span class="tab-badge" id="vesselCountBadge">0</span>
   </div>
   <div class="tab" onclick="switchTab('inspections', this)" data-short="🔍"><span class="tab-label">🔍 Inspections</span></div>
+  <div class="tab" onclick="switchTab('defects', this)" data-short="🔧"><span class="tab-label">🔧 Defects</span></div>
   <div class="tab" onclick="switchTab('employment', this)" data-short="📊"><span class="tab-label">📊 Employment</span></div>
   <div class="tab" onclick="switchTab('meeting-notes', this)" data-short="📝">
     <span class="tab-label">📝 Meeting Notes</span>
@@ -3787,7 +3788,8 @@ const ALL_MARINE_NAMES = [
 const ALL_OPS_NAMES = [
   'GİZEM POLAT','FARUK GÜNDÜZ','EMRE BAŞ','GÖKSU AKSOY',
   'MELEK ŞEVVAL DEMİRSOY','BOĞAÇHAN ŞENER','EFE ÇETİNER',
-  'GÖRKEM ÖZEN','TOLGA AYHAN','ALPER KÖPÜKLÜ','BERKAY DAŞKAFA'
+  'GÖRKEM ÖZEN','TOLGA AYHAN','ALPER KÖPÜKLÜ','BERKAY DAŞKAFA',
+  'FATİH FURUNCU'
 ];
 
 const DEFAULT_MARINE = {
@@ -4042,6 +4044,8 @@ const CERT_FIELDS = [
   { key: 'gyroOverhaul',      label: 'Gyro Overhaul'             },
   { key: 'gasDetector',       label: 'Gas Detector #1'           },
   { key: 'gasDetector2',      label: 'Gas Detector #2'           },
+  { key: 'gasDetector3',      label: 'Gas Detector #3'           },
+  { key: 'gasDetector4',      label: 'Gas Detector #4'           },
   { key: 'alcoMeter',         label: 'Alcometer'                 },
   { key: 'sbmAgreement',      label: 'SBM Agreement'             },
   // noExpiry=true → sadece tarih gösterilir, expire/warn badge çıkmaz
@@ -4257,6 +4261,7 @@ function switchTab(id, el) {
   if (id === 'meeting-notes') mnRender();
   if (id === 'orders') ordInit();
   if (id === 'inspections') inspInit();
+  if (id === 'defects') dfInit();
   if (id === 'employment') empInit();
   if (id === 'imsbc') imsbcInit();
   if (id === 'stock')  stockInit();
@@ -6111,14 +6116,15 @@ function renderSettingsPage() {
   if (!grid) return;
   const a = loadAssignments();
 
-  const rowSt = 'display:grid;grid-template-columns:180px 1fr 1fr;gap:8px;align-items:center;padding:4px 12px;border-bottom:1px solid var(--border2,#1e3a5f);';
-  const lblSt = 'font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
-  const selSt = 'width:100%;background:var(--navy3,#f1f5f9);border:1px solid var(--border2);color:var(--text);padding:3px 6px;border-radius:4px;font-size:11px;font-family:"Barlow Condensed",sans-serif;font-weight:600;cursor:pointer;outline:none;';
+  const rowSt = 'display:grid;grid-template-columns:200px 1fr 1fr;gap:10px;align-items:center;padding:6px 12px;border-bottom:1px solid var(--border2,#1e3a5f);';
+  const lblSt = 'font-family:"Barlow Condensed",sans-serif;font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+  const selSt = 'width:100%;background:var(--navy3,#f1f5f9);border:1px solid var(--border2);color:var(--text);padding:6px 8px;border-radius:6px;font-size:14px;font-family:"Barlow Condensed",sans-serif;font-weight:600;cursor:pointer;outline:none;';
 
   const customSet = new Set(loadCustomVessels());
   grid.innerHTML = VESSELS_ALL.map(v => {
-    const curMarine = (a.marine[v] !== undefined ? a.marine[v] : (DEFAULT_MARINE[v] || ''));
-    const curOps    = (a.ops[v]    !== undefined ? a.ops[v]    : (DEFAULT_OPS[v]    || ''));
+    // Pano ile aynı (canonical) okuma: kayıtlı değer varsa o ('' = unassigned), yoksa varsayılan
+    const curMarine = getMarine(v) || '';
+    const curOps    = getOps(v)    || '';
     const marineOpts = `<option value=""${!curMarine?' selected':''}>— unassigned —</option>` +
       ALL_MARINE_NAMES.map(n =>
         `<option value="${escAttr(n)}"${n===curMarine?' selected':''}>${escHtml(n)}</option>`
@@ -6142,6 +6148,9 @@ function renderSettingsPage() {
 function saveSetting(vessel, type, val) {
   const a = loadAssignments();
   if (!a[type]) a[type] = {};
+  // Aynı gemiye ait farklı yazımlı eski anahtar varsa temizle (tek kayıt kalsın)
+  const cv = canonicalize(vessel);
+  Object.keys(a[type]).forEach(function(k){ if (k !== vessel && canonicalize(k) === cv) delete a[type][k]; });
   // Boş seçim = açık şekilde "unassigned". Hem marine hem ops için '' saklanır
   // (silinmez) ki varsayılana geri dönmesin — seçim kalıcı olsun.
   a[type][vessel] = val || '';
@@ -6150,16 +6159,35 @@ function saveSetting(vessel, type, val) {
   try { renderVessels(); renderStats(); renderAlertPanel(); rebuildDropdowns(); } catch(e) {}
 }
 
+// Reset: varsayılanları AÇIKÇA ve zaman damgalı yaz. (Eskiden sadece boşaltılıyordu;
+// damgasız olduğu için bir sonraki poll'de buluttaki eski atamalar geri geliyordu.)
+function _resetAssignmentsTo(type, defaults) {
+  const a = loadAssignments();
+  if (!a._ts) a._ts = {};
+  a[type] = {};
+  const now = new Date().toISOString();
+  VESSELS_ALL.forEach(function(v){
+    a[type][v] = defaults[v] || '';
+    const c = canonicalize(v);
+    a._ts[c + '::' + type] = now;
+    a._ts[c] = now;
+  });
+  a._ts._lastModified = now;
+  localStorage.setItem('yasa_assignments', JSON.stringify(a));
+  cloudSave('core').catch(function(e){ console.warn('Cloud save (assignments reset) failed:', e); });
+}
 function resetMarineDefaults() {
   if (!confirm('Reset all Marine assignments to defaults?')) return;
-  const a = loadAssignments(); a.marine = {}; saveAssignments(a);
+  _resetAssignmentsTo('marine', DEFAULT_MARINE);
   renderSettingsPage();
+  try { renderVessels(); renderStats(); renderAlertPanel(); rebuildDropdowns(); } catch(e) {}
 }
 
 function resetOpsDefaults() {
   if (!confirm('Reset all Operations assignments to defaults?')) return;
-  const a = loadAssignments(); a.ops = {}; saveAssignments(a);
+  _resetAssignmentsTo('ops', DEFAULT_OPS);
   renderSettingsPage();
+  try { renderVessels(); renderStats(); renderAlertPanel(); rebuildDropdowns(); } catch(e) {}
 }
 
 function applySettings() {
@@ -6531,13 +6559,14 @@ var _lastSnapshotBytes = 0;
 
 // ── Per-vessel + global tracking ─────────────────────────────
 // Her gemi kendi satırına yazılır → eş zamanlı yazma çakışmaz
-var GLOBAL_MODULES = ['core','meetings','gas','expenses','orders'];
+var GLOBAL_MODULES = ['core','meetings','gas','expenses','orders','defects'];
 var GLOBAL_ROW = {
   core:     'yasa_global_core',
   meetings: 'yasa_global_meetings',
   gas:      'yasa_global_gas',
   expenses: 'yasa_global_expenses',
-  orders:   'yasa_global_orders'
+  orders:   'yasa_global_orders',
+  defects:  'yasa_global_defects'
 };
 
 function vesselRowId(vn) { return 'yasa_v_' + vn; } // vn = canonicalize(vesselName)
@@ -6782,6 +6811,8 @@ function _buildGlobalData(mod) {
       };
     case 'expenses':
       return { records:(typeof peRecords==='function'?peRecords():[]), opts:(typeof peOpts==='function'?peOpts():{}), seeded:!!_peLs('yasa_pe_v1'), tombstones:(typeof peTombLoad==='function'?peTombLoad():{}) };
+    case 'defects':
+      return { records:dfRecords(), tombstones:dfTombLoad(), codes:dfCodes(), equip:dfEquip(), equipTombstones:dfEquipTombLoad() };
     case 'orders':
       return (typeof ordLoad==='function'?ordLoad():[]);
     default: return null;
@@ -6825,6 +6856,16 @@ function _applyGlobalData(mod, data) {
       _peSt('yasa_pe_opts', _peMerged.opts);
       if (_peMerged.seeded) _peSt('yasa_pe_v1', 1);
       peTombSave(_peMerged.tombstones);
+      break;
+    case 'defects':
+      // VERİ KAYBI KORUMASI: gelen kayıtları yerelle birleştir (union+LWW+tombstone)
+      var _dfMerged = _mergeDfData(data, _buildGlobalData('defects'));
+      localStorage.setItem('yasa_defects', JSON.stringify(_dfMerged.records));
+      dfTombSave(_dfMerged.tombstones);
+      localStorage.setItem('yasa_defect_codes', JSON.stringify(_dfMerged.codes));
+      localStorage.setItem('yasa_df_equip', JSON.stringify(_dfMerged.equip));
+      dfEquipTombSave(_dfMerged.equipTombstones);
+      try { if (document.getElementById('page-defects') && document.getElementById('page-defects').classList.contains('active')) dfRender(); } catch(e) {}
       break;
     case 'orders':
       if(Array.isArray(data)) localStorage.setItem('yasa_orders',JSON.stringify(data));
@@ -6934,6 +6975,9 @@ function _mergeGlobalData(mod, cloud, local) {
   }
   if (mod === 'expenses') {
     return _mergePeData(cloud, local);
+  }
+  if (mod === 'defects') {
+    return _mergeDfData(cloud, local);
   }
   return Object.assign({}, cloud, local);
 }
@@ -13062,6 +13106,50 @@ body.dark .ord-content-text{background:#181818;}
 </div>
 
 <!-- ════════════════════════ EMPLOYMENT ════════════════════════ -->
+<!-- ════════════════════════ DEFECTS (NAV/COMM EQUIPMENT) ════════════════════════ -->
+<div id="page-defects" class="page">
+  <div class="insp-toolbar" style="flex-wrap:wrap;gap:10px;">
+    <div style="display:flex;border:1px solid var(--border2);border-radius:10px;overflow:hidden;">
+      <button id="dfViewDefects" onclick="_dfView='defects';dfRender()"
+        style="padding:9px 18px;border:none;background:var(--accent);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;cursor:pointer;">🔧 Defects</button>
+      <button id="dfViewVessels" onclick="_dfView='vessels';dfRender()"
+        style="padding:9px 18px;border:none;background:var(--navy3);color:var(--text2);font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;cursor:pointer;">🚢 By Vessel</button>
+      <button id="dfViewEquip" onclick="_dfView='equip';dfRender()"
+        style="padding:9px 18px;border:none;background:var(--navy3);color:var(--text2);font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;cursor:pointer;">🗂 Equipment Registry</button>
+    </div>
+    <select id="dfVesselSel" onchange="_dfVessel=this.value;dfRender()"
+      style="padding:9px 12px;border:1px solid var(--border2);border-radius:10px;background:var(--navy2);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;outline:none;cursor:pointer;min-width:180px;">
+      <option value="">🚢 All Vessels</option>
+    </select>
+    <select id="dfTypeSel" onchange="_dfType=this.value;dfRender()"
+      style="padding:9px 12px;border:1px solid var(--border2);border-radius:10px;background:var(--navy2);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;outline:none;cursor:pointer;min-width:160px;">
+      <option value="">🛠 All Equipment</option>
+    </select>
+    <select id="dfStatusSel" onchange="_dfStatus=this.value;dfRender()"
+      style="padding:9px 12px;border:1px solid var(--border2);border-radius:10px;background:var(--navy2);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;outline:none;cursor:pointer;">
+      <option value="">All Status</option>
+      <option value="open">🔴 Open</option>
+      <option value="service">🟠 Service Required</option>
+      <option value="resolved">🟢 Resolved</option>
+      <option value="recurring">🔁 Recurring</option>
+    </select>
+    <input id="dfSearch" oninput="_dfSearch=this.value;dfRender()" placeholder="🔍 Search..."
+      style="flex:1;min-width:170px;padding:9px 12px;border:1px solid var(--border2);border-radius:10px;background:var(--input-bg);color:var(--text);font-size:15px;outline:none;">
+    <button class="btn btn-primary" onclick="dfNewRecord()" style="padding:9px 18px;font-size:15px;">+ New Defect</button>
+    <button onclick="document.getElementById('dfXlsxInput').click()"
+      style="padding:9px 16px;background:linear-gradient(135deg,#0d9488,#0f766e);color:#fff;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;">📥 Import Defect Form</button>
+    <input type="file" id="dfXlsxInput" accept=".xlsx,.xls" style="display:none" onchange="dfImportExcel(this.files[0]);this.value='';">
+    <button onclick="document.getElementById('dfEquipInput').click()"
+      style="padding:9px 16px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;">🗂 Import Equipment (PMS)</button>
+    <input type="file" id="dfEquipInput" accept=".xlsx,.xls" style="display:none" onchange="dfImportEquip(this.files[0]);this.value='';">
+    <button onclick="dfOpenCodes()"
+      style="padding:9px 16px;background:var(--navy3);border:1px solid var(--border2);border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:var(--text2);cursor:pointer;">📖 Codes</button>
+  </div>
+  <div class="insp-content" id="dfContent">
+    <div class="empty"><div class="empty-icon">🔧</div><div class="empty-text">No defect records yet</div></div>
+  </div>
+</div>
+
 <div id="page-employment" class="page">
 <div style="padding:20px 24px 80px;max-width:1600px;">
 
@@ -16028,6 +16116,996 @@ function peCleanupInvalid() {
   _peFillDropdowns();
   peRender();
   showToast('Cleaned up ' + invalidIds.length + ' invalid entries', 'success');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  DEFECTS MODULE — Navigation & Communication Equipment
+//  Arıza arşivi + EKİPMAN REGISTRY (PMS katalog) + istatistik +
+//  arıza kodları + benzer arıza çözümleri.
+//  'yasa_global_defects' bulut satırında union+LWW+tombstone ile
+//  senkronlanır — hiçbir kayıt tek taraflı kaybolmaz.
+// ══════════════════════════════════════════════════════════════
+
+var DF_BUCKET = 'service-reports';   // Supabase Storage bucket (public)
+var DF_EQUIP_TYPES = ['RADAR','ECDIS','GYRO COMPASS','MAGNETIC COMPASS','AUTOPILOT','GPS','AIS','VDR/S-VDR','ECHO SOUNDER','SPEED LOG','ANEMOMETER','BNWAS','NAVTEX','VHF','MF/HF','INMARSAT','EPIRB','SART','SSAS','GMDSS BATTERY','OTHER'];
+var DF_STATUS = { open:{label:'Open',icon:'🔴'}, service:{label:'Service Required',icon:'🟠'}, resolved:{label:'Resolved',icon:'🟢'}, recurring:{label:'Recurring',icon:'🔁'} };
+var DF_BRANDS = ['JRC','FURUNO','WARTSILA','SAILOR','DANELEC','TOKYO KEIKI','ANSCHUTZ','SAAB','TRANSAS','SKIPPER','SAM ELECTRONICS','YOKOGAWA','SPERRY','SIMRAD','KODEN','SAMYUNG','INTELLIAN','COBHAM','THRANE','IRIDIUM','STARLINK'];
+
+// ── GÖMÜLÜ FİLO EKİPMAN KATALOĞU (Deck PMS'ten; import gerekmez) ──
+var DF_EQUIP_DEFAULTS = [
+  {code:"DE.07.01.01.01",category:"Satellite Communication Devices",name:"VSAT Terminal",manufacturer:"",model:""},
+  {code:"DE.07.01.01.02",category:"Satellite Communication Devices",name:"FleetBroadband Terminal",manufacturer:"",model:""},
+  {code:"DE.07.01.01.03",category:"Satellite Communication Devices",name:"Iridium Terminal Certus/OpenPort",manufacturer:"IRIDIUM",model:""},
+  {code:"DE.07.01.01.04",category:"Satellite Communication Devices",name:"Starlink",manufacturer:"STARLINK",model:""},
+  {code:"DE.07.01.02.01",category:"Inmarsat C Ship Earth Station",name:"Inmarsat C JRC JUE-85",manufacturer:"JRC",model:"JUE-85"},
+  {code:"DE.07.01.02.02",category:"Inmarsat C Ship Earth Station",name:"Inmarsat C JRC JUE-87",manufacturer:"JRC",model:"JUE-87"},
+  {code:"DE.07.01.02.03",category:"Inmarsat C Ship Earth Station",name:"Inmarsat C Furuno Felcom 18",manufacturer:"FURUNO",model:""},
+  {code:"DE.07.01.02.04",category:"Inmarsat C Ship Earth Station",name:"Inmarsat C SAILOR 6018A",manufacturer:"SAILOR",model:""},
+  {code:"DE.07.01.03.01",category:"MF/HF DSC TERMINAL",name:"MF/HF Radio station with NBDP modem JRC JSS-2250/2500",manufacturer:"JRC",model:"JSS-2250/2500"},
+  {code:"DE.07.01.03.02",category:"MF/HF DSC TERMINAL",name:"MF/HF Radio station with NBDP modem JRC JSS-2250/2500 2250N/2500N",manufacturer:"JRC",model:"JSS-2250/2500"},
+  {code:"DE.07.01.03.03",category:"MF/HF DSC TERMINAL",name:"MF/HF Radio station with NBDP modem Furuno FS-1575/FS-2575/FS-5075",manufacturer:"FURUNO",model:"FS-1575/FS-2575/FS-5075"},
+  {code:"DE.07.01.03.04",category:"MF/HF DSC TERMINAL",name:"MF/HF Radio station with NBDP modem SAM ELECTRONICS 6301",manufacturer:"SAM ELECTRONICS",model:""},
+  {code:"DE.07.01.04.01",category:"VDR ( Voyage data recorder)",name:"VDR  JRC JYC-1700",manufacturer:"JRC",model:"JYC-1700"},
+  {code:"DE.07.01.04.02",category:"VDR ( Voyage data recorder)",name:"VDR  JRC JYC-1800",manufacturer:"JRC",model:"JYC-1800"},
+  {code:"DE.07.01.04.03",category:"VDR ( Voyage data recorder)",name:"VDR  JRC JYC-1900",manufacturer:"JRC",model:"JYC-1900"},
+  {code:"DE.07.01.04.04",category:"VDR ( Voyage data recorder)",name:"VDR Danelec DM-100",manufacturer:"DANELEC",model:"DM-100"},
+  {code:"DE.07.01.04.05",category:"VDR ( Voyage data recorder)",name:"VDR Furuno VR-3000",manufacturer:"FURUNO",model:"VR-3000"},
+  {code:"DE.07.01.04.06",category:"VDR ( Voyage data recorder)",name:"VDR Furuno VR-5000",manufacturer:"FURUNO",model:"VR-5000"},
+  {code:"DE.07.01.04.07",category:"VDR ( Voyage data recorder)",name:"VDR Furuno VR-7000",manufacturer:"FURUNO",model:"VR-7000"},
+  {code:"DE.07.01.05",category:"Bridge Radio Equipment GMDSS",name:"EPIRB",manufacturer:"",model:""},
+  {code:"DE.07.01.06.01",category:"SART",name:"SART-Radar",manufacturer:"",model:""},
+  {code:"DE.07.01.06.02",category:"SART",name:"SART-AIS",manufacturer:"",model:""},
+  {code:"DE.07.01.07",category:"Bridge Radio Equipment GMDSS",name:"International VHF radio telephones (VHF No:1&2) & VHF DSC",manufacturer:"",model:""},
+  {code:"DE.07.01.08",category:"Bridge Radio Equipment GMDSS",name:"Emergency Two way VHF Radio telephone apparatus/VHF with charger",manufacturer:"",model:""},
+  {code:"DE.07.01.09",category:"Bridge Radio Equipment GMDSS",name:"Navtex Receiver",manufacturer:"",model:""},
+  {code:"DE.07.01.10",category:"Bridge Radio Equipment GMDSS",name:"Weather facsmile receiver",manufacturer:"",model:""},
+  {code:"DE.07.02.01.01",category:"Radars",name:"JRC JMR-9210-6X  X-band radar with ARPA",manufacturer:"JRC",model:"JMR-9210-6X"},
+  {code:"DE.07.02.01.02",category:"Radars",name:"JRC JMR-9230-S S-band radar with ARPA",manufacturer:"JRC",model:"JMR-9230-S"},
+  {code:"DE.07.02.01.03",category:"Radars",name:"JRC JMR-9225-6X X-band radar with ARPA",manufacturer:"JRC",model:"JMR-9225-6X"},
+  {code:"DE.07.02.01.04",category:"Radars",name:"JRC JMR-9225-9X X-band radar with ARPA",manufacturer:"JRC",model:"JMR-9225-9X"},
+  {code:"DE.07.02.01.05",category:"Radars",name:"JRC JMR-9230-S S-band radar with ARPA",manufacturer:"JRC",model:"JMR-9230-S"},
+  {code:"DE.07.02.01.06",category:"Radars",name:"JRC JMR 9225-9XN X-band radar with ARPA",manufacturer:"JRC",model:"JMR9225-9XN"},
+  {code:"DE.07.02.01.07",category:"Radars",name:"JRC JMR 9282-SN S-band radar with ARPA",manufacturer:"JRC",model:"JMR9282-SN"},
+  {code:"DE.07.02.01.08",category:"Radars",name:"JRC JMR 9225-9XN X-band radar with ARPA",manufacturer:"JRC",model:"JMR9225-9XN"},
+  {code:"DE.07.02.01.09",category:"Radars",name:"JRC JMR 9282-SN S-band radar with ARPA",manufacturer:"JRC",model:"JMR9282-SN"},
+  {code:"DE.07.02.01.10",category:"Radars",name:"JRC JMA-9122-9XA X-band radar with ARPA",manufacturer:"JRC",model:"JMA-9122-9XA"},
+  {code:"DE.07.02.01.11",category:"Radars",name:"JRC JMA-9122-6XA X-band radar with ARPA",manufacturer:"JRC",model:"JMA-9122-6XA"},
+  {code:"DE.07.02.01.12",category:"Radars",name:"JRC JMA-9132-SA S-band radar with ARPA",manufacturer:"JRC",model:"JMA-9132-SA"},
+  {code:"DE.07.02.01.13",category:"Radars",name:"JRC JMA 9922-6XA X-band radar with ARPA",manufacturer:"JRC",model:"JMA9922-6XA"},
+  {code:"DE.07.02.01.14",category:"Radars",name:"JRC JMA 9932-SA S-band radar with ARPA",manufacturer:"JRC",model:"JMA9932-SA"},
+  {code:"DE.07.02.01.15",category:"Radars",name:"FURUNO FAR-2328 X-band radar with ARPA",manufacturer:"FURUNO",model:"FAR-2328"},
+  {code:"DE.07.02.01.16",category:"Radars",name:"FURUNO FAR-2338S-NXT S-band radar with ARPA",manufacturer:"FURUNO",model:"FAR-2338S-NXT"},
+  {code:"DE.07.02.01.17",category:"Radars",name:"FURUNO FAR-2827 X-band radar with ARPA",manufacturer:"FURUNO",model:"FAR-2827"},
+  {code:"DE.07.02.01.18",category:"Radars",name:"FURUNO FAR-2837S S-band radar with ARPA",manufacturer:"FURUNO",model:"FAR-2837S"},
+  {code:"DE.07.02.01.19",category:"Radars",name:"WARTSILA 2.1.22.04 X-BAND",manufacturer:"WARTSILA",model:""},
+  {code:"DE.07.02.01.20",category:"Radars",name:"WARTSILA 2.1.22.04 S-BAND",manufacturer:"WARTSILA",model:""},
+  {code:"DE.07.02.02.01",category:"Ecdis",name:"JRC JAN 7201/9201 Ecdis No.1",manufacturer:"JRC",model:"JAN7201/9201"},
+  {code:"DE.07.02.02.02",category:"Ecdis",name:"JRC JAN 7201/9201 Ecdis No.2",manufacturer:"JRC",model:"JAN7201/9201"},
+  {code:"DE.07.02.02.03",category:"Ecdis",name:"JRC JAN 901B Ecdis No.1",manufacturer:"JRC",model:"JAN901B"},
+  {code:"DE.07.02.02.04",category:"Ecdis",name:"JRC JAN 901B Ecdis No.2",manufacturer:"JRC",model:"JAN901B"},
+  {code:"DE.07.02.02.05",category:"Ecdis",name:"JRC JAN 2000 Ecdis No.1",manufacturer:"JRC",model:"JAN2000"},
+  {code:"DE.07.02.02.06",category:"Ecdis",name:"JRC JAN 2000 Ecdis No.2",manufacturer:"JRC",model:"JAN2000"},
+  {code:"DE.07.02.02.07",category:"Ecdis",name:"Furuno FEA-2807 Ecdis",manufacturer:"FURUNO",model:"FEA-2807"},
+  {code:"DE.07.02.02.08",category:"Ecdis",name:"Furuno FMD-3200 Ecdis No.1",manufacturer:"FURUNO",model:"FMD-3200"},
+  {code:"DE.07.02.02.09",category:"Ecdis",name:"Furuno FMD-3200 Ecdis No.2",manufacturer:"FURUNO",model:"FMD-3200"},
+  {code:"DE.07.02.02.10",category:"Ecdis",name:"Furuno FMD-3300 Ecdis No.1",manufacturer:"FURUNO",model:"FMD-3300"},
+  {code:"DE.07.02.02.11",category:"Ecdis",name:"Furuno FMD-3300 Ecdis No.2",manufacturer:"FURUNO",model:"FMD-3300"},
+  {code:"DE.07.02.02.12",category:"Ecdis",name:"WARTSILA 2.1.22.04 ECDIS NO.1",manufacturer:"WARTSILA",model:""},
+  {code:"DE.07.02.02.13",category:"Ecdis",name:"WARTSILA 2.1.22.04 ECDIS NO.2",manufacturer:"WARTSILA",model:""},
+  {code:"DE.07.02.03.01",category:"Gyrocompass",name:"Gyrocompass CMZ 700 Series No.1",manufacturer:"YOKOGAWA",model:"CMZ700"},
+  {code:"DE.07.02.03.02",category:"Gyrocompass",name:"Gyrocompass CMZ 900 Series No.1",manufacturer:"YOKOGAWA",model:"CMZ900"},
+  {code:"DE.07.02.03.03",category:"Gyrocompass",name:"Gyrocompass CMZ 700 Series No.2",manufacturer:"YOKOGAWA",model:"CMZ700"},
+  {code:"DE.07.02.03.04",category:"Gyrocompass",name:"Gyrocompass CMZ 900 Series No.2",manufacturer:"YOKOGAWA",model:"CMZ900"},
+  {code:"DE.07.02.03.05",category:"Gyrocompass",name:"Gyrocompas Tokyo Keiki TG-8000-8100 No.1",manufacturer:"TOKYO KEIKI",model:"TG-8000-8100"},
+  {code:"DE.07.02.03.06",category:"Gyrocompass",name:"Gyrocompas Tokyo Keiki TG-8000-8100 No.2",manufacturer:"TOKYO KEIKI",model:"TG-8000-8100"},
+  {code:"DE.07.02.03.07",category:"Gyrocompass",name:"Gyrocompas ANSCHUTZ STANDARD 22 No.1",manufacturer:"ANSCHUTZ",model:""},
+  {code:"DE.07.02.03.08",category:"Gyrocompass",name:"Gyrocompas ANSCHUTZ STANDARD 22 No.2",manufacturer:"ANSCHUTZ",model:""},
+  {code:"DE.07.02.04.01",category:"Magnetic Compass",name:"Magnetic Compass Spare Bowl",manufacturer:"",model:""},
+  {code:"DE.07.02.06.01",category:"Echosounder",name:"Echosounder JRC JFE Series",manufacturer:"JRC",model:""},
+  {code:"DE.07.02.06.02",category:"Echosounder",name:"Echosounder JRC JFC Series",manufacturer:"JRC",model:""},
+  {code:"DE.07.02.06.03",category:"Echosounder",name:"Echosounder Furuno FE Series",manufacturer:"FURUNO",model:""},
+  {code:"DE.07.02.06.04",category:"Echosounder",name:"Echosounder Skipper",manufacturer:"SKIPPER",model:""},
+  {code:"DE.07.02.07.01",category:"GPS (Global Positioning System)",name:"Gps JRC JLR Series",manufacturer:"JRC",model:""},
+  {code:"DE.07.02.07.02",category:"GPS (Global Positioning System)",name:"Gps JRC NWZ Series",manufacturer:"JRC",model:""},
+  {code:"DE.07.02.07.03",category:"GPS (Global Positioning System)",name:"Gps Furuno GP Series",manufacturer:"FURUNO",model:""},
+  {code:"DE.07.02.07.04",category:"GPS (Global Positioning System)",name:"GPS/GLONASS TRANSAS T-701D",manufacturer:"TRANSAS",model:"T-701D"},
+  {code:"DE.07.02.07.05",category:"GPS (Global Positioning System)",name:"GPS SAAB R Series",manufacturer:"SAAB",model:""},
+  {code:"DE.07.02.08.01",category:"AIS (Automatic Identification System)",name:"AIS JRC JHS Series",manufacturer:"JRC",model:""},
+  {code:"DE.07.02.08.02",category:"AIS (Automatic Identification System)",name:"AIS Furuno FA Series",manufacturer:"FURUNO",model:""},
+  {code:"DE.07.02.08.03",category:"AIS (Automatic Identification System)",name:"AIS SAAB R5",manufacturer:"SAAB",model:"R5"},
+  {code:"DE.07.02.09.01",category:"Electro Magnetic Log",name:"Electro Magnetic Log JRC JLN Series",manufacturer:"JRC",model:""},
+  {code:"DE.07.02.09.02",category:"Electro Magnetic Log",name:"Electro Magnetic Log Furuno DS Series",manufacturer:"FURUNO",model:""},
+  {code:"DE.07.02.09.03",category:"Electro Magnetic Log",name:"Electro Magnetic Log Tokyo Keiki TD Series",manufacturer:"TOKYO KEIKI",model:""},
+  {code:"DE.07.02.09.04",category:"Electro Magnetic Log",name:"Electro Magnetic Log Skipper",manufacturer:"SKIPPER",model:""},
+  {code:"DE.07.02.10",category:"Bridge Navigation Equipment",name:"Anemometer/Wind Indicator",manufacturer:"",model:""},
+  {code:"DE.07.02.11",category:"Bridge Navigation Equipment",name:"Course Recorder",manufacturer:"",model:""},
+  {code:"DE.07.02.12",category:"Bridge Navigation Equipment",name:"Bridge Navigation Watchkeeping Alarm System (BNWAS)",manufacturer:"",model:""},
+  {code:"DE.07.02.13",category:"Bridge Navigation Equipment",name:"Window Wiper & Clear View Screen",manufacturer:"",model:""},
+  {code:"DE.07.02.14",category:"Bridge Navigation Equipment",name:"Engine Order Telgraph",manufacturer:"",model:""},
+  {code:"DE.07.02.15",category:"Bridge Navigation Equipment",name:"Auto Pilot & Steering System",manufacturer:"",model:""},
+  {code:"DE.07.02.16",category:"Bridge Navigation Equipment",name:"Electric Crystal Clock System & Other Equipment Clocks",manufacturer:"",model:""}
+];
+
+
+// Okunabilirlik: tüm boyutlar büyütüldü (min 13px; başlıklar 17-18px)
+var _dfS = {
+  cardTitle:'font-size:17px;', meta:'font-size:14px;', chip:'font-size:13px;font-weight:700;',
+  rowLbl:'min-width:160px;color:var(--text3);font-weight:700;font-size:14px;',
+  rowVal:'color:var(--text);white-space:pre-wrap;font-size:14px;line-height:1.5;',
+  input:'width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid var(--border2);border-radius:8px;background:var(--input-bg);color:var(--text);font-size:14px;outline:none;',
+  label:'font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin:10px 0 4px;',
+  small:'font-size:13px;color:var(--text3);'
+};
+
+var _dfVessel='', _dfType='', _dfStatus='', _dfSearch='', _dfView='defects';
+var _dfExpanded = new Set();
+var _dfInited = false;
+
+// ── Storage: defects ──────────────────────────────────────────
+function dfRecords(){ try{ var a=JSON.parse(localStorage.getItem('yasa_defects')||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+function dfSaveAll(recs){ localStorage.setItem('yasa_defects', JSON.stringify(recs)); cloudSave('defects').catch(function(){}); }
+function dfTombLoad(){ try{ return JSON.parse(localStorage.getItem('yasa_defects_tomb')||'{}')||{}; }catch(e){ return {}; } }
+function dfTombSave(t){ try{ localStorage.setItem('yasa_defects_tomb', JSON.stringify(t||{})); }catch(e){} }
+function dfCodes(){ try{ var a=JSON.parse(localStorage.getItem('yasa_defect_codes')||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+function dfCodesSave(arr){ localStorage.setItem('yasa_defect_codes', JSON.stringify(arr||[])); cloudSave('defects').catch(function(){}); }
+
+// ── Storage: equipment registry (PMS katalog) ─────────────────
+function dfEquip(){
+  var stored=[]; try{ var a=JSON.parse(localStorage.getItem('yasa_df_equip')||'[]'); stored=Array.isArray(a)?a:[]; }catch(e){}
+  var tomb = dfEquipTombLoad();
+  var byId = {};
+  // Gömülü katalog her cihazda hazırdır; kullanıcı silmişse (tombstone) gelmez
+  DF_EQUIP_DEFAULTS.forEach(function(d){ var id='eq_'+d.code; if(!tomb[id]) byId[id]={ id:id, code:d.code, category:d.category, name:d.name, manufacturer:d.manufacturer, model:d.model }; });
+  // Kullanıcı ekleri/düzenlemeleri aynı id ile varsayılanı geçersiz kılar
+  stored.forEach(function(e){ if(e && e.id && !tomb[e.id]) byId[e.id]=e; });
+  return Object.keys(byId).map(function(k){ return byId[k]; });
+}
+function dfEquipSave(arr){ localStorage.setItem('yasa_df_equip', JSON.stringify(arr||[])); cloudSave('defects').catch(function(){}); }
+function dfEquipTombLoad(){ try{ return JSON.parse(localStorage.getItem('yasa_df_equip_tomb')||'{}')||{}; }catch(e){ return {}; } }
+function dfEquipTombSave(t){ try{ localStorage.setItem('yasa_df_equip_tomb', JSON.stringify(t||{})); }catch(e){} }
+
+// İsimden marka/model çıkar (katalog importu ve hızlı ekleme için)
+function dfParseMakeModel(name) {
+  var up = String(name||'').toUpperCase();
+  var manuf = '';
+  for (var i=0;i<DF_BRANDS.length;i++) if (up.indexOf(DF_BRANDS[i])!==-1) { manuf = DF_BRANDS[i]; break; }
+  if (!manuf && up.indexOf('CMZ')!==-1) manuf = 'YOKOGAWA';
+  var m = up.match(/\b([A-Z]{1,5}[- ]?\d[\w\/.\-]*)\b/);
+  return { manufacturer: manuf, model: m ? m[1].replace(/\s+/g,'') : '' };
+}
+// Kategori adından DF ekipman tipine eşleme (arıza formu otomatik dolsun)
+// ── OTOMATİK SINIFLANDIRMA ────────────────────────────────────
+// Arıza metninden (açıklama + diğer alanlar) tip, marka ve modeli tespit eder;
+// registry'deki katalogla eşleştirip kaydı ekipmana bağlar. Sadece BOŞ alanları
+// doldurur — kullanıcının elle girdiği hiçbir değeri ezmez.
+function dfAutoClassify(rec) {
+  var text = [rec.description, rec.result, rec.bookletId, rec.model, rec.manufacturer, rec.spares].filter(Boolean).join(' ');
+  var up   = ' ' + text.toUpperCase() + ' ';
+  var norm = up.replace(/[^A-Z0-9]/g,'');
+  // 1) Tip: metinden (RADAR, ECDIS, GYRO...)
+  if (!rec.equipType || rec.equipType === 'OTHER') {
+    var t = dfTypeFromText(up);
+    if (t !== 'OTHER') rec.equipType = t;
+  }
+  // 2) Marka: metinde geçen bilinen üretici
+  if (!rec.manufacturer) {
+    for (var i=0;i<DF_BRANDS.length;i++) if (up.indexOf(DF_BRANDS[i]) !== -1) { rec.manufacturer = DF_BRANDS[i]; break; }
+    if (!rec.manufacturer && up.indexOf('CMZ') !== -1) rec.manufacturer = 'YOKOGAWA';
+  }
+  // 3) Model: registry'deki model adları metinde aranır (boşluk/tire farkları
+  //    yok sayılır: "JMA-9922" ≈ "JMA 9922"). Tip ve marka uyumu öncelikli,
+  //    daha uzun (daha spesifik) model eşleşmesi kazanır.
+  var best = null, bestScore = 0;
+  dfEquip().forEach(function(e){
+    if (!e.model) return;
+    var raw  = String(e.model).toUpperCase();
+    var full = raw.replace(/[^A-Z0-9]/g,'');
+    // Bileşik modeller için varyantlar: "TG-8000-8100" → TG8000, TG8100;
+    // "JSS-2250/2500" → JSS2250, JSS2500 (metinde tek varyant geçse de eşleşir)
+    var cands = [full];
+    var pm = raw.match(/^([A-Z]+)[^A-Z0-9]*(\d.*)$/);
+    if (pm) {
+      var prefix = pm[1];
+      var grpsArr = pm[2].split(/[^A-Z0-9]+/).filter(Boolean);
+      if (grpsArr.length > 1) grpsArr.forEach(function(g){ cands.push((prefix+g).replace(/[^A-Z0-9]/g,'')); });
+    }
+    var hit = null;
+    for (var ci=0; ci<cands.length; ci++) {
+      if (cands[ci].length >= 4 && norm.indexOf(cands[ci]) !== -1) { hit = cands[ci]; break; }
+    }
+    if (!hit) return;
+    var score = hit.length
+      + (rec.equipType && dfTypeFromText((e.category||'')+' '+(e.name||'')) === rec.equipType ? 100 : 0)
+      + (rec.manufacturer && e.manufacturer === rec.manufacturer ? 50 : 0);
+    if (score > bestScore) { bestScore = score; best = e; }
+  });
+  if (best) {
+    if (!rec.model)        rec.model = best.model;
+    if (!rec.manufacturer) rec.manufacturer = best.manufacturer || rec.manufacturer;
+    if (!rec.equipId)     { rec.equipId = best.id; if (!rec.pmsCode) rec.pmsCode = best.code || ''; }
+    if (!rec.equipType || rec.equipType === 'OTHER') rec.equipType = dfTypeFromText((best.category||'')+' '+(best.name||''));
+  }
+  if (!rec.equipType) rec.equipType = 'OTHER';
+  return rec;
+}
+
+function dfTypeFromText(t) {
+  t = String(t||'').toUpperCase();
+  var map = [ ['RADAR','RADAR'],['ECDIS','ECDIS'],['GYRO','GYRO COMPASS'],['MAGNETIC','MAGNETIC COMPASS'],
+    ['ECHOSOUNDER','ECHO SOUNDER'],['ECHO','ECHO SOUNDER'],['GPS','GPS'],['GLONASS','GPS'],['AIS','AIS'],
+    ['VDR','VDR/S-VDR'],['LOG','SPEED LOG'],['ANEMO','ANEMOMETER'],['WIND','ANEMOMETER'],['BNWAS','BNWAS'],
+    ['NAVTEX','NAVTEX'],['VHF','VHF'],['MF/HF','MF/HF'],['INMARSAT','INMARSAT'],['VSAT','INMARSAT'],
+    ['FLEETBROADBAND','INMARSAT'],['IRIDIUM','INMARSAT'],['STARLINK','INMARSAT'],['SATELLITE','INMARSAT'],
+    ['EPIRB','EPIRB'],['SART','SART'],['PILOT','AUTOPILOT'],['STEERING','AUTOPILOT'] ];
+  for (var i=0;i<map.length;i++) if (t.indexOf(map[i][0])!==-1) return map[i][1];
+  return 'OTHER';
+}
+
+// ── Merge: union + LWW + tombstone (records, codes, equip) ────
+function _mergeDfData(cloud, local) {
+  cloud = cloud || {}; local = local || {};
+  function unionById(cArr, lArr, tomb, idOf) {
+    var map = {};
+    (cArr||[]).concat(lArr||[]).forEach(function(r){
+      if (!r) return; var k = idOf(r); if (!k) return;
+      var ex = map[k];
+      var rTs  = new Date(r.updatedAt || r.addedAt || 0).getTime();
+      var exTs = ex ? new Date(ex.updatedAt || ex.addedAt || 0).getTime() : -1;
+      if (!ex || rTs >= exTs) map[k] = r;
+    });
+    return Object.keys(map).map(function(k){ return map[k]; }).filter(function(r){
+      var td = tomb && tomb[idOf(r)];
+      if (!td) return true;
+      return new Date(r.updatedAt || r.addedAt || 0).getTime() > new Date(td).getTime();
+    });
+  }
+  var tomb  = Object.assign({}, cloud.tombstones||{}, local.tombstones||{});
+  var eTomb = Object.assign({}, cloud.equipTombstones||{}, local.equipTombstones||{});
+  return {
+    records: unionById(cloud.records, local.records, tomb, function(r){ return r.id; }),
+    tombstones: tomb,
+    codes:   unionById(cloud.codes, local.codes, null, function(c){ return c.code; }),
+    equip:   unionById(cloud.equip, local.equip, eTomb, function(e){ return e.id; }),
+    equipTombstones: eTomb
+  };
+}
+
+// ── Init / render ─────────────────────────────────────────────
+function dfInit() {
+  if (!_dfInited) {
+    _dfInited = true;
+    var vs = document.getElementById('dfVesselSel');
+    if (vs) vs.innerHTML = '<option value="">🚢 All Vessels</option>' +
+      VESSELS_ALL.slice().sort().map(function(v){ return '<option value="'+escAttr(canonicalize(v))+'">'+escHtml(v)+'</option>'; }).join('');
+    var ts = document.getElementById('dfTypeSel');
+    if (ts) ts.innerHTML = '<option value="">🛠 All Equipment</option>' +
+      DF_EQUIP_TYPES.map(function(t){ return '<option value="'+escAttr(t)+'">'+escHtml(t)+'</option>'; }).join('');
+  }
+  try { dfRender(); } catch(e){ console.warn('defects render failed', e); }
+}
+
+function dfRender() {
+  var el = document.getElementById('dfContent');
+  if (!el) return;
+  // view pill görünümü
+  var bd = document.getElementById('dfViewDefects'), be = document.getElementById('dfViewEquip'), bv = document.getElementById('dfViewVessels');
+  var pills = [[bd,'defects'],[bv,'vessels'],[be,'equip']];
+  pills.forEach(function(p){ if(!p[0]) return;
+    p[0].style.background = _dfView===p[1] ? 'var(--accent)' : 'var(--navy3)';
+    p[0].style.color      = _dfView===p[1] ? '#fff' : 'var(--text2)';
+  });
+  if (_dfView === 'equip')   { dfRenderEquip(el); return; }
+  if (_dfView === 'vessels') { dfRenderVessels(el); return; }
+
+  var recs = dfRecords();
+  var q = (_dfSearch||'').toLowerCase();
+  var filtered = recs.filter(function(r){
+    if (_dfVessel && canonicalize(r.vessel||'') !== _dfVessel) return false;
+    if (_dfType   && (r.equipType||'') !== _dfType) return false;
+    if (_dfStatus && (r.status||'open') !== _dfStatus) return false;
+    if (q) {
+      var hay = [r.vessel,r.equipType,r.manufacturer,r.model,r.serial,r.description,r.result,r.code,r.solution,r.pmsCode].join(' ').toLowerCase();
+      if (hay.indexOf(q) === -1) return false;
+    }
+    return true;
+  });
+  filtered.sort(function(a,b){ return (b.dateIdent||b.addedAt||'').localeCompare(a.dateIdent||a.addedAt||''); });
+
+  var cards;
+  if (!filtered.length) {
+    cards = '<div class="empty"><div class="empty-icon">🔧</div><div class="empty-text" style="font-size:16px;">'
+      + (recs.length ? 'No defects match the current filters' : 'No defect records yet — add one or import an Excel form')
+      + '</div></div>';
+  } else {
+    // Tipe göre bölümle: "RADAR" başlığı altında ilgili gemi arızaları
+    var typeIcons = { 'RADAR':'📡','ECDIS':'🗺️','GYRO COMPASS':'🧭','MAGNETIC COMPASS':'🧭','AUTOPILOT':'🎛️','GPS':'📍','AIS':'📶','VDR/S-VDR':'⬛','ECHO SOUNDER':'🌊','SPEED LOG':'🌀','ANEMOMETER':'💨','BNWAS':'⏰','NAVTEX':'📠','VHF':'📻','MF/HF':'📻','INMARSAT':'🛰️','EPIRB':'🆘','SART':'🆘','SSAS':'🚨','GMDSS BATTERY':'🔋','OTHER':'🔩' };
+    var groups = {};
+    filtered.forEach(function(r){ var g = r.equipType || 'OTHER'; (groups[g]=groups[g]||[]).push(r); });
+    cards = Object.keys(groups).sort(function(a,b){ return groups[b].length - groups[a].length; }).map(function(g){
+      return '<div style="display:flex;align-items:center;gap:10px;margin:18px 0 10px;border-bottom:2px solid var(--border2);padding-bottom:6px;">'
+        + '<span style="font-size:18px;">'+(typeIcons[g]||'🔩')+'</span>'
+        + '<span style="font-family:\'Barlow Condensed\',sans-serif;font-size:18px;font-weight:800;color:var(--text);letter-spacing:.5px;">'+escHtml(g)+'</span>'
+        + '<span style="font-size:14px;font-weight:700;color:var(--text3);">('+groups[g].length+')</span>'
+        + '</div>'
+        + groups[g].map(dfCardHtml).join('');
+    }).join('');
+  }
+
+  el.innerHTML = '<div style="display:grid;grid-template-columns:1fr 310px;gap:20px;align-items:start;padding:20px;">'
+    + '<div>' + cards + '</div>'
+    + '<div style="position:sticky;top:120px;">' + dfStatsHtml(filtered) + '</div>'
+    + '</div>';
+}
+
+// ── Gemi bazlı görünüm: her gemi altında arızaların kısa listesi ──
+function dfRenderVessels(el) {
+  var recs = dfRecords();
+  var q = (_dfSearch||'').toLowerCase();
+  var filtered = recs.filter(function(r){
+    if (_dfType   && (r.equipType||'') !== _dfType) return false;
+    if (_dfStatus && (r.status||'open') !== _dfStatus) return false;
+    if (q) {
+      var hay = [r.vessel,r.equipType,r.manufacturer,r.model,r.description,r.code].join(' ').toLowerCase();
+      if (hay.indexOf(q) === -1) return false;
+    }
+    return true;
+  });
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">🚢</div><div class="empty-text" style="font-size:16px;">No defect records'+(recs.length?' matching filters':'')+'</div></div>';
+    return;
+  }
+  var groups = {};
+  filtered.forEach(function(r){ var v = r.vessel || '—'; (groups[v]=groups[v]||[]).push(r); });
+  var html = '<div style="padding:20px;max-width:1050px;">';
+  Object.keys(groups).sort().forEach(function(v){
+    var arr = groups[v].slice().sort(function(a,b){ return (b.dateIdent||'').localeCompare(a.dateIdent||''); });
+    var openCnt = arr.filter(function(r){ return (r.status||'open')!=='resolved'; }).length;
+    html += '<div style="display:flex;align-items:center;gap:12px;margin:16px 0 8px;border-bottom:2px solid var(--border2);padding-bottom:6px;">'
+      + '<span style="font-family:\'Barlow Condensed\',sans-serif;font-size:19px;font-weight:800;color:var(--text);">🚢 '+escHtml(v)+'</span>'
+      + '<span style="font-size:14px;font-weight:700;color:var(--text3);">'+arr.length+' defect'+(arr.length>1?'s':'')+'</span>'
+      + (openCnt ? '<span style="font-size:13px;font-weight:800;color:#dc2626;background:rgba(220,38,38,.1);border-radius:10px;padding:2px 10px;">'+openCnt+' open</span>' : '<span style="font-size:13px;font-weight:800;color:var(--green);">all resolved ✓</span>')
+      + '</div>';
+    arr.forEach(function(r){
+      var st = DF_STATUS[r.status||'open'] || DF_STATUS.open;
+      var d = r.dateIdent ? r.dateIdent.split('-').reverse().join('/') : '—';
+      var mm = [r.manufacturer, r.model].filter(Boolean).join(' ');
+      var desc = (r.description||'').replace(/\s+/g,' ').slice(0,90);
+      html += '<div onclick="_dfExpanded.add(\''+escAttr(r.id)+'\');_dfView=\'defects\';_dfVessel=\''+escAttr(canonicalize(r.vessel||''))+'\';var s=document.getElementById(\'dfVesselSel\');if(s)s.value=_dfVessel;dfRender();" '
+        + 'style="display:grid;grid-template-columns:150px 210px 100px 170px 1fr;gap:12px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--border);cursor:pointer;" '
+        + 'onmouseover="this.style.background=\'var(--navy3)\'" onmouseout="this.style.background=\'\'">'
+        + '<span style="font-size:14px;font-weight:800;color:var(--accent);">'+escHtml(r.equipType||'OTHER')+'</span>'
+        + '<span style="font-size:14px;color:var(--text);font-family:\'JetBrains Mono\',monospace;">'+escHtml(mm||'—')+'</span>'
+        + '<span style="font-size:14px;color:var(--text2);">📅 '+d+'</span>'
+        + '<span style="font-size:14px;font-weight:700;">'+st.icon+' '+st.label+'</span>'
+        + '<span style="font-size:13px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escHtml(desc)+'</span>'
+        + '</div>';
+    });
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function dfCardHtml(r) {
+  var st = DF_STATUS[r.status||'open'] || DF_STATUS.open;
+  var isExp = _dfExpanded.has(r.id);
+  var eid = escAttr(r.id);
+  var d = r.dateIdent ? r.dateIdent.split('-').reverse().join('/') : '—';
+  var row = function(l,v){ return v ? '<div style="display:flex;gap:10px;padding:4px 0;"><span style="'+_dfS.rowLbl+'">'+l+'</span><span style="'+_dfS.rowVal+'">'+escHtml(v)+'</span></div>' : ''; };
+  var body = '';
+  if (isExp) {
+    var report = r.reportUrl
+      ? '<a href="'+escAttr(r.reportUrl)+'" target="_blank" style="color:var(--accent);font-size:14px;font-weight:700;">📄 '+escHtml(r.reportName||'Service Report')+'</a>'
+        + ' <button onclick="dfPickReport(\''+eid+'\')" style="margin-left:10px;font-size:13px;background:none;border:1px solid var(--border2);border-radius:6px;padding:3px 10px;color:var(--text3);cursor:pointer;">Replace</button>'
+      : '<button onclick="dfPickReport(\''+eid+'\')" style="font-size:14px;background:var(--navy3);border:1px solid var(--border2);border-radius:8px;padding:7px 14px;color:var(--text2);font-weight:700;cursor:pointer;">📤 Upload Service Report (PDF)</button>';
+    body = '<div style="padding:14px 18px;border-top:1px solid var(--border);">'
+      + row('Manufacturer', r.manufacturer) + row('Model', r.model) + row('Serial No', r.serial)
+      + row('PMS Code', r.pmsCode) + row('IMO', r.imo) + row('Booklet ID', r.bookletId)
+      + row('Description', r.description) + row('Result', r.result)
+      + row('Spare Parts', r.spares)
+      + row('Next Port / ETA', [r.nextPort, r.eta?r.eta.split('-').reverse().join('/'):''].filter(Boolean).join('  ·  '))
+      + row('Ch.Eng / Master', [r.chiefEng, r.master].filter(Boolean).join('  /  '))
+      + row('Solution', r.solution)
+      + '<div style="margin-top:10px;">' + report + '</div>'
+      + dfSimilarHtml(r)
+      + '</div>';
+  }
+  return '<div class="insp-card" style="margin-bottom:12px;">'
+    + '<div class="insp-card-header" onclick="dfToggle(\''+eid+'\')">'
+    +   '<div class="insp-card-left">'
+    +     '<div class="insp-card-title" style="'+_dfS.cardTitle+'">🚢 '+escHtml(r.vessel||'—')
+    +       (r.manufacturer||r.model ? ' — '+escHtml([r.manufacturer, r.model].filter(Boolean).join(' ')) : '')+'</div>'
+    +     '<div class="insp-card-meta" style="'+_dfS.meta+'">'
+    +       '<span class="insp-meta-date" style="font-size:14px;">📅 '+d+'</span>'
+    +       '<span style="'+_dfS.chip+'margin-left:8px;">'+st.icon+' '+st.label+'</span>'
+    +       (r.code ? '<span style="'+_dfS.chip+'margin-left:8px;background:var(--navy3);border:1px solid var(--border2);border-radius:12px;padding:2px 10px;color:var(--text2);">'+escHtml(r.code)+'</span>' : '')
+    +     '</div>'
+    +   '</div>'
+    +   '<div class="insp-card-actions" onclick="event.stopPropagation()">'
+    +     '<button class="btn btn-sm btn-outline" style="font-size:14px;" onclick="dfEdit(\''+eid+'\')">✎ Edit</button>'
+    +     '<button class="btn btn-sm" style="font-size:14px;background:rgba(220,38,38,.1);color:#dc2626;border:1px solid rgba(220,38,38,.3);" onclick="dfDelete(\''+eid+'\')">🗑</button>'
+    +   '</div>'
+    +   '<div class="insp-chevron'+(isExp?' open':'')+'">▾</div>'
+    + '</div>' + body + '</div>';
+}
+
+function dfToggle(id){ if(_dfExpanded.has(id)) _dfExpanded.delete(id); else _dfExpanded.add(id); dfRender(); }
+
+// ── Ekipman Registry görünümü ─────────────────────────────────
+function dfRenderEquip(el) {
+  var eq = dfEquip();
+  var q = (_dfSearch||'').toLowerCase();
+  var list = eq.filter(function(e){
+    if (!q) return true;
+    return [e.code,e.category,e.name,e.manufacturer,e.model].join(' ').toLowerCase().indexOf(q) !== -1;
+  });
+  // Kategoriye göre grupla
+  var groups = {};
+  list.forEach(function(e){ var g = e.category || 'OTHER'; (groups[g]=groups[g]||[]).push(e); });
+  var defectCount = {};
+  dfRecords().forEach(function(r){ if (r.equipId) defectCount[r.equipId]=(defectCount[r.equipId]||0)+1; });
+
+  var html = '<div style="padding:20px;max-width:1100px;">'
+    + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">'
+    + '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:20px;font-weight:800;color:var(--text);">🗂 Equipment Registry <span style="font-size:14px;color:var(--text3);font-weight:600;">('+eq.length+' items)</span></div>'
+    + '<button onclick="dfEquipEditModal(null)" class="btn btn-primary" style="padding:8px 16px;font-size:14px;margin-left:auto;">+ Add Equipment</button>'
+    + '</div>';
+  if (!eq.length) {
+    html += '<div class="empty"><div class="empty-icon">🗂</div><div class="empty-text" style="font-size:16px;">Registry boş — "🗂 Import Equipment (PMS)" ile Excel kataloğunu yükleyin veya elle ekleyin.</div></div>';
+  } else {
+    Object.keys(groups).sort().forEach(function(g){
+      html += '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:16px;font-weight:800;color:var(--accent);margin:16px 0 6px;border-bottom:1px solid var(--border);padding-bottom:4px;">'+escHtml(g)+' <span style="color:var(--text3);font-size:13px;">('+groups[g].length+')</span></div>';
+      groups[g].sort(function(a,b){ return (a.code||'').localeCompare(b.code||''); }).forEach(function(e){
+        var dc = defectCount[e.id] || 0;
+        html += '<div style="display:grid;grid-template-columns:150px 1fr 150px 170px 90px auto;gap:10px;align-items:center;padding:7px 6px;border-bottom:1px solid var(--border);">'
+          + '<span style="font-size:13px;color:var(--text3);font-family:\'JetBrains Mono\',monospace;">'+escHtml(e.code||'—')+'</span>'
+          + '<span style="font-size:14px;color:var(--text);font-weight:600;">'+escHtml(e.name||'')+'</span>'
+          + '<span style="font-size:14px;color:var(--text2);">'+escHtml(e.manufacturer||'—')+'</span>'
+          + '<span style="font-size:14px;color:var(--text2);font-family:\'JetBrains Mono\',monospace;">'+escHtml(e.model||'—')+'</span>'
+          + '<span style="font-size:13px;'+(dc?'color:#dc2626;font-weight:800;':'color:var(--text3);')+'">'+(dc? '🔧 '+dc+' defect'+(dc>1?'s':'') : '—')+'</span>'
+          + '<span style="white-space:nowrap;">'
+          +   '<button onclick="dfEquipEditModal(\''+escAttr(e.id)+'\')" style="background:none;border:1px solid var(--border2);border-radius:6px;padding:3px 10px;color:var(--text2);font-size:13px;cursor:pointer;">✎</button> '
+          +   '<button onclick="dfEquipDelete(\''+escAttr(e.id)+'\')" style="background:none;border:none;color:#dc2626;font-size:15px;cursor:pointer;">×</button>'
+          + '</span></div>';
+      });
+    });
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function dfEquipDelete(id) {
+  if (!confirm('Bu ekipman registry\'den silinsin mi? (Arıza kayıtları silinmez)')) return;
+  var t = dfEquipTombLoad(); t[id] = new Date().toISOString(); dfEquipTombSave(t);
+  dfEquipSave(dfEquip().filter(function(e){ return e.id !== id; }));
+  dfRender();
+}
+
+// Ekipman ekle/düzenle — arıza yapan parçayı database'e eklemenin ana yolu
+function dfEquipEditModal(id, presetName, onSaved) {
+  var e = id ? dfEquip().find(function(x){ return x.id===id; }) : null;
+  var isNew = !e;
+  e = e || { id:'eq_'+Date.now()+'_'+Math.random().toString(36).slice(2,5), code:'', category:'', name:presetName||'', manufacturer:'', model:'' };
+  if (isNew && presetName) { var pm = dfParseMakeModel(presetName); e.manufacturer = pm.manufacturer; e.model = pm.model; }
+  var ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:950;display:flex;align-items:center;justify-content:center;padding:20px;';
+  ov.innerHTML = '<div style="background:var(--navy2);border:1px solid var(--border2);border-radius:14px;max-width:520px;width:100%;padding:22px;">'
+    + '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:18px;font-weight:800;color:var(--text);margin-bottom:6px;">'+(isNew?'🗂 Add Equipment to Registry':'✎ Edit Equipment')+'</div>'
+    + '<div style="'+_dfS.label+'">Equipment Name *</div><input id="eq_name" style="'+_dfS.input+'" value="'+escAttr(e.name)+'">'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 12px;">'
+    + '<div><div style="'+_dfS.label+'">Manufacturer</div><input id="eq_manuf" style="'+_dfS.input+'" value="'+escAttr(e.manufacturer)+'"></div>'
+    + '<div><div style="'+_dfS.label+'">Model</div><input id="eq_model" style="'+_dfS.input+'" value="'+escAttr(e.model)+'"></div>'
+    + '<div><div style="'+_dfS.label+'">Category</div><input id="eq_cat" style="'+_dfS.input+'" placeholder="e.g. Radars" value="'+escAttr(e.category)+'"></div>'
+    + '<div><div style="'+_dfS.label+'">PMS Code</div><input id="eq_code" style="'+_dfS.input+'" placeholder="DE.07.02.01.xx" value="'+escAttr(e.code)+'"></div>'
+    + '</div>'
+    + '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">'
+    + '<button id="eq_cancel" style="padding:9px 18px;background:var(--navy3);border:1px solid var(--border2);border-radius:8px;color:var(--text2);font-weight:700;font-size:14px;cursor:pointer;">Cancel</button>'
+    + '<button id="eq_save" class="btn btn-primary" style="padding:9px 22px;font-size:14px;">Save</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', function(ev){ if(ev.target===ov) ov.remove(); });
+  ov.querySelector('#eq_cancel').onclick = function(){ ov.remove(); };
+  ov.querySelector('#eq_save').onclick = function() {
+    var name = ov.querySelector('#eq_name').value.trim();
+    if (!name) { showToast('Equipment name required','error'); return; }
+    var arr = dfEquip();
+    var upd = { id:e.id, name:name,
+      manufacturer: ov.querySelector('#eq_manuf').value.trim().toUpperCase(),
+      model: ov.querySelector('#eq_model').value.trim(),
+      category: ov.querySelector('#eq_cat').value.trim() || 'OTHER',
+      code: ov.querySelector('#eq_code').value.trim(),
+      updatedAt: new Date().toISOString() };
+    var idx = arr.findIndex(function(x){ return x.id===e.id; });
+    if (idx === -1) arr.push(upd); else arr[idx] = upd;
+    dfEquipSave(arr);
+    ov.remove();
+    if (typeof onSaved === 'function') onSaved(upd); else dfRender();
+    showToast(isNew?'Equipment added to registry':'Equipment updated','success');
+  };
+}
+
+// ── PMS Excel katalog importu (Code | Structure Name | Quantity) ──
+function dfImportEquip(file) {
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      var wb = XLSX.read(ev.target.result, { type:'binary' });
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var rows = XLSX.utils.sheet_to_json(ws, { header:1 });
+      // Başlık satırını bul (Code / Structure Name)
+      var hi = rows.findIndex(function(r){ return r && String(r[0]||'').trim().toLowerCase()==='code'; });
+      if (hi === -1) hi = 0;
+      var items = [];
+      for (var i=hi+1; i<rows.length; i++) {
+        var code = String(rows[i] && rows[i][0] || '').trim();
+        var name = String(rows[i] && rows[i][1] || '').trim();
+        var qty  = rows[i] && rows[i][2];
+        if (code && name) items.push({ code:code, name:name, qty:qty });
+      }
+      if (!items.length) { showToast('Katalog satırı bulunamadı','error'); return; }
+      var codeSet = {}; items.forEach(function(it){ codeSet[it.code]=it; });
+      var isLeaf = function(code){ return !items.some(function(o){ return o.code !== code && o.code.indexOf(code + '.') === 0; }); };
+      var parentName = function(code){
+        var p = code.split('.'); p.pop();
+        var par = codeSet[p.join('.')];
+        return par ? par.name : '';
+      };
+      var existing = dfEquip();
+      var byCode = {}; existing.forEach(function(e){ if (e.code) byCode[e.code]=e; });
+      var added=0, updated=0;
+      items.forEach(function(it){
+        if (!isLeaf(it.code)) return;                     // sadece yaprak = somut ekipman
+        var pm = dfParseMakeModel(it.name);
+        var rec = byCode[it.code];
+        if (rec) {
+          rec.name = it.name; rec.category = parentName(it.code) || rec.category;
+          if (!rec.manufacturer) rec.manufacturer = pm.manufacturer;
+          if (!rec.model) rec.model = pm.model;
+          rec.updatedAt = new Date().toISOString(); updated++;
+        } else {
+          existing.push({ id:'eq_'+it.code, code:it.code, category:parentName(it.code)||'OTHER',
+            name:it.name, manufacturer:pm.manufacturer, model:pm.model,
+            qty: it.qty||1, updatedAt:new Date().toISOString() });
+          added++;
+        }
+      });
+      dfEquipSave(existing);
+      _dfView = 'equip';
+      dfRender();
+      showToast('Equipment imported: '+added+' new, '+updated+' updated','success');
+    } catch(e) {
+      console.warn('equip import failed', e);
+      showToast('Equipment import failed: '+e.message,'error');
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+// ── Benzer arızalar ───────────────────────────────────────────
+function dfSimilarHtml(r) {
+  var toks = function(s){ return (s||'').toLowerCase().split(/[^a-z0-9ğüşöçı]+/).filter(function(w){ return w.length>3; }); };
+  var rT = new Set(toks(r.description));
+  var scored = dfRecords().filter(function(o){ return o.id !== r.id; }).map(function(o){
+    var s = 0;
+    if (o.equipId && o.equipId === r.equipId) s += 3;
+    if (o.equipType && o.equipType === r.equipType) s += 2;
+    if (o.model && o.model === r.model) s += 2;
+    if (o.manufacturer && o.manufacturer === r.manufacturer) s += 1;
+    var common = 0; toks(o.description).forEach(function(w){ if (rT.has(w)) common++; });
+    s += Math.min(common, 4) * 0.5;
+    return { o:o, s:s };
+  }).filter(function(x){ return x.s >= 2; }).sort(function(a,b){ return b.s-a.s; }).slice(0,3);
+  if (!scored.length) return '';
+  return '<div style="margin-top:14px;padding:12px;background:var(--navy3);border-radius:10px;">'
+    + '<div style="font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:8px;">🔎 Similar past defects</div>'
+    + scored.map(function(x){
+        var o=x.o, sol = o.solution ? ' — <em>'+escHtml(o.solution.slice(0,140))+(o.solution.length>140?'…':'')+'</em>' : (o.status==='resolved'?' — resolved':'');
+        return '<div style="font-size:14px;padding:4px 0;color:var(--text2);cursor:pointer;line-height:1.5;" onclick="_dfExpanded.add(\''+escAttr(o.id)+'\');dfRender();">'
+          + '• <b>'+escHtml(o.vessel||'')+'</b> '+escHtml(o.equipType||'')+' ('+escHtml((o.dateIdent||'').slice(0,10))+')'+sol+'</div>';
+      }).join('')
+    + '</div>';
+}
+
+// ── İstatistik paneli ─────────────────────────────────────────
+function dfStatsHtml(filtered) {
+  var cnt = function(arr, key){ var m={}; arr.forEach(function(r){ var k=r[key]||'—'; m[k]=(m[k]||0)+1; }); return m; };
+  var top = function(m, n){ return Object.keys(m).sort(function(a,b){ return m[b]-m[a]; }).slice(0,n); };
+  var open = filtered.filter(function(r){ return (r.status||'open')!=='resolved'; }).length;
+  var resolved = filtered.filter(function(r){ return r.status==='resolved'; }).length;
+  var recurring = filtered.filter(function(r){ return r.status==='recurring'; }).length;
+  var byType  = cnt(filtered,'equipType');
+  // "Hangi marka+model daha fazla arıza yapıyor?" — üretici + model birlikte
+  var byBrandModel = {};
+  filtered.forEach(function(r){
+    if (r.model) {
+      var k = (r.manufacturer ? r.manufacturer+' ' : '') + r.model;
+      byBrandModel[k] = (byBrandModel[k]||0) + 1;
+    }
+  });
+  var byManuf = cnt(filtered.filter(function(r){ return r.manufacturer; }),'manufacturer');
+  // "FURUNO RADAR kaç defa arıza yaptı?" → tip × marka kırılımı
+  var byTypeBrand = {};
+  filtered.forEach(function(r){
+    if (r.manufacturer && r.equipType) {
+      var k = r.manufacturer + ' ' + r.equipType;
+      byTypeBrand[k] = (byTypeBrand[k]||0) + 1;
+    }
+  });
+  var bars = function(m, n, warnAt){
+    var keys = top(m,n); if(!keys.length) return '<div style="font-size:13px;color:var(--text3);">—</div>';
+    var max = m[keys[0]]||1;
+    return keys.map(function(k){
+      var c=m[k], pct=Math.round(c/max*100);
+      var warn = warnAt && c>=warnAt ? ' <span style="color:#dc2626;font-weight:800;">⚠</span>' : '';
+      return '<div style="margin-bottom:7px;"><div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2);"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:190px;">'+escHtml(k)+warn+'</span><span style="font-weight:700;">'+c+'</span></div>'
+        + '<div style="height:5px;background:var(--border);border-radius:3px;"><div style="height:5px;background:var(--accent);border-radius:3px;width:'+pct+'%;"></div></div></div>';
+    }).join('');
+  };
+  var srow = function(icon,label,val,bg){ return '<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);"><div style="width:36px;height:36px;border-radius:9px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:18px;">'+icon+'</div><div><div style="font-size:20px;font-weight:800;font-family:\'Barlow Condensed\',sans-serif;color:var(--text);line-height:1.1;">'+val+'</div><div style="font-size:13px;color:var(--text3);">'+label+'</div></div></div>'; };
+  return '<div style="background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:18px;">'
+    + '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:17px;font-weight:800;color:var(--text);margin-bottom:8px;">📊 Defect Stats</div>'
+    + srow('🔧','Total defects', filtered.length, 'rgba(37,99,235,.15)')
+    + srow('🔴','Open / pending', open, 'rgba(220,38,38,.12)')
+    + srow('🟢','Resolved', resolved, 'rgba(22,163,74,.12)')
+    + srow('🔁','Recurring', recurring, 'rgba(245,158,11,.15)')
+    + '<div style="margin-top:14px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:8px;">By equipment type</div>' + bars(byType,5)
+    + '<div style="margin-top:14px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:8px;">By manufacturer</div>' + bars(byManuf,5)
+    + '<div style="margin-top:14px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:8px;">Brand × type <span style="text-transform:none;font-weight:600;">(örn. FURUNO RADAR)</span></div>' + bars(byTypeBrand,6)
+    + '<div style="margin-top:14px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:8px;">Most failing make + model</div>' + bars(byBrandModel,6,3)
+    + '<div style="margin-top:8px;font-size:13px;color:var(--text3);">⚠ = 3+ defects on same model → consider renewal</div>'
+    + '</div>';
+}
+
+// ── Yeni / düzenle modal ──────────────────────────────────────
+function dfNewRecord(){ _dfShowModal(null); }
+function dfEdit(id){ var r = dfRecords().find(function(x){ return x.id===id; }); if(r) _dfShowModal(r); }
+
+function dfDelete(id) {
+  if (!confirm('Bu arıza kaydı silinsin mi?')) return;
+  var recs = dfRecords().filter(function(r){ return r.id !== id; });
+  var t = dfTombLoad(); t[id] = new Date().toISOString(); dfTombSave(t);
+  dfSaveAll(recs);
+  _dfExpanded.delete(id);
+  dfRender();
+  showToast('Defect deleted', 'success');
+}
+
+function _dfEquipOptions(selectedId) {
+  var eq = dfEquip();
+  if (!eq.length) return '<option value="">— registry boş —</option>';
+  var groups = {};
+  eq.forEach(function(e){ (groups[e.category||'OTHER']=groups[e.category||'OTHER']||[]).push(e); });
+  var html = '<option value="">— select from registry —</option>';
+  Object.keys(groups).sort().forEach(function(g){
+    html += '<optgroup label="'+escAttr(g)+'">';
+    groups[g].sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); }).forEach(function(e){
+      html += '<option value="'+escAttr(e.id)+'"'+(e.id===selectedId?' selected':'')+'>'+escHtml(e.name)+'</option>';
+    });
+    html += '</optgroup>';
+  });
+  return html;
+}
+
+// Tip seçilince o tipe ait marka/modelleri listele (kademeli seçim).
+// Tip boşsa tüm katalog gruplu gösterilir.
+function _dfEquipOptionsForType(type, selectedId) {
+  if (!type) return _dfEquipOptions(selectedId);
+  var eq = dfEquip().filter(function(e){ return dfTypeFromText((e.category||'')+' '+(e.name||'')) === type; });
+  if (!eq.length) return '<option value="">— bu tip için registry\'de kayıt yok —</option>';
+  eq.sort(function(a,b){ return ((a.manufacturer||'')+(a.model||a.name)).localeCompare((b.manufacturer||'')+(b.model||b.name)); });
+  return '<option value="">— select make / model —</option>' + eq.map(function(e){
+    var label = (e.manufacturer ? e.manufacturer+' ' : '') + (e.model || e.name);
+    return '<option value="'+escAttr(e.id)+'"'+(e.id===selectedId?' selected':'')+'>'+escHtml(label)+'</option>';
+  }).join('');
+}
+
+function _dfShowModal(rec) {
+  var isNew = !rec;
+  rec = rec || { id:'df_'+Date.now()+'_'+Math.random().toString(36).slice(2,5), status:'open' };
+  var ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;display:flex;align-items:center;justify-content:center;padding:20px;';
+  var inp = _dfS.input, lbl = _dfS.label;
+  var codeOpts = '<option value="">— none —</option>' + dfCodes().map(function(c){
+    return '<option value="'+escAttr(c.code)+'"'+(c.code===rec.code?' selected':'')+'>'+escHtml(c.code+' — '+(c.label||''))+'</option>';
+  }).join('');
+  var vslOpts = VESSELS_ALL.slice().sort().map(function(v){
+    var cv = canonicalize(v);
+    return '<option value="'+escAttr(cv)+'"'+(cv===canonicalize(rec.vessel||'')?' selected':'')+'>'+escHtml(v)+'</option>';
+  }).join('');
+  var typeOpts = DF_EQUIP_TYPES.map(function(t){
+    return '<option value="'+escAttr(t)+'"'+(t===rec.equipType?' selected':'')+'>'+escHtml(t)+'</option>';
+  }).join('');
+  var stOpts = Object.keys(DF_STATUS).map(function(s){
+    return '<option value="'+s+'"'+(s===(rec.status||'open')?' selected':'')+'>'+DF_STATUS[s].icon+' '+DF_STATUS[s].label+'</option>';
+  }).join('');
+  ov.innerHTML = '<div style="background:var(--navy2);border:1px solid var(--border2);border-radius:14px;max-width:780px;width:100%;max-height:92vh;overflow-y:auto;padding:22px;">'
+    + '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:19px;font-weight:800;color:var(--text);margin-bottom:8px;">'+(isNew?'🔧 New Defect':'✎ Edit Defect')+'</div>'
+    + '<div style="'+lbl+'">Make / Model (from registry) <span style="text-transform:none;color:var(--text3);font-weight:600;">— önce Equipment Type seçin; o tipe ait markalar listelenir</span></div>'
+    + '<div style="display:flex;gap:10px;align-items:center;">'
+    + '<select id="df_equip" style="'+inp+'flex:1;">'+_dfEquipOptionsForType(rec.equipType||'', rec.equipId||'')+'</select>'
+    + '<button id="df_equip_add" title="Arızalı parça katalogda yoksa registry\'ye ekle" style="white-space:nowrap;padding:9px 14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">+ Add to Registry</button>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 12px;">'
+    + '<div><div style="'+lbl+'">Vessel *</div><select id="df_vsl" style="'+inp+'"><option value="">— select —</option>'+vslOpts+'</select></div>'
+    + '<div><div style="'+lbl+'">Equipment Type *</div><select id="df_type" style="'+inp+'">'+typeOpts+'</select></div>'
+    + '<div><div style="'+lbl+'">Status</div><select id="df_status" style="'+inp+'">'+stOpts+'</select></div>'
+    + '<div><div style="'+lbl+'">Date of Identification *</div><input type="date" id="df_dident" style="'+inp+'" value="'+escAttr(rec.dateIdent||'')+'"></div>'
+    + '<div><div style="'+lbl+'">Date of Report</div><input type="date" id="df_drep" style="'+inp+'" value="'+escAttr(rec.dateReport||'')+'"></div>'
+    + '<div><div style="'+lbl+'">Defect Code</div><select id="df_code" style="'+inp+'">'+codeOpts+'</select></div>'
+    + '<div><div style="'+lbl+'">Manufacturer</div><input id="df_manuf" style="'+inp+'" value="'+escAttr(rec.manufacturer||'')+'"></div>'
+    + '<div><div style="'+lbl+'">Model</div><input id="df_model" style="'+inp+'" value="'+escAttr(rec.model||'')+'"></div>'
+    + '<div><div style="'+lbl+'">Serial No</div><input id="df_serial" style="'+inp+'" value="'+escAttr(rec.serial||'')+'"></div>'
+    + '<div><div style="'+lbl+'">IMO No</div><input id="df_imo" style="'+inp+'" value="'+escAttr(rec.imo||'')+'"></div>'
+    + '<div><div style="'+lbl+'">Booklet ID</div><input id="df_book" style="'+inp+'" value="'+escAttr(rec.bookletId||'')+'"></div>'
+    + '<div><div style="'+lbl+'">PMS Code</div><input id="df_pms" style="'+inp+'" value="'+escAttr(rec.pmsCode||'')+'"></div>'
+    + '<div><div style="'+lbl+'">Next Port</div><input id="df_nport" style="'+inp+'" value="'+escAttr(rec.nextPort||'')+'"></div>'
+    + '<div><div style="'+lbl+'">ETA Next Port</div><input type="date" id="df_eta" style="'+inp+'" value="'+escAttr(rec.eta||'')+'"></div>'
+    + '<div></div>'
+    + '<div><div style="'+lbl+'">Chief Engineer</div><input id="df_ce" style="'+inp+'" value="'+escAttr(rec.chiefEng||'')+'"></div>'
+    + '<div><div style="'+lbl+'">Master</div><input id="df_ma" style="'+inp+'" value="'+escAttr(rec.master||'')+'"></div>'
+    + '</div>'
+    + '<div style="'+lbl+'">Description of Defect *</div><textarea id="df_desc" rows="3" style="'+inp+'resize:vertical;">'+escHtml(rec.description||'')+'</textarea>'
+    + '<button id="df_auto" style="margin-top:6px;padding:7px 14px;background:linear-gradient(135deg,#d97706,#b45309);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">✨ Auto-detect type / make / model from description</button>'
+    + '<div style="'+lbl+'">Result</div><textarea id="df_result" rows="2" style="'+inp+'resize:vertical;">'+escHtml(rec.result||'')+'</textarea>'
+    + '<div style="'+lbl+'">Required Spare Parts</div><textarea id="df_spares" rows="2" style="'+inp+'resize:vertical;">'+escHtml(rec.spares||'')+'</textarea>'
+    + '<div style="'+lbl+'">Solution / Fix Notes</div><textarea id="df_sol" rows="2" style="'+inp+'resize:vertical;">'+escHtml(rec.solution||'')+'</textarea>'
+    + '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">'
+    + '<button id="df_cancel" style="padding:9px 20px;background:var(--navy3);border:1px solid var(--border2);border-radius:8px;color:var(--text2);font-weight:700;font-size:14px;cursor:pointer;">Cancel</button>'
+    + '<button id="df_save" class="btn btn-primary" style="padding:9px 24px;font-size:14px;">Save</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', function(e){ if(e.target===ov) ov.remove(); });
+  ov.querySelector('#df_cancel').onclick = function(){ ov.remove(); };
+
+  // Registry seçilince marka/model/PMS otomatik doldur (tip zaten seçili)
+  var applyEquip = function(e) {
+    if (!e) return;
+    if (!ov.querySelector('#df_type').value) ov.querySelector('#df_type').value = dfTypeFromText(e.category + ' ' + e.name);
+    if (e.manufacturer) ov.querySelector('#df_manuf').value = e.manufacturer;
+    if (e.model)        ov.querySelector('#df_model').value = e.model;
+    if (e.code)         ov.querySelector('#df_pms').value   = e.code;
+  };
+  // ✨ Auto-detect: açıklamadan tip/marka/model tespit et, formu doldur
+  ov.querySelector('#df_auto').onclick = function() {
+    var tmp = dfAutoClassify({
+      description: ov.querySelector('#df_desc').value,
+      result: ov.querySelector('#df_result').value,
+      spares: ov.querySelector('#df_spares').value,
+      bookletId: ov.querySelector('#df_book').value,
+      equipType: ov.querySelector('#df_type').value === 'OTHER' ? '' : ov.querySelector('#df_type').value,
+      manufacturer: ov.querySelector('#df_manuf').value.trim(),
+      model: ov.querySelector('#df_model').value.trim(),
+      equipId: ov.querySelector('#df_equip').value, pmsCode: ov.querySelector('#df_pms').value.trim()
+    });
+    ov.querySelector('#df_type').value  = tmp.equipType || 'OTHER';
+    ov.querySelector('#df_manuf').value = tmp.manufacturer || '';
+    ov.querySelector('#df_model').value = tmp.model || '';
+    ov.querySelector('#df_pms').value   = tmp.pmsCode || '';
+    ov.querySelector('#df_equip').innerHTML = _dfEquipOptionsForType(tmp.equipType || '', tmp.equipId || '');
+    showToast(tmp.model ? ('Detected: '+(tmp.manufacturer?tmp.manufacturer+' ':'')+tmp.model+' ('+tmp.equipType+')') : ('Detected type: '+(tmp.equipType||'—')), tmp.model?'success':'info');
+  };
+  // Tip değişince o tipe ait marka/modelleri listele (kademeli seçim)
+  ov.querySelector('#df_type').addEventListener('change', function() {
+    ov.querySelector('#df_equip').innerHTML = _dfEquipOptionsForType(this.value, '');
+  });
+  ov.querySelector('#df_equip').onchange = function() {
+    var e = dfEquip().find(function(x){ return x.id===ov.querySelector('#df_equip').value; });
+    applyEquip(e);
+  };
+  // Arızalı parça katalogda yoksa: buradan registry'ye ekle → seçili gelir
+  ov.querySelector('#df_equip_add').onclick = function() {
+    var preset = ov.querySelector('#df_model').value || ov.querySelector('#df_desc').value.slice(0,60);
+    dfEquipEditModal(null, preset, function(saved){
+      ov.querySelector('#df_equip').innerHTML = _dfEquipOptionsForType(ov.querySelector('#df_type').value, saved.id);
+      applyEquip(saved);
+    });
+  };
+
+  ov.querySelector('#df_save').onclick = function() {
+    var g = function(id){ var e=ov.querySelector('#'+id); return e ? e.value.trim() : ''; };
+    if (!g('df_vsl'))   { showToast('Vessel required','error'); return; }
+    if (!g('df_dident')){ showToast('Identification date required','error'); return; }
+    if (!ov.querySelector('#df_desc').value.trim()) { showToast('Description required','error'); return; }
+    var recs = dfRecords();
+    var idx = recs.findIndex(function(x){ return x.id===rec.id; });
+    var upd = {
+      id: rec.id, vessel: g('df_vsl'), equipType: g('df_type'), status: g('df_status'),
+      equipId: g('df_equip'), pmsCode: g('df_pms'),
+      dateIdent: g('df_dident'), dateReport: g('df_drep'), code: g('df_code'),
+      manufacturer: g('df_manuf'), model: g('df_model'), serial: g('df_serial'),
+      imo: g('df_imo'), bookletId: g('df_book'), nextPort: g('df_nport'), eta: g('df_eta'),
+      chiefEng: g('df_ce'), master: g('df_ma'),
+      description: ov.querySelector('#df_desc').value.trim(),
+      result: ov.querySelector('#df_result').value.trim(),
+      spares: ov.querySelector('#df_spares').value.trim(),
+      solution: ov.querySelector('#df_sol').value.trim(),
+      reportUrl: rec.reportUrl||'', reportName: rec.reportName||'',
+      addedAt: rec.addedAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    if (idx === -1) recs.push(dfAutoClassify(upd)); else recs[idx] = dfAutoClassify(upd);
+    dfSaveAll(recs);
+    _dfExpanded.add(rec.id);
+    ov.remove();
+    _dfView = 'defects';
+    dfRender();
+    showToast(isNew?'Defect saved':'Defect updated','success');
+  };
+}
+
+// ── Servis raporu PDF → Supabase Storage ─────────────────────
+function dfPickReport(recId) {
+  var inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'application/pdf,.pdf';
+  inp.onchange = function() {
+    var f = inp.files && inp.files[0];
+    if (!f) return;
+    if (f.size > 20*1024*1024) { showToast('PDF çok büyük (max 20MB)','error'); return; }
+    showToast('Uploading report…','info');
+    dfUploadReport(recId, f).then(function(url){
+      var recs = dfRecords();
+      var idx = recs.findIndex(function(r){ return r.id===recId; });
+      if (idx === -1) return;
+      recs[idx].reportUrl = url;
+      recs[idx].reportName = f.name;
+      recs[idx].updatedAt = new Date().toISOString();
+      dfSaveAll(recs);
+      dfRender();
+      showToast('Service report uploaded','success');
+    }).catch(function(e){
+      console.warn('report upload failed', e);
+      showToast('Upload failed — Supabase Storage bucket "'+DF_BUCKET+'" kontrol edin','error');
+    });
+  };
+  inp.click();
+}
+
+async function dfUploadReport(recId, file) {
+  var safe = file.name.replace(/[^\w.\-]+/g,'_');
+  var path = recId + '/' + Date.now() + '_' + safe;
+  var res = await fetch(SUPABASE_URL + '/storage/v1/object/' + DF_BUCKET + '/' + path, {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+               'Content-Type': file.type || 'application/pdf', 'x-upsert': 'true' },
+    body: file
+  });
+  if (!res.ok) throw new Error('storage upload ' + res.status);
+  return SUPABASE_URL + '/storage/v1/object/public/' + DF_BUCKET + '/' + path;
+}
+
+// ── Arıza formu Excel importu (foto/resim İÇE ALINMAZ) ────────
+function dfImportExcel(file) {
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      var wb = XLSX.read(ev.target.result, { type:'binary', cellDates:true });
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var range = XLSX.utils.decode_range(ws['!ref']);
+      var cells = [];
+      for (var R=range.s.r; R<=range.e.r; R++) for (var C=range.s.c; C<=range.e.c; C++) {
+        var cell = ws[XLSX.utils.encode_cell({r:R,c:C})];
+        if (cell && cell.v !== undefined && String(cell.v).trim() !== '') cells.push({ r:R, c:C, v:cell.v });
+      }
+      var norm = function(s){ return String(s).replace(/\s+/g,' ').trim().toLowerCase(); };
+      var findLabel = function(txt){ var t=norm(txt); return cells.find(function(x){ return norm(x.v).indexOf(t)===0; }) || null; };
+      var valueRight = function(lab){
+        if (!lab) return '';
+        var row = cells.filter(function(x){ return x.r===lab.r && x.c>lab.c; }).sort(function(a,b){ return a.c-b.c; });
+        return row.length ? row[0].v : '';
+      };
+      var asDate = function(v){
+        if (v instanceof Date) return v.toISOString().slice(0,10);
+        if (typeof v === 'string' && /\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0,10);
+        if (typeof v === 'string' && /\d{1,2}[./]\d{1,2}[./]\d{4}/.test(v)) { var p=v.split(/[./]/); return p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0'); }
+        return '';
+      };
+      var sectionText = function(startLab, endLabels){
+        if (!startLab) return '';
+        var endRow = range.e.r + 1;
+        endLabels.forEach(function(t){ var l=findLabel(t); if (l && l.r>startLab.r && l.r<endRow) endRow=l.r; });
+        return cells.filter(function(x){ return x.r>startLab.r && x.r<endRow && x.c<=3; })
+          .sort(function(a,b){ return a.r-b.r || a.c-b.c; })
+          .map(function(x){ return String(x.v).trim(); })
+          .filter(function(s,i,arr){ return s && arr.indexOf(s)===i; })
+          .join('\n');
+      };
+      var nameBelow = function(txt){
+        var lab = findLabel(txt); if (!lab) return '';
+        var below = cells.filter(function(x){ return x.c>=lab.c-2 && x.c<=lab.c+2 && x.r>lab.r && x.r<=lab.r+8; })
+          .sort(function(a,b){ return a.r-b.r; });
+        return below.length ? String(below[0].v).trim() : '';
+      };
+
+      var rec = {
+        id: 'df_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),
+        vessel: canonicalize(String(valueRight(findLabel('Vessel Name'))||'')),
+        imo: String(valueRight(findLabel('IMO No'))||''),
+        dateIdent: asDate(valueRight(findLabel('Date of Identification'))),
+        dateReport: asDate(valueRight(findLabel('Date of Report'))),
+        equipType: String(valueRight(findLabel('Equipment Type'))||'').toUpperCase(),
+        manufacturer: String(valueRight(findLabel('Manufacturer'))||''),
+        model: String(valueRight(findLabel('Model'))||''),
+        serial: String(valueRight(findLabel('Serial No'))||''),
+        bookletId: String(valueRight(findLabel('Equipment Booklet ID'))||''),
+        nextPort: String(valueRight(findLabel('Next Port'))||''),
+        eta: asDate(valueRight(findLabel('ETA to Next Port'))),
+        description: sectionText(findLabel('A. Description'), ['B. Defect Pictures','C. Result','D. Required']),
+        result: sectionText(findLabel('C. Result'), ['D. Required','Equipment Booklet ID']),
+        spares: sectionText(findLabel('D. Required'), ['Equipment Booklet ID','Relevant Page']),
+        chiefEng: nameBelow('Chief Engineer'),
+        master: nameBelow('Master'),
+        status: 'open', code:'', solution:'', reportUrl:'', reportName:'',
+        equipId:'', pmsCode:'',
+        addedAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+      };
+      if (rec.equipType && DF_EQUIP_TYPES.indexOf(rec.equipType) === -1) {
+        var match = DF_EQUIP_TYPES.find(function(t){ return t.indexOf(rec.equipType)===0 || rec.equipType.indexOf(t)===0; });
+        rec.equipType = match || 'OTHER';
+      }
+      if (!rec.vessel || !rec.description) {
+        showToast('Form okunamadı — Vessel Name / Description bulunamadı','error'); return;
+      }
+      // Otomatik sınıflandırma: metinden tip/marka/model tespit + registry bağla
+      dfAutoClassify(rec);
+      if (typeof registerVessel === 'function') { var rn = registerVessel(rec.vessel); if (rn) rec.vessel = canonicalize(rn); }
+      var recs = dfRecords(); recs.push(rec); dfSaveAll(recs);
+      _dfExpanded.add(rec.id);
+      _dfView = 'defects';
+      dfRender();
+      _dfShowModal(recs[recs.length-1]);
+      showToast('Form imported — kontrol edip kaydedin','success');
+    } catch(e) {
+      console.warn('defect import failed', e);
+      showToast('Excel import failed: '+e.message,'error');
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+// ── Arıza kodu kütüphanesi ────────────────────────────────────
+function dfOpenCodes() {
+  var ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;display:flex;align-items:center;justify-content:center;padding:20px;';
+  var render = function() {
+    var codes = dfCodes();
+    var rows = codes.length ? codes.map(function(c,i){
+      return '<div style="display:grid;grid-template-columns:120px 1fr 26px;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);">'
+        + '<b style="font-size:14px;color:var(--accent);">'+escHtml(c.code)+'</b>'
+        + '<span style="font-size:14px;color:var(--text);">'+escHtml(c.label||'')+(c.desc?' — <span style="color:var(--text3);">'+escHtml(c.desc)+'</span>':'')+'</span>'
+        + '<button onclick="window._dfCodeDel('+i+')" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:16px;">×</button></div>';
+    }).join('') : '<div style="font-size:14px;color:var(--text3);padding:10px 0;">No codes yet — add your first defect code below.</div>';
+    ov.querySelector('#dfCodeList').innerHTML = rows;
+  };
+  window._dfCodeDel = function(i){ var c=dfCodes(); c.splice(i,1); dfCodesSave(c); render(); };
+  var inp = _dfS.input;
+  ov.innerHTML = '<div style="background:var(--navy2);border:1px solid var(--border2);border-radius:14px;max-width:620px;width:100%;max-height:85vh;overflow-y:auto;padding:22px;">'
+    + '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:18px;font-weight:800;color:var(--text);margin-bottom:4px;">📖 Defect Code Library</div>'
+    + '<div style="font-size:13px;color:var(--text3);margin-bottom:12px;">Arıza kodlarının anlamını tanımlayın; kayıtlara kod atayıp filtreleyebilirsiniz.</div>'
+    + '<div id="dfCodeList"></div>'
+    + '<div style="display:grid;grid-template-columns:120px 1fr 1fr auto;gap:10px;margin-top:14px;">'
+    + '<input id="dfNewCode" placeholder="CODE" style="'+inp+'">'
+    + '<input id="dfNewLabel" placeholder="Kısa ad" style="'+inp+'">'
+    + '<input id="dfNewDesc" placeholder="Açıklama (ops.)" style="'+inp+'">'
+    + '<button id="dfCodeAdd" class="btn btn-primary" style="padding:9px 16px;font-size:14px;">Add</button>'
+    + '</div>'
+    + '<div style="display:flex;justify-content:flex-end;margin-top:16px;"><button id="dfCodeClose" style="padding:9px 20px;background:var(--navy3);border:1px solid var(--border2);border-radius:8px;color:var(--text2);font-weight:700;font-size:14px;cursor:pointer;">Close</button></div>'
+    + '</div>';
+  document.body.appendChild(ov);
+  render();
+  ov.addEventListener('click', function(e){ if(e.target===ov) ov.remove(); });
+  ov.querySelector('#dfCodeClose').onclick = function(){ ov.remove(); };
+  ov.querySelector('#dfCodeAdd').onclick = function() {
+    var code = ov.querySelector('#dfNewCode').value.trim().toUpperCase();
+    var label = ov.querySelector('#dfNewLabel').value.trim();
+    if (!code) { showToast('Code required','error'); return; }
+    var codes = dfCodes();
+    if (codes.some(function(c){ return c.code===code; })) { showToast('Code already exists','error'); return; }
+    codes.push({ code:code, label:label, desc:ov.querySelector('#dfNewDesc').value.trim(), updatedAt:new Date().toISOString() });
+    dfCodesSave(codes);
+    ov.querySelector('#dfNewCode').value=''; ov.querySelector('#dfNewLabel').value=''; ov.querySelector('#dfNewDesc').value='';
+    render();
+  };
 }
 
 </script>
