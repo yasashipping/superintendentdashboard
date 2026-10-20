@@ -17179,6 +17179,17 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
+// Cache Storage'da kalmış eski HTML kopyaları da temizle — SW silinse bile bu
+// cache'ler eski sürümü sunmaya devam edebiliyor ("değişiklikler görünmüyor").
+if (window.caches && caches.keys) {
+  caches.keys().then(function(keys){ keys.forEach(function(k){ caches.delete(k); }); }).catch(function(){});
+}
+// Görünür sürüm damgası: hangi dosyanın çalıştığını ekrandan okumak için
+window.APP_VERSION = '2026-10-20.b';
+window.addEventListener('load', function(){
+  var el = document.getElementById('storageLabel');
+  if (el && el.textContent.indexOf('v' + APP_VERSION) === -1) el.textContent += ' · v' + APP_VERSION;
+});
 </script>
 </body>
 </html>
